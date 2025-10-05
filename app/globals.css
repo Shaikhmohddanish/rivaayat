@@ -1,0 +1,227 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  /* Elegant feminine color palette */
+  --background: #fefcff; /* Soft cream white */
+  --foreground: #2d1b3d; /* Deep plum */
+  --card: #ffffff;
+  --card-foreground: #2d1b3d;
+  --popover: #ffffff;
+  --popover-foreground: #2d1b3d;
+  --primary: #c7749a; /* Soft rose pink */
+  --primary-foreground: #ffffff;
+  --secondary: #f8f2f7; /* Pale lavender */
+  --secondary-foreground: #2d1b3d;
+  --muted: #f3eef5; /* Light lavender mist */
+  --muted-foreground: #6b4c7a; /* Muted purple */
+  --accent: #e8d5e8; /* Soft lavender */
+  --accent-foreground: #2d1b3d;
+  --destructive: #d63384; /* Elegant red */
+  --destructive-foreground: #ffffff;
+  --border: #e8d5e8; /* Soft lavender border */
+  --input: #f8f2f7;
+  --ring: #c7749a; /* Soft rose focus ring */
+  --chart-1: #c7749a;
+  --chart-2: #a855a6;
+  --chart-3: #e879b9;
+  --chart-4: #f3c5d8;
+  --chart-5: #d8b4fe;
+  --radius: 0.75rem; /* More rounded for feminine feel */
+  
+  /* Sidebar colors */
+  --sidebar: #fefcff;
+  --sidebar-foreground: #2d1b3d;
+  --sidebar-primary: #c7749a;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #f8f2f7;
+  --sidebar-accent-foreground: #2d1b3d;
+  --sidebar-border: #e8d5e8;
+  --sidebar-ring: #c7749a;
+}
+
+.dark {
+  /* Dark mode with elegant purple theme */
+  --background: #1a0f1f; /* Deep purple black */
+  --foreground: #f8f2f7; /* Soft cream */
+  --card: #2d1b3d; /* Deep plum */
+  --card-foreground: #f8f2f7;
+  --popover: #2d1b3d;
+  --popover-foreground: #f8f2f7;
+  --primary: #e879b9; /* Bright rose */
+  --primary-foreground: #1a0f1f;
+  --secondary: #432a4d; /* Dark purple */
+  --secondary-foreground: #f8f2f7;
+  --muted: #432a4d;
+  --muted-foreground: #c7749a;
+  --accent: #432a4d;
+  --accent-foreground: #f8f2f7;
+  --destructive: #ff6b9d; /* Bright pink */
+  --destructive-foreground: #1a0f1f;
+  --border: #432a4d;
+  --input: #432a4d;
+  --ring: #e879b9;
+  --chart-1: #e879b9;
+  --chart-2: #c7749a;
+  --chart-3: #a855a6;
+  --chart-4: #f3c5d8;
+  --chart-5: #d8b4fe;
+  
+  /* Dark sidebar */
+  --sidebar: #2d1b3d;
+  --sidebar-foreground: #f8f2f7;
+  --sidebar-primary: #e879b9;
+  --sidebar-primary-foreground: #1a0f1f;
+  --sidebar-accent: #432a4d;
+  --sidebar-accent-foreground: #f8f2f7;
+  --sidebar-border: #432a4d;
+  --sidebar-ring: #e879b9;
+}
+
+@theme inline {
+  --font-sans: 'Inter', sans-serif;
+  --font-serif: 'Playfair Display', serif;
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  
+  body {
+    @apply bg-background text-foreground font-sans;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-serif;
+  }
+  
+  .elegant-gradient {
+    background: linear-gradient(135deg, #c7749a 0%, #a855a6 50%, #e879b9 100%);
+  }
+  
+  .elegant-text-gradient {
+    background: linear-gradient(135deg, #c7749a 0%, #a855a6 50%, #e879b9 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  
+  .glass-effect {
+    backdrop-filter: blur(10px);
+    background: rgba(248, 242, 247, 0.8);
+    border: 1px solid rgba(199, 116, 154, 0.2);
+  }
+  
+  .dark .glass-effect {
+    background: rgba(45, 27, 61, 0.8);
+    border: 1px solid rgba(232, 121, 185, 0.2);
+  }
+  
+  .elegant-shadow {
+    box-shadow: 0 10px 25px -5px rgba(199, 116, 154, 0.1), 0 8px 10px -6px rgba(199, 116, 154, 0.1);
+  }
+  
+  .elegant-hover {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  
+  .elegant-hover:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 20px 25px -5px rgba(199, 116, 154, 0.15), 0 10px 10px -5px rgba(199, 116, 154, 0.1);
+  }
+  
+  .elegant-text-shadow {
+    text-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  }
+  
+  /* Shimmer Loading Effects */
+  @keyframes shimmer {
+    0% {
+      background-position: -468px 0;
+    }
+    100% {
+      background-position: 468px 0;
+    }
+  }
+  
+  .shimmer {
+    background: linear-gradient(
+      90deg,
+      rgba(199, 116, 154, 0.08) 0%,
+      rgba(199, 116, 154, 0.2) 50%,
+      rgba(199, 116, 154, 0.08) 100%
+    );
+    background-size: 468px 100%;
+    animation: shimmer 1.5s ease-in-out infinite;
+  }
+  
+  .shimmer-card {
+    background: linear-gradient(
+      90deg,
+      rgba(248, 242, 247, 0.4) 0%,
+      rgba(199, 116, 154, 0.1) 50%,
+      rgba(248, 242, 247, 0.4) 100%
+    );
+    background-size: 468px 100%;
+    animation: shimmer 1.5s ease-in-out infinite;
+  }
+  
+  .dark .shimmer {
+    background: linear-gradient(
+      90deg,
+      rgba(45, 27, 61, 0.4) 0%,
+      rgba(232, 121, 185, 0.2) 50%,
+      rgba(45, 27, 61, 0.4) 100%
+    );
+  }
+  
+  .dark .shimmer-card {
+    background: linear-gradient(
+      90deg,
+      rgba(45, 27, 61, 0.6) 0%,
+      rgba(232, 121, 185, 0.3) 50%,
+      rgba(45, 27, 61, 0.6) 100%
+    );
+  }
+}
