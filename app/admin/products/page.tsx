@@ -5,19 +5,45 @@ import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Plus, Search, Pencil, Star } from "lucide-react"
+import { Plus, Search, Pencil, Star, RefreshCw } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
 import type { Product } from "@/lib/types"
+import { useAdminCache } from "@/hooks/use-admin-cache"
+import { ADMIN_CACHE_KEYS } from "@/lib/admin-cache"
 
 export default function AdminProductsPage() {
   const { data: session, status } = useSession()
   const router = useRouter()
-  const [products, setProducts] = useState<Product[]>([])
-  const [filteredProducts, setFilteredProducts] = useState<Product[]>([])
-  const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
-
+  const [isRefreshing, setIsRefreshing] = useState(false)
+  
+  // Use admin cache for products
+  const [products, loading, error, refreshProducts] = useAdminCache<Product[]>(
+    ADMIN_CACHE_KEYS.PRODUCTS_ADMIN_LIST,
+    async () => {
+      const response = await fetch("/api/admin/products")
+      if (!response.ok) {
+        throw new Error("Failed to fetch products")
+      }
+      return response.json()
+    },
+    [session]
+  )
+  
+  // Filter products based on search query
+  const filteredProducts = searchQuery.trim() === "" 
+    ? products || [] 
+    : (products || []).filter(
+        (product) => {
+          const query = searchQuery.toLowerCase()
+          return product.name.toLowerCase().includes(query) ||
+            product.slug.toLowerCase().includes(query) ||
+            product.description.toLowerCase().includes(query)
+        }
+      )
+  
+  // Redirect if not admin
   useEffect(() => {
     if (status === "unauthenticated") {
       router.push("/auth/login")
@@ -25,53 +51,17 @@ export default function AdminProductsPage() {
       router.push("/")
     }
   }, [status, session, router])
-
-  useEffect(() => {
-    if (session?.user?.role === "admin") {
-      fetchProducts()
-    }
-  }, [session])
-
-  useEffect(() => {
-    if (searchQuery.trim() === "") {
-      setFilteredProducts(products)
-    } else {
-      const query = searchQuery.toLowerCase()
-      setFilteredProducts(
-        products.filter(
-          (product) =>
-            product.name.toLowerCase().includes(query) ||
-            product.slug.toLowerCase().includes(query) ||
-            product.description.toLowerCase().includes(query),
-        ),
-      )
-    }
-  }, [searchQuery, products])
-
-  const fetchProducts = async () => {
-    try {
-      const response = await fetch("/api/admin/products")
-      if (response.ok) {
-        const data = await response.json()
-        setProducts(data)
-        setFilteredProducts(data)
-      }
-    } catch (error) {
-      console.error("Error fetching products:", error)
-    } finally {
-      setLoading(false)
-    }
+  
+  // Function to manually refresh products
+  const handleRefresh = async () => {
+    setIsRefreshing(true)
+    await refreshProducts()
+    setTimeout(() => setIsRefreshing(false), 500)
   }
 
-  if (status === "loading" || loading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="text-center">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent mx-auto mb-4" />
-          <p className="text-muted-foreground">Loading products...</p>
-        </div>
-      </div>
-    )
+  // We now use the loading.tsx file for the loading state
+  if (status === "loading") {
+    return null
   }
 
   if (session?.user?.role !== "admin") {
@@ -85,12 +75,22 @@ export default function AdminProductsPage() {
           <h1 className="text-3xl font-bold mb-2">Product Management</h1>
           <p className="text-muted-foreground">Manage your product catalog</p>
         </div>
-        <Button asChild>
-          <Link href="/admin/products/new">
-            <Plus className="h-4 w-4 mr-2" />
-            Add Product
-          </Link>
-        </Button>
+        <div className="flex gap-2">
+          <Button 
+            variant="outline" 
+            onClick={handleRefresh} 
+            disabled={isRefreshing || loading}
+          >
+            <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+            {isRefreshing ? 'Refreshing...' : 'Refresh'}
+          </Button>
+          <Button asChild>
+            <Link href="/admin/products/new">
+              <Plus className="h-4 w-4 mr-2" />
+              Add Product
+            </Link>
+          </Button>
+        </div>
       </div>
 
       <div className="mb-6">

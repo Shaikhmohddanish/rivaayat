@@ -225,3 +225,52 @@
     );
   }
 }
+
+/* Shimmer Loading Effect */
+.shimmer {
+  background: #f6f7f8;
+  background-image: linear-gradient(
+    to right,
+    #f6f7f8 0%,
+    #f0f1f5 20%,
+    #f6f7f8 40%,
+    #f6f7f8 100%
+  );
+  background-repeat: no-repeat;
+  background-size: 800px 104px;
+  display: inline-block;
+  position: relative;
+  animation-duration: 1.5s;
+  animation-fill-mode: forwards;
+  animation-iteration-count: infinite;
+  animation-name: shimmerAnimation;
+  animation-timing-function: linear;
+}
+
+.dark .shimmer {
+  background: #29263a;
+  background-image: linear-gradient(
+    to right,
+    #29263a 0%,
+    #342f4a 20%,
+    #29263a 40%,
+    #29263a 100%
+  );
+}
+
+@keyframes shimmerAnimation {
+  0% {
+    background-position: -468px 0;
+  }
+  100% {
+    background-position: 468px 0;
+  }
+}
+
+.elegant-shadow {
+  box-shadow: 0 4px 24px rgba(199, 116, 154, 0.05);
+}
+
+.dark .elegant-shadow {
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.25);
+}

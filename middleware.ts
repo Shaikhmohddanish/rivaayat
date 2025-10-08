@@ -6,10 +6,15 @@ export default withAuth(
     const token = req.nextauth.token
     const isAdmin = token?.role === "admin"
     const isAdminRoute = req.nextUrl.pathname.startsWith("/admin")
-
+    
     // Protect admin routes
     if (isAdminRoute && !isAdmin) {
-      return NextResponse.redirect(new URL("/", req.url))
+      // Redirect to homepage if authenticated but not admin
+      if (token) {
+        return NextResponse.redirect(new URL("/", req.url))
+      }
+      // Let NextAuth handle the authentication flow for unauthenticated users
+      return NextResponse.redirect(new URL(`/auth/login?callbackUrl=${encodeURIComponent(req.url)}`, req.url))
     }
 
     return NextResponse.next()

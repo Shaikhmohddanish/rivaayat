@@ -22,6 +22,9 @@ export async function GET(request: NextRequest) {
         { status: 401 }
       )
     }
+    
+    // NOTE: User address data is now cached in localStorage instead of Redis
+    // to save Redis memory for admin and shared data
 
     await client.connect()
     const db = client.db("rivaayat")
@@ -59,7 +62,7 @@ export async function GET(request: NextRequest) {
       ...addr,
       _id: addr._id.toString(),
     }))
-
+    
     return NextResponse.json({
       addresses: formattedAddresses
     })
@@ -98,169 +101,12 @@ export async function PUT(request: NextRequest) {
 
     // Validate each address
     for (const address of addresses) {
-      if (!address.type || !address.firstName || !address.lastName || 
-          !address.addressLine1 || !address.city || !address.state || 
-          !address.postalCode || !address.country) {
+      if (!address.name || !address.street || !address.city || !address.state || !address.zip) {
         return NextResponse.json(
-          { error: "Missing required address fields" },
+          { error: "Each address must include name, street, city, state, and zip" },
           { status: 400 }
         )
       }
-
-      if (!["home", "work", "billing", "shipping"].includes(address.type)) {
-        return NextResponse.json(
-          { error: "Invalid address type" },
-          { status: 400 }
-        )
-      }
-    }
-
-    // Ensure only one default address
-    const defaultAddresses = addresses.filter(addr => addr.isDefault)
-    if (defaultAddresses.length > 1) {
-      return NextResponse.json(
-        { error: "Only one address can be set as default" },
-        { status: 400 }
-      )
-    }
-
-    // If no default address and addresses exist, set first as default
-    if (addresses.length > 0 && defaultAddresses.length === 0) {
-      addresses[0].isDefault = true
-    }
-
-    await client.connect()
-    const db = client.db("rivaayat")
-    const users = db.collection("users")
-    const addressesCollection = db.collection("addresses")
-    
-    // Get the user ID
-    const user = await users.findOne({ email: session.user.email })
-    if (!user) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 })
-    }
-    
-    const userId = user._id.toString()
-    
-    // Get existing address IDs for this user
-    const existingAddresses = await addressesCollection
-      .find({ userId })
-      .toArray()
-    
-    const existingAddressIds = existingAddresses.map(addr => addr._id.toString())
-    
-    // Process addresses - prepare for batch operations
-    const updatedAddresses = []
-    const addressIdsToKeep = []
-    
-    for (const address of addresses) {
-      const isExistingAddress = address._id && existingAddressIds.includes(address._id)
-      
-      const processedAddress = {
-        ...address,
-        userId,
-        country: "India", // Ensure country is always India
-        updatedAt: getCurrentDateIST()
-      }
-      
-      if (isExistingAddress) {
-        // Update existing address
-        const addressId = new ObjectId(address._id)
-        await addressesCollection.updateOne(
-          { _id: addressId },
-          { $set: processedAddress }
-        )
-        addressIdsToKeep.push(addressId)
-      } else {
-        // Create new address
-        const result = await addressesCollection.insertOne({
-          ...processedAddress,
-          _id: new ObjectId(),
-          createdAt: getCurrentDateIST()
-        })
-        addressIdsToKeep.push(result.insertedId)
-      }
-      
-      updatedAddresses.push(processedAddress)
-    }
-    
-    // Delete addresses that are no longer in the array
-    await addressesCollection.deleteMany({
-      userId,
-      _id: { $nin: addressIdsToKeep }
-    })
-    
-    // Update user document to reference address IDs only
-    const result = await users.updateOne(
-      { email: session.user.email },
-      { 
-        $set: { 
-          addressIds: addressIdsToKeep.map(id => id.toString()),
-          updatedAt: getCurrentDateIST()
-        } 
-      }
-    )
-
-    if (result.matchedCount === 0) {
-      return NextResponse.json(
-        { error: "User not found" },
-        { status: 404 }
-      )
-    }
-
-    // Fetch the updated addresses to return
-    const updatedAddressList = await addressesCollection
-      .find({ userId })
-      .toArray();
-    
-    return NextResponse.json({
-      success: true,
-      addresses: updatedAddressList.map(addr => ({
-        ...addr,
-        _id: addr._id.toString()
-      }))
-    })
-
-  } catch (error) {
-    console.error("Error updating addresses:", error)
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    )
-  } finally {
-    await client.close()
-  }
-}
-
-export async function POST(request: NextRequest) {
-  try {
-    const session = await getServerSession(authOptions)
-    
-    if (!session?.user?.email) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      )
-    }
-
-    const body = await request.json()
-    const { address } = body
-
-    // Validate required fields
-    if (!address.type || !address.firstName || !address.lastName || 
-        !address.addressLine1 || !address.city || !address.state || 
-        !address.postalCode) {
-      return NextResponse.json(
-        { error: "Missing required address fields" },
-        { status: 400 }
-      )
-    }
-
-    if (!["home", "work", "billing", "shipping"].includes(address.type)) {
-      return NextResponse.json(
-        { error: "Invalid address type" },
-        { status: 400 }
-      )
     }
 
     await client.connect()
@@ -269,74 +115,106 @@ export async function POST(request: NextRequest) {
     const addressesCollection = db.collection("addresses")
 
     // Get user ID
-    const user = await users.findOne({ email: session.user.email })
-    if (!user) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 })
-    }
-    
-    const userId = user._id.toString()
-    
-    // Get current addresses for this user to check if this is the first address
-    const currentAddresses = await addressesCollection
-      .find({ userId })
-      .toArray()
-    
-    // If this is the first address or marked as default, update existing defaults
-    if (currentAddresses.length === 0 || address.isDefault) {
-      // If there are existing addresses and this is being set as default,
-      // remove default flag from others
-      if (currentAddresses.length > 0 && address.isDefault) {
-        await addressesCollection.updateMany(
-          { userId, isDefault: true },
-          { $set: { isDefault: false, updatedAt: getCurrentDateIST() } }
-        )
-      }
-      address.isDefault = true
-    }
-    
-    // Create new address
-    const newAddressId = new ObjectId()
-    
-    const newAddress = {
-      ...address,
-      _id: newAddressId,
-      userId,
-      country: "India", // Ensure country is always India
-      createdAt: getCurrentDateIST(),
-      updatedAt: getCurrentDateIST()
-    }
-    
-    await addressesCollection.insertOne(newAddress)
-    
-    // Update user document with reference to new address
-    const updateResult = await users.updateOne(
+    const user = await users.findOne(
       { email: session.user.email },
-      { 
-        $addToSet: { addressIds: newAddressId.toString() },
-        $set: { updatedAt: getCurrentDateIST() }
-      }
+      { projection: { _id: 1, addressIds: 1 } }
     )
 
-    if (updateResult.matchedCount === 0) {
-      // Rollback address creation
-      await addressesCollection.deleteOne({ _id: newAddressId })
+    if (!user) {
       return NextResponse.json(
         { error: "User not found" },
         { status: 404 }
       )
     }
 
-    // Return the created address with string ID
+    const userId = user._id.toString()
+    const existingAddressIds = user.addressIds || []
+    const savedAddresses = []
+    const addressIds = []
+
+    // Process each address
+    for (const address of addresses) {
+      // Check if address has an ID (exists)
+      if (address._id) {
+        // Update existing address
+        const addressId = address._id
+        delete address._id  // Remove _id for MongoDB update
+
+        // Make sure address belongs to user
+        if (!existingAddressIds.includes(addressId)) {
+          return NextResponse.json(
+            { error: `Address with ID ${addressId} does not belong to user` },
+            { status: 403 }
+          )
+        }
+
+        // Update address
+        await addressesCollection.updateOne(
+          { _id: new ObjectId(addressId) },
+          { 
+            $set: {
+              ...address,
+              updatedAt: getCurrentDateIST()
+            } 
+          }
+        )
+
+        // Get updated address
+        const updatedAddress = await addressesCollection.findOne({ _id: new ObjectId(addressId) })
+        savedAddresses.push({
+          ...updatedAddress,
+          _id: addressId  // Add back the ID for response
+        })
+        addressIds.push(addressId)
+      } else {
+        // Create new address
+        const newAddress = {
+          ...address,
+          userId,
+          createdAt: getCurrentDateIST(),
+          updatedAt: getCurrentDateIST(),
+          isDefault: false  // New addresses are not default unless it's the only one
+        }
+        
+        const result = await addressesCollection.insertOne(newAddress)
+        const addressId = result.insertedId.toString()
+        savedAddresses.push({ ...newAddress, _id: addressId })
+        addressIds.push(addressId)
+      }
+    }
+
+    // If there's only one address, make it default
+    if (addressIds.length === 1) {
+      await addressesCollection.updateOne(
+        { _id: new ObjectId(addressIds[0]) },
+        { $set: { isDefault: true, updatedAt: getCurrentDateIST() } }
+      )
+    }
+
+    // Update user's addressIds
+    await users.updateOne(
+      { email: session.user.email },
+      { $set: { addressIds } }
+    )
+
+    // Get updated addresses list
+    const updatedAddressList = await addressesCollection
+      .find({ userId })
+      .toArray()
+      
+    // Format addresses for response
+    const formattedAddresses = updatedAddressList.map(addr => ({
+      ...addr,
+      _id: addr._id.toString()
+    }));
+      
     return NextResponse.json({
       success: true,
-      address: {
-        ...newAddress,
-        _id: newAddressId.toString()
-      }
+      addresses: formattedAddresses
     })
 
   } catch (error) {
-    console.error("Error adding address:", error)
+    console.error("Error updating addresses:", error)
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }
@@ -357,8 +235,9 @@ export async function DELETE(request: NextRequest) {
       )
     }
 
-    const { searchParams } = new URL(request.url)
-    const addressId = searchParams.get("id")
+    // Get the addressId from the URL
+    const url = new URL(request.url)
+    const addressId = url.searchParams.get('id')
 
     if (!addressId) {
       return NextResponse.json(
@@ -372,10 +251,17 @@ export async function DELETE(request: NextRequest) {
     const users = db.collection("users")
     const addressesCollection = db.collection("addresses")
 
-    // Get user ID
-    const user = await users.findOne({ email: session.user.email })
+    // Get user first
+    const user = await users.findOne(
+      { email: session.user.email },
+      { projection: { _id: 1 } }
+    )
+    
     if (!user) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 })
+      return NextResponse.json(
+        { error: "User not found" },
+        { status: 404 }
+      )
     }
     
     const userId = user._id.toString()
@@ -436,12 +322,15 @@ export async function DELETE(request: NextRequest) {
       .find({ userId })
       .toArray()
       
+    // Format addresses for response  
+    const formattedAddresses = updatedAddressList.map(addr => ({
+      ...addr,
+      _id: addr._id.toString()
+    }));
+      
     return NextResponse.json({
       success: true,
-      addresses: updatedAddressList.map(addr => ({
-        ...addr,
-        _id: addr._id.toString()
-      }))
+      addresses: formattedAddresses
     })
 
   } catch (error) {

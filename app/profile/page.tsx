@@ -1,12 +1,13 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { User, MapPin, Phone, Mail, Calendar, Settings, Lock } from "lucide-react"
+import { useSession } from "next-auth/react"
+import { useUserProfile, useUserAddresses } from "@/hooks/use-user-data"
 import { ProfileForm } from "@/components/profile-form"
 import { AddressManager } from "@/components/address-manager"
 import { PasswordUpdate } from "@/components/password-update"
@@ -16,9 +17,18 @@ import type { User as UserType, Address } from "@/lib/types"
 export default function ProfilePage() {
   const { data: session, status, update } = useSession()
   const router = useRouter()
-  const [userData, setUserData] = useState<UserType | null>(null)
-  const [loading, setLoading] = useState(true)
+  const { profile: userData, loading: profileLoading } = useUserProfile()
+  const { 
+    addresses: userAddresses, 
+    loading: addressesLoading, 
+    updateAddresses, 
+    deleteAddress 
+  } = useUserAddresses()
+  
   const [error, setError] = useState("")
+  
+  // Combined loading state
+  const loading = profileLoading || addressesLoading
 
   useEffect(() => {
     if (status === "loading") return
@@ -27,38 +37,7 @@ export default function ProfilePage() {
       router.push("/auth/login")
       return
     }
-
-    fetchUserData()
   }, [session, status, router])
-
-  const fetchUserData = async () => {
-    try {
-      setLoading(true)
-      
-      // Fetch user profile data
-      const userResponse = await fetch("/api/user/profile")
-      const userData = await userResponse.json()
-
-      if (!userResponse.ok) {
-        throw new Error(userData.error || "Failed to fetch profile")
-      }
-      
-      // Fetch user addresses separately
-      const addressesResponse = await fetch("/api/user/addresses")
-      const addressesData = await addressesResponse.json()
-      
-      // Combine user data with addresses
-      setUserData({ 
-        ...userData, 
-        addresses: addressesData.addresses || [] 
-      })
-    } catch (error) {
-      console.error("Error fetching profile:", error)
-      setError(error instanceof Error ? error.message : "Failed to load profile")
-    } finally {
-      setLoading(false)
-    }
-  }
 
   // Show authentication prompt if not logged in
   if (status === "unauthenticated") {
@@ -93,14 +72,12 @@ export default function ProfilePage() {
       if (!response.ok) {
         throw new Error(data.error || "Failed to update profile")
       }
-
-      setUserData(data.user)
       
       // Update session if name or image changed
-      if (profileData.name || profileData.image) {
+      if ((profileData.name || profileData.image) && update) {
         await update({
-          name: data.user.name,
-          image: data.user.image
+          name: data.name,
+          image: data.image
         })
       }
 
@@ -116,16 +93,7 @@ export default function ProfilePage() {
 
   const handleAddressUpdate = async (addresses: Address[]) => {
     try {
-      // Get fresh addresses from API
-      const response = await fetch("/api/user/addresses")
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.error || "Failed to fetch addresses")
-      }
-
-      // Update user data with latest addresses
-      setUserData(prev => prev ? { ...prev, addresses: data.addresses } : null)
+      const result = await updateAddresses(addresses);
       return { success: true }
     } catch (error) {
       console.error("Error updating addresses:", error)
@@ -179,7 +147,7 @@ export default function ProfilePage() {
               <Settings className="h-12 w-12 text-destructive mx-auto mb-4" />
               <h2 className="text-lg font-semibold mb-2">Error Loading Profile</h2>
               <p className="text-muted-foreground mb-4">{error}</p>
-              <Button onClick={fetchUserData} variant="outline">
+              <Button onClick={() => window.location.reload()} variant="outline">
                 Try Again
               </Button>
             </CardContent>
@@ -193,9 +161,15 @@ export default function ProfilePage() {
     return null
   }
 
+  // Combine user data with addresses for components that expect it
+  const userWithAddresses = {
+    ...userData,
+    addresses: userAddresses || []
+  };
+
   return (
     <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-4 sm:py-8">
         <div className="max-w-4xl mx-auto">
           {/* Header */}
           <div className="mb-8">
@@ -210,8 +184,8 @@ export default function ProfilePage() {
           {/* Profile Overview Card */}
           <Card className="mb-8 elegant-shadow border-0 bg-card/80 backdrop-blur-sm">
             <CardContent className="p-6">
-              <div className="flex items-center gap-6">
-                <div className="relative">
+              <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6">
+                <div className="relative mb-4 sm:mb-0">
                   {userData.image ? (
                     <img
                       src={userData.image}
@@ -224,9 +198,9 @@ export default function ProfilePage() {
                     </div>
                   )}
                 </div>
-                <div className="flex-1">
+                <div className="flex-1 text-center sm:text-left">
                   <h2 className="text-2xl font-semibold mb-1">{userData.name}</h2>
-                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                  <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4 text-sm text-muted-foreground">
                     <span className="flex items-center gap-1">
                       <Mail className="h-4 w-4" />
                       {userData.email}
@@ -239,7 +213,7 @@ export default function ProfilePage() {
                     )}
                     <span className="flex items-center gap-1">
                       <MapPin className="h-4 w-4" />
-                      {userData.addresses?.length || 0} address{userData.addresses?.length !== 1 ? 'es' : ''} saved
+                      {userAddresses?.length || 0} address{userAddresses?.length !== 1 ? 'es' : ''} saved
                     </span>
                   </div>
                 </div>
@@ -254,34 +228,36 @@ export default function ProfilePage() {
                 value="profile" 
                 className="data-[state=active]:bg-primary data-[state=active]:text-white"
               >
-                <User className="h-4 w-4 mr-2" />
-                Personal Information
+                <User className="h-4 w-4 mr-0 sm:mr-2" />
+                <span className="hidden sm:inline">Personal Information</span>
+                <span className="inline sm:hidden">Profile</span>
               </TabsTrigger>
               <TabsTrigger 
                 value="addresses"
                 className="data-[state=active]:bg-primary data-[state=active]:text-white"
               >
-                <MapPin className="h-4 w-4 mr-2" />
-                Addresses
+                <MapPin className="h-4 w-4 mr-0 sm:mr-2" />
+                <span className="hidden sm:inline">Addresses</span>
+                <span className="inline sm:hidden">Address</span>
               </TabsTrigger>
               <TabsTrigger 
                 value="security"
                 className="data-[state=active]:bg-primary data-[state=active]:text-white"
               >
-                <Lock className="h-4 w-4 mr-2" />
-                Security
+                <Lock className="h-4 w-4 mr-0 sm:mr-2" />
+                <span className="inline">Security</span>
               </TabsTrigger>
             </TabsList>
 
             <TabsContent value="profile">
               <Card className="elegant-shadow border-0 bg-card/80 backdrop-blur-sm">
-                <CardHeader>
+                <CardHeader className="px-4 sm:px-6">
                   <CardTitle className="flex items-center gap-2">
                     <Settings className="h-5 w-5" />
                     Personal Information
                   </CardTitle>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="px-4 sm:px-6">
                   <ProfileForm user={userData} onUpdate={handleProfileUpdate} />
                 </CardContent>
               </Card>
@@ -289,15 +265,15 @@ export default function ProfilePage() {
 
             <TabsContent value="addresses">
               <Card className="elegant-shadow border-0 bg-card/80 backdrop-blur-sm">
-                <CardHeader>
+                <CardHeader className="px-4 sm:px-6">
                   <CardTitle className="flex items-center gap-2">
                     <MapPin className="h-5 w-5" />
                     Manage Addresses
                   </CardTitle>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="px-4 sm:px-6">
                   <AddressManager 
-                    addresses={userData.addresses || []} 
+                    addresses={userAddresses || []} 
                     onUpdate={handleAddressUpdate}
                     user={userData}
                   />

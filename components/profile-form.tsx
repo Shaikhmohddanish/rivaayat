@@ -178,7 +178,7 @@ export function ProfileForm({ user, onUpdate }: ProfileFormProps) {
       {/* Profile Picture Section */}
       <Card className="bg-muted/30 border-0">
         <CardContent className="p-6">
-          <div className="flex items-center gap-6">
+          <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6">
             <div className="relative">
               <Avatar className="w-24 h-24 elegant-shadow">
                 <AvatarImage src={user.image} alt={user.name} />
@@ -192,7 +192,7 @@ export function ProfileForm({ user, onUpdate }: ProfileFormProps) {
                 </div>
               )}
             </div>
-            <div className="flex-1">
+            <div className="flex-1 text-center sm:text-left">
               <h3 className="font-semibold mb-2">Profile Picture</h3>
               <p className="text-sm text-muted-foreground mb-4">
                 Upload a new profile picture. JPG, PNG or GIF (max 5MB)
@@ -223,7 +223,7 @@ export function ProfileForm({ user, onUpdate }: ProfileFormProps) {
 
       {/* Profile Form */}
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
           <div className="space-y-2">
             <Label htmlFor="name" className="text-sm font-medium">
               Full Name *
@@ -294,11 +294,11 @@ export function ProfileForm({ user, onUpdate }: ProfileFormProps) {
           </div>
         </div>
 
-        <div className="flex gap-4">
+        <div className="flex flex-col sm:flex-row gap-4">
           <Button
             type="submit"
             disabled={!isDirty || isLoading}
-            className="elegant-gradient text-white hover:opacity-90"
+            className="elegant-gradient text-white hover:opacity-90 w-full sm:w-auto"
           >
             {isLoading ? (
               <>
@@ -314,7 +314,7 @@ export function ProfileForm({ user, onUpdate }: ProfileFormProps) {
             type="button"
             variant="outline"
             onClick={() => window.location.reload()}
-            className="elegant-hover"
+            className="elegant-hover w-full sm:w-auto"
           >
             Cancel
           </Button>

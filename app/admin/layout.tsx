@@ -5,9 +5,11 @@ import { useState, useEffect } from "react"
 import { useSession } from "next-auth/react"
 import { useRouter, usePathname } from "next/navigation"
 import Link from "next/link"
-import { LayoutDashboard, Package, Users, Tag, ShoppingBag, LogOut, Truck } from "lucide-react"
+import { LayoutDashboard, Package, Users, Tag, ShoppingBag, LogOut, Truck, Menu, X, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { signOut } from "next-auth/react"
+import { useIsMobile } from "@/hooks/use-mobile"
+import { deleteLocalCachePattern } from "@/lib/local-storage"
 
 const navigation = [
   { name: "Dashboard", href: "/admin", icon: LayoutDashboard },
@@ -23,12 +25,34 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const router = useRouter()
   const pathname = usePathname()
   const [isClient, setIsClient] = useState(false)
+  const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [isRefreshing, setIsRefreshing] = useState(false)
+  const isMobile = useIsMobile()
+  
+  // Function to refresh admin data by clearing localStorage cache
+  const refreshAdminData = async () => {
+    setIsRefreshing(true)
+    try {
+      // Clear all admin-related cache patterns
+      await deleteLocalCachePattern('admin:*')
+      // Force reload the current page to fetch fresh data
+      router.refresh()
+      // Notify the user
+      setTimeout(() => setIsRefreshing(false), 1000) // Show spinner for at least 1 second
+    } catch (error) {
+      console.error('Error refreshing admin data:', error)
+      setIsRefreshing(false)
+    }
+  }
 
   useEffect(() => {
     setIsClient(true)
 
     if (status === "unauthenticated") {
-      router.push("/auth/login")
+      // Use signIn to properly handle the authentication flow
+      import('next-auth/react').then(({ signIn }) => {
+        signIn(undefined, { callbackUrl: '/admin' });
+      });
     } else if (session?.user?.role !== "admin" && status === "authenticated") {
       router.push("/")
     }
@@ -49,11 +73,33 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }
 
   return (
-    <div className="flex min-h-screen bg-muted/30">
+    <div className="flex min-h-screen bg-muted/30 relative">
+      {/* Mobile Sidebar Toggle */}
+      {isMobile && (
+        <div className="fixed top-4 left-4 z-50">
+          <Button 
+            size="icon" 
+            variant="outline" 
+            className="rounded-full bg-card" 
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+          >
+            {sidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          </Button>
+        </div>
+      )}
+      
+      {/* Mobile Backdrop */}
+      {isMobile && sidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-40"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
       {/* Sidebar */}
-      <aside className="w-64 bg-card border-r flex flex-col">
+      <aside className={`${isMobile ? 'fixed left-0 top-0 bottom-0 z-50' : 'relative'} ${isMobile && !sidebarOpen ? '-translate-x-full' : 'translate-x-0'} transition-transform duration-200 w-64 bg-card border-r flex flex-col`}>
         <div className="p-6 border-b">
-          <Link href="/admin" className="flex items-center gap-2">
+          <Link href="/admin" className="flex items-center gap-2" onClick={() => isMobile && setSidebarOpen(false)}>
             <div className="h-8 w-8 bg-primary rounded-lg flex items-center justify-center text-primary-foreground font-bold">
               R
             </div>
@@ -76,6 +122,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                     ? "bg-primary text-primary-foreground"
                     : "text-muted-foreground hover:bg-muted hover:text-foreground"
                 }`}
+                onClick={() => isMobile && setSidebarOpen(false)}
               >
                 <item.icon className="h-5 w-5" />
                 <span className="font-medium">{item.name}</span>
@@ -94,11 +141,26 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               <p className="text-xs text-muted-foreground truncate">{session?.user?.email || ''}</p>
             </div>
           </div>
+          <div className="flex gap-2 mb-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex-1 bg-transparent"
+              onClick={refreshAdminData}
+              disabled={isRefreshing}
+            >
+              <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+              {isRefreshing ? 'Refreshing...' : 'Refresh Data'}
+            </Button>
+          </div>
           <Button
             variant="outline"
             size="sm"
             className="w-full bg-transparent"
-            onClick={() => signOut({ callbackUrl: "/" })}
+            onClick={() => {
+              deleteLocalCachePattern('user:*'); // Clear user cache before signing out
+              signOut({ callbackUrl: "/" });
+            }}
           >
             <LogOut className="h-4 w-4 mr-2" />
             Sign Out
@@ -107,7 +169,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-auto">{children}</main>
+      <main className="flex-1 overflow-auto pt-4 pb-4 sm:py-0">{children}</main>
     </div>
   )
 }

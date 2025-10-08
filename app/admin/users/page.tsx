@@ -111,15 +111,9 @@ export default function AdminUsersPage() {
     }
   }
 
-  if (status === "loading" || loading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="text-center">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent mx-auto mb-4" />
-          <p className="text-muted-foreground">Loading users...</p>
-        </div>
-      </div>
-    )
+  // We now use the loading.tsx file for the loading state
+  if (status === "loading") {
+    return null
   }
 
   if (session?.user?.role !== "admin") {

@@ -21,7 +21,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     const client = await clientPromise
     const db = client.db("rivaayat")
 
-    const product = await db.collection<Product>("products").findOne({ _id: new ObjectId(params.id) })
+    const product = await db.collection<Product>("products").findOne({ _id: new ObjectId(params.id) as any })
 
     if (!product) {
       return NextResponse.json({ error: "Product not found" }, { status: 404 })
@@ -64,7 +64,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
       const db = client.db("rivaayat")
       const existingProduct = await db.collection<Product>("products").findOne({
         slug,
-        _id: { $ne: new ObjectId(params.id) },
+        _id: { $ne: new ObjectId(params.id) as any },
       })
 
       if (existingProduct) {
@@ -84,11 +84,19 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
 
     const result = await db
       .collection<Product>("products")
-      .findOneAndUpdate({ _id: new ObjectId(params.id) }, { $set: updateFields }, { returnDocument: "after" })
+      .findOneAndUpdate({ _id: new ObjectId(params.id) as any }, { $set: updateFields }, { returnDocument: "after" })
 
     if (!result) {
       return NextResponse.json({ error: "Product not found" }, { status: 404 })
     }
+
+    // Invalidate Redis cache for this product and the product list
+    const { deleteCache, deleteCachePattern, REDIS_KEYS } = await import("@/lib/redis")
+    await deleteCache(`${REDIS_KEYS.PRODUCT_DETAILS}${params.id}`)
+    // Invalidate all product lists with various filters
+    await deleteCachePattern(`${REDIS_KEYS.PRODUCT_LIST}*`)
+    // Also invalidate any search caches
+    await deleteCachePattern(`${REDIS_KEYS.PRODUCT_SEARCH}*`)
 
     return NextResponse.json({
       ...result,

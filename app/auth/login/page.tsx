@@ -24,6 +24,10 @@ export default function LoginPage() {
     setLoading(true)
 
     try {
+      // Get the callbackUrl from the URL if it exists
+      const urlParams = new URLSearchParams(window.location.search);
+      const callbackUrl = urlParams.get('callbackUrl') || '/';
+      
       const result = await signIn("credentials", {
         email,
         password,
@@ -33,7 +37,8 @@ export default function LoginPage() {
       if (result?.error) {
         setError("Invalid email or password")
       } else {
-        router.push("/")
+        // Redirect to the callback URL or default to home
+        router.push(callbackUrl)
         router.refresh()
       }
     } catch (err) {
@@ -44,7 +49,11 @@ export default function LoginPage() {
   }
 
   const handleGoogleSignIn = () => {
-    signIn("google", { callbackUrl: "/" })
+    // Get the callbackUrl from the URL if it exists
+    const urlParams = new URLSearchParams(window.location.search);
+    const callbackUrl = urlParams.get('callbackUrl') || '/';
+    
+    signIn("google", { callbackUrl })
   }
 
   return (

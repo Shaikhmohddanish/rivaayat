@@ -1,6 +1,7 @@
 import { productDb as mockProductDb } from "@/lib/db"
 import { getDatabase, isMongoDBAvailable } from "@/lib/mongodb-safe"
 import type { Product } from "@/lib/types"
+import { getCache, setCache, REDIS_KEYS, DEFAULT_CACHE_TTL } from "@/lib/redis"
 
 // Database abstraction layer that handles MongoDB connection gracefully
 export class DatabaseService {
@@ -12,16 +13,39 @@ export class DatabaseService {
     sort?: 'newest' | 'trending'
   } = {}): Promise<(Product & { _id: string })[]> {
     try {
+      // Generate a cache key based on the options
+      const cacheKey = `${REDIS_KEYS.PRODUCT_LIST}:${
+        options.featured ? 'featured:' : ''
+      }${options.sort ? `sort:${options.sort}:` : ''}${
+        options.limit ? `limit:${options.limit}` : ''
+      }`;
+      
+      // Try to get from cache first
+      const cachedProducts = await getCache<(Product & { _id: string })[]>(cacheKey);
+      if (cachedProducts) {
+        console.log(`Serving products from Redis cache: ${cacheKey}`);
+        return cachedProducts;
+      }
+      
+      // If not in cache, proceed with database fetch
+      console.log(`Products cache miss for ${cacheKey}, fetching from database`);
+      
       // Check if MongoDB is available and try to use it
       if (!this.mongoChecked) {
         await this.checkMongoConnection()
       }
 
+      let products: (Product & { _id: string })[];
       if (isMongoDBAvailable()) {
-        return await this.getMongoProducts(options)
+        products = await this.getMongoProducts(options)
       } else {
-        return await this.getMockProducts(options)
+        products = await this.getMockProducts(options)
       }
+      
+      // Store in cache
+      await setCache(cacheKey, products, DEFAULT_CACHE_TTL);
+      
+      return products;
     } catch (error) {
       console.warn('Database connection failed, falling back to mock data:', error)
       return await this.getMockProducts(options)

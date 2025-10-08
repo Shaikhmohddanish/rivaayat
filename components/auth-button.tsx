@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { useSession, signOut } from "next-auth/react"
 import Link from "next/link"
 import { User, LogOut, Package, Settings } from "lucide-react"
+import { deleteLocalCachePattern } from "@/lib/local-storage"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -83,7 +84,10 @@ export function AuthButton() {
           <DropdownMenuSeparator />
           <DropdownMenuItem
             className="cursor-pointer text-red-600"
-            onClick={() => signOut({ callbackUrl: "/" })}
+            onClick={() => {
+              deleteLocalCachePattern('user:*'); // Clear user cache before signing out
+              signOut({ callbackUrl: "/" });
+            }}
           >
             <LogOut className="mr-2 h-4 w-4" />
             Log out

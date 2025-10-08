@@ -8,8 +8,9 @@ import { useRouter } from "next/navigation"
 import type { Product } from "@/lib/types"
 
 async function getProduct(id: string) {
+  // The API already implements Redis caching, so we don't need to cache here
   const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/api/products/${id}`, {
-    cache: "no-store",
+    cache: "no-store", // Use Redis caching instead of Next.js cache
   })
   if (!response.ok) return null
   return response.json()

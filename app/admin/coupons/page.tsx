@@ -132,12 +132,9 @@ export default function AdminCouponsPage() {
     }
   }
 
-  if (loading || status === "loading") {
-    return (
-      <div className="container mx-auto py-8 px-4">
-        <p>Loading...</p>
-      </div>
-    )
+  // We now use the loading.tsx file for the loading state
+  if (status === "loading") {
+    return null
   }
 
   if (session?.user?.role !== "admin") {

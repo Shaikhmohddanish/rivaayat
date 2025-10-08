@@ -21,7 +21,9 @@ export async function GET(request: NextRequest) {
         { status: 401 }
       )
     }
-
+    
+    // NOTE: User profile data is now cached in localStorage instead of Redis
+    // to save Redis memory for admin and shared data
     await client.connect()
     const db = client.db("rivaayat")
     const users = db.collection("users")
@@ -49,7 +51,8 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    return NextResponse.json({
+    // Format user response
+    const userResponse = {
       _id: user._id,
       name: user.name,
       email: user.email,
@@ -59,7 +62,9 @@ export async function GET(request: NextRequest) {
       addresses: user.addresses || [],
       provider: user.provider || "credentials",
       password: !!user.password // Return boolean indicating if password exists
-    })
+    };
+    
+    return NextResponse.json(userResponse)
 
   } catch (error) {
     console.error("Error fetching user profile:", error)
@@ -152,19 +157,22 @@ export async function PUT(request: NextRequest) {
       }
     )
 
+    // Format user response
+    const userResponse = {
+      _id: updatedUser?._id,
+      name: updatedUser?.name,
+      email: updatedUser?.email,
+      image: updatedUser?.image,
+      phone: updatedUser?.phone || "",
+      dateOfBirth: updatedUser?.dateOfBirth || "",
+      addresses: updatedUser?.addresses || [],
+      provider: updatedUser?.provider || "credentials",
+      password: !!updatedUser?.password
+    };
+    
     return NextResponse.json({
       success: true,
-      user: {
-        _id: updatedUser?._id,
-        name: updatedUser?.name,
-        email: updatedUser?.email,
-        image: updatedUser?.image,
-        phone: updatedUser?.phone || "",
-        dateOfBirth: updatedUser?.dateOfBirth || "",
-        addresses: updatedUser?.addresses || [],
-        provider: updatedUser?.provider || "credentials",
-        password: !!updatedUser?.password
-      }
+      user: userResponse
     })
 
   } catch (error) {
