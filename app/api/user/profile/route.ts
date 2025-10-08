@@ -22,8 +22,8 @@ export async function GET(request: NextRequest) {
       )
     }
     
-    // NOTE: User profile data is now cached in localStorage instead of Redis
-    // to save Redis memory for admin and shared data
+    // NOTE: User profile data is now cached in localStorage instead of server-side caching
+    // to reduce server memory usage for individual user data
     await client.connect()
     const db = client.db("rivaayat")
     const users = db.collection("users")

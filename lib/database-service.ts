@@ -1,129 +1,139 @@
-import { productDb as mockProductDb } from "@/lib/db"
-import { getDatabase, isMongoDBAvailable } from "@/lib/mongodb-safe"
-import type { Product } from "@/lib/types"
-import { getCache, setCache, REDIS_KEYS, DEFAULT_CACHE_TTL } from "@/lib/redis"
+import { productDb as mockProductDb } from "@/lib/db";
+import { getDatabase, isMongoDBAvailable } from "@/lib/mongodb-safe";
+import { ObjectId } from "mongodb";
+import type { Product } from "@/lib/types";
 
-// Database abstraction layer that handles MongoDB connection gracefully
+// Database abstraction layer without Redis
 export class DatabaseService {
-  private static mongoChecked = false
+  private static mongoChecked = false;
 
   static async getProducts(options: {
-    featured?: boolean
-    limit?: number
-    sort?: 'newest' | 'trending'
+    featured?: boolean;
+    limit?: number;
+    sort?: 'newest' | 'trending';
   } = {}): Promise<(Product & { _id: string })[]> {
     try {
-      // Generate a cache key based on the options
-      const cacheKey = `${REDIS_KEYS.PRODUCT_LIST}:${
-        options.featured ? 'featured:' : ''
-      }${options.sort ? `sort:${options.sort}:` : ''}${
-        options.limit ? `limit:${options.limit}` : ''
-      }`;
+      console.log(`Fetching products from database with options:`, options);
       
-      // Try to get from cache first
-      const cachedProducts = await getCache<(Product & { _id: string })[]>(cacheKey);
-      if (cachedProducts) {
-        console.log(`Serving products from Redis cache: ${cacheKey}`);
-        return cachedProducts;
-      }
-      
-      // If not in cache, proceed with database fetch
-      console.log(`Products cache miss for ${cacheKey}, fetching from database`);
-      
-      // Check if MongoDB is available and try to use it
       if (!this.mongoChecked) {
-        await this.checkMongoConnection()
+        await this.checkMongoConnection();
       }
 
-      let products: (Product & { _id: string })[];
       if (isMongoDBAvailable()) {
-        products = await this.getMongoProducts(options)
+        return await this.getMongoProducts(options);
       } else {
-        products = await this.getMockProducts(options)
+        return await this.getMockProducts(options);
       }
-      
-      // Store in cache
-      await setCache(cacheKey, products, DEFAULT_CACHE_TTL);
-      
-      return products;
     } catch (error) {
-      console.warn('Database connection failed, falling back to mock data:', error)
-      return await this.getMockProducts(options)
+      console.warn('Database connection failed, falling back to mock data:', error);
+      return await this.getMockProducts(options);
     }
   }
 
-  private static async checkMongoConnection(): Promise<void> {
+  static async getProductById(id: string): Promise<(Product & { _id: string }) | null> {
     try {
-      const db = await getDatabase()
-      this.mongoChecked = true
-      if (db) {
-        console.log('MongoDB connection successful')
+      console.log(`Fetching product ${id} from database`);
+      
+      if (!this.mongoChecked) {
+        await this.checkMongoConnection();
+      }
+
+      if (isMongoDBAvailable()) {
+        return await this.getMongoProductById(id);
       } else {
-        console.log('MongoDB not available, using mock data')
+        return await this.getMockProductById(id);
       }
     } catch (error) {
-      console.warn('MongoDB connection check failed:', error)
-      this.mongoChecked = true
+      console.warn('Product fetch failed, falling back to mock data:', error);
+      return await this.getMockProductById(id);
+    }
+  }
+
+  private static async checkMongoConnection() {
+    this.mongoChecked = true;
+    try {
+      if (isMongoDBAvailable()) {
+        console.log('MongoDB connection successful');
+      } else {
+        console.log('MongoDB not available, using mock data');
+      }
+    } catch (error) {
+      console.warn('MongoDB connection check failed:', error);
     }
   }
 
   private static async getMongoProducts(options: {
-    featured?: boolean
-    limit?: number
-    sort?: 'newest' | 'trending'
+    featured?: boolean;
+    limit?: number;
+    sort?: 'newest' | 'trending';
   }): Promise<(Product & { _id: string })[]> {
-    const db = await getDatabase()
-    if (!db) {
-      throw new Error('MongoDB not available')
-    }
-
-    let query: any = {}
-    if (options.featured) {
-      query.isFeatured = true
-    }
-
-    let cursor = db.collection<Product>("products").find(query)
-
-    // Apply sorting
-    if (options.sort === 'newest') {
-      cursor = cursor.sort({ createdAt: -1 })
-    } else if (options.sort === 'trending') {
-      cursor = cursor.sort({ viewCount: -1 })
-    }
-
-    // Apply limit
-    if (options.limit) {
-      cursor = cursor.limit(options.limit)
-    }
-
-    const products = await cursor.toArray()
+    const db = await getDatabase();
+    if (!db) throw new Error('Database not available');
     
-    return products.map((p) => ({
-      ...p,
-      _id: p._id?.toString() || '',
-    }))
+    const collection = db.collection<Product>('products');
+
+    const pipeline: any[] = [];
+
+    if (options.featured) {
+      pipeline.push({ $match: { featured: true } });
+    }
+
+    if (options.sort === 'newest') {
+      pipeline.push({ $sort: { createdAt: -1 } });
+    } else if (options.sort === 'trending') {
+      pipeline.push({ $sort: { views: -1, rating: -1 } });
+    }
+
+    if (options.limit) {
+      pipeline.push({ $limit: options.limit });
+    }
+
+    const products = await collection.aggregate(pipeline).toArray();
+    return products.map((product: any) => ({
+      ...product,
+      _id: product._id.toString()
+    }));
+  }
+
+  private static async getMongoProductById(id: string): Promise<(Product & { _id: string }) | null> {
+    const db = await getDatabase();
+    if (!db) throw new Error('Database not available');
+    
+    const collection = db.collection<Product>('products');
+    
+    // Use ObjectId for lookup
+    if (!ObjectId.isValid(id)) {
+      return null;
+    }
+    
+    const product = await collection.findOne({ _id: new ObjectId(id) as any });
+    
+    return product ? { 
+      ...product, 
+      _id: product._id.toString() 
+    } : null;
   }
 
   private static async getMockProducts(options: {
-    featured?: boolean
-    limit?: number
-    sort?: 'newest' | 'trending'
+    featured?: boolean;
+    limit?: number;
+    sort?: 'newest' | 'trending';
   }): Promise<(Product & { _id: string })[]> {
-    const filters: any = {}
-    
+    const filters: any = {};
     if (options.featured) {
-      filters.featured = true
-    }
-    
-    if (options.limit) {
-      filters.limit = options.limit
+      filters.featured = true;
     }
 
-    const products = await mockProductDb.find(filters)
-    
-    return products.map((p) => ({
+    const products = await mockProductDb.find(filters);
+    return products.map((p: any) => ({
       ...p,
-      _id: p._id?.toString() || '',
-    }))
+      _id: p._id.toString()
+    }));
+  }
+
+  private static async getMockProductById(id: string): Promise<(Product & { _id: string }) | null> {
+    const products = await mockProductDb.find({});
+    const product = products.find((p: any) => p._id === id);
+    return product ? { ...product, _id: product._id.toString() } : null;
   }
 }

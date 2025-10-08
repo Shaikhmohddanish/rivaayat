@@ -90,14 +90,6 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
       return NextResponse.json({ error: "Product not found" }, { status: 404 })
     }
 
-    // Invalidate Redis cache for this product and the product list
-    const { deleteCache, deleteCachePattern, REDIS_KEYS } = await import("@/lib/redis")
-    await deleteCache(`${REDIS_KEYS.PRODUCT_DETAILS}${params.id}`)
-    // Invalidate all product lists with various filters
-    await deleteCachePattern(`${REDIS_KEYS.PRODUCT_LIST}*`)
-    // Also invalidate any search caches
-    await deleteCachePattern(`${REDIS_KEYS.PRODUCT_SEARCH}*`)
-
     return NextResponse.json({
       ...result,
       _id: result._id?.toString(),

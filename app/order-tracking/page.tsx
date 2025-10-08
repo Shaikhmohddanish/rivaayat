@@ -108,7 +108,7 @@ export default function OrderTrackingPage() {
                       <span>
                         {item.name} x {item.quantity}
                       </span>
-                      <span>${(item.price * item.quantity).toFixed(2)}</span>
+                      <span>₹{(item.price * item.quantity).toFixed(2)}</span>
                     </div>
                   ))}
                 </div>
@@ -117,7 +117,7 @@ export default function OrderTrackingPage() {
               <div className="border-t pt-4">
                 <div className="flex justify-between font-semibold">
                   <span>Total</span>
-                  <span>${order.total.toFixed(2)}</span>
+                  <span>₹{order.total.toFixed(2)}</span>
                 </div>
               </div>
 

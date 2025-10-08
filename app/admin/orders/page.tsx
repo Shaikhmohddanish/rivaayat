@@ -218,7 +218,7 @@ export default function AdminOrdersPage() {
                           <span>
                             {item.name} ({item.variant.color}, {item.variant.size}) x {item.quantity}
                           </span>
-                          <span>${(item.price * item.quantity).toFixed(2)}</span>
+                          <span>₹{(item.price * item.quantity).toFixed(2)}</span>
                         </div>
                       ))}
                     </div>

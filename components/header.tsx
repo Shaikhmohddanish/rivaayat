@@ -1,9 +1,11 @@
 "use client"
 
 import Link from "next/link"
-import { Menu } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { Menu, Search } from "lucide-react"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import { AuthButton } from "@/components/auth-button"
 import { CartWishlistButtons } from "@/components/cart-wishlist-buttons"
 import { useState } from "react"
@@ -18,6 +20,16 @@ const navLinks = [
 
 export function Header() {
   const [isOpen, setIsOpen] = useState(false)
+  const [searchQuery, setSearchQuery] = useState("")
+  const router = useRouter()
+
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (searchQuery.trim()) {
+      router.push(`/search?q=${encodeURIComponent(searchQuery.trim())}`)
+      setSearchQuery("")
+    }
+  }
 
   return (
     <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50 elegant-shadow">
@@ -45,6 +57,20 @@ export function Header() {
             ))}
           </nav>
 
+          {/* Search Bar - Desktop */}
+          <form onSubmit={handleSearchSubmit} className="hidden md:flex items-center">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                type="text"
+                placeholder="Search ethnic wear, dresses..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10 w-64 h-9"
+              />
+            </div>
+          </form>
+
           {/* Actions */}
           <div className="flex items-center gap-2">
             <CartWishlistButtons />
@@ -65,6 +91,21 @@ export function Header() {
                   <span className="text-2xl font-bold elegant-text-gradient font-serif">Rivaayat</span>
                   <p className="text-sm text-muted-foreground mt-1">Elegant Fashion for You</p>
                 </div>
+                
+                {/* Mobile Search */}
+                <form onSubmit={handleSearchSubmit} className="mb-4">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      type="text"
+                      placeholder="Search ethnic wear, dresses..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pl-10"
+                    />
+                  </div>
+                </form>
+                
                 {navLinks.map((link) => (
                   <Link
                     key={link.href}

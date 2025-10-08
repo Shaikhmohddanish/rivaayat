@@ -130,7 +130,7 @@ export default function AdminProductsPage() {
               <h3 className="font-semibold text-lg mb-1 line-clamp-1">{product.name}</h3>
               <p className="text-sm text-muted-foreground mb-2 line-clamp-2">{product.description}</p>
               <div className="flex items-center justify-between">
-                <span className="text-lg font-bold">${product.price.toFixed(2)}</span>
+                <span className="text-lg font-bold">₹{product.price.toFixed(2)}</span>
                 <Button variant="outline" size="sm" asChild>
                   <Link href={`/admin/products/${product._id}`}>
                     <Pencil className="h-4 w-4 mr-1" />

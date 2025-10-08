@@ -149,7 +149,7 @@ export function ProductCard({ product, onQuickView }: ProductCardProps) {
         </p>
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-2">
-            <p className="text-xl font-bold text-foreground">${product.price.toFixed(2)}</p>
+            <p className="text-xl font-bold text-foreground">₹{product.price.toFixed(2)}</p>
           </div>
           <Button 
             size="sm" 

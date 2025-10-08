@@ -364,10 +364,10 @@ export default function OrderDetailsPage() {
                           </div>
                         </div>
                         <div className="text-right">
-                          <p className="font-semibold text-lg">${item.price.toFixed(2)}</p>
+                          <p className="font-semibold text-lg">₹{item.price.toFixed(2)}</p>
                           {item.quantity > 1 && (
                             <p className="text-sm text-muted-foreground">
-                              ${(item.price * item.quantity).toFixed(2)} total
+                              ₹{(item.price * item.quantity).toFixed(2)} total
                             </p>
                           )}
                         </div>

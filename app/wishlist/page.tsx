@@ -99,7 +99,7 @@ export default function WishlistPage() {
             <CardContent className="p-4 space-y-3">
               <div>
                 <h3 className="font-semibold text-lg line-clamp-1">{product.name}</h3>
-                <p className="text-xl font-bold text-primary">${product.price.toFixed(2)}</p>
+                <p className="text-xl font-bold text-primary">₹{product.price.toFixed(2)}</p>
               </div>
 
               <div className="flex gap-2">

@@ -8,9 +8,9 @@ import { useRouter } from "next/navigation"
 import type { Product } from "@/lib/types"
 
 async function getProduct(id: string) {
-  // The API already implements Redis caching, so we don't need to cache here
+  // Direct database call without caching
   const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/api/products/${id}`, {
-    cache: "no-store", // Use Redis caching instead of Next.js cache
+    cache: "no-store", // Force fresh data from database
   })
   if (!response.ok) return null
   return response.json()
@@ -153,7 +153,7 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
         <div className="space-y-6">
           <div>
             <h1 className="text-3xl font-bold mb-2">{product.name}</h1>
-            <p className="text-3xl font-bold text-primary">${product.price.toFixed(2)}</p>
+            <p className="text-3xl font-bold text-primary">₹{product.price.toFixed(2)}</p>
           </div>
 
           <p className="text-muted-foreground leading-relaxed">{product.description}</p>

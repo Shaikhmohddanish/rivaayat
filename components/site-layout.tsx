@@ -8,7 +8,7 @@ export function SiteLayout({ children }: { children: React.ReactNode }) {
     <div className="flex flex-col min-h-screen">
       <OfferBar />
       <Header />
-      <main className="flex-1">{children}</main>
+      <main className="flex-1 overflow-x-hidden">{children}</main>
       <Footer />
     </div>
   )

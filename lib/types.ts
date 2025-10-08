@@ -49,6 +49,11 @@ export interface Product {
   images: ProductImage[]
   price: number
   isFeatured: boolean
+  category?: string
+  subcategory?: string
+  brand?: string
+  tags?: string[]
+  rating?: number
   variations: {
     colors: string[]
     sizes: string[]
@@ -56,6 +61,15 @@ export interface Product {
   }
   createdAt: Date
   updatedAt: Date
+}
+
+// Re-export SearchableProduct for backward compatibility
+export interface SearchableProduct extends Product {
+  category?: string
+  subcategory?: string
+  brand?: string
+  tags?: string[]
+  rating?: number
 }
 
 export interface Order {

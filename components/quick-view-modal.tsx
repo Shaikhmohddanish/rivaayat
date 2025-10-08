@@ -177,7 +177,7 @@ export function QuickViewModal({ product, open, onClose }: QuickViewModalProps) 
 
           {/* Details */}
           <div className="space-y-4">
-            <p className="text-2xl font-bold text-primary">${product.price.toFixed(2)}</p>
+            <p className="text-2xl font-bold text-primary">₹{product.price.toFixed(2)}</p>
             <p className="text-muted-foreground">{product.description}</p>
 
             {/* Color Selection */}

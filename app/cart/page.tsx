@@ -35,7 +35,7 @@ export default function CartPage() {
   }
 
   const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0)
-  const shipping = subtotal > 50 ? 0 : 10
+  const shipping = subtotal > 1500 ? 0 : 200
   const total = subtotal + shipping
 
   if (cart.length === 0) {
@@ -95,7 +95,7 @@ export default function CartPage() {
                           <Plus className="h-4 w-4" />
                         </Button>
                       </div>
-                      <p className="font-bold">${(item.price * item.quantity).toFixed(2)}</p>
+                      <p className="font-bold">₹{(item.price * item.quantity).toFixed(2)}</p>
                     </div>
                   </div>
                 </div>
@@ -113,19 +113,19 @@ export default function CartPage() {
               <div className="space-y-2">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Subtotal</span>
-                  <span>${subtotal.toFixed(2)}</span>
+                  <span>₹{subtotal.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Shipping</span>
-                  <span>{shipping === 0 ? "Free" : `$${shipping.toFixed(2)}`}</span>
+                  <span>{shipping === 0 ? "Free" : `₹${shipping.toFixed(2)}`}</span>
                 </div>
-                {shipping > 0 && <p className="text-sm text-muted-foreground">Free shipping on orders over $50</p>}
+                {shipping > 0 && <p className="text-sm text-muted-foreground">Free shipping on orders over ₹1500</p>}
               </div>
 
               <div className="border-t pt-4">
                 <div className="flex justify-between font-bold text-lg">
                   <span>Total</span>
-                  <span>${total.toFixed(2)}</span>
+                  <span>₹{total.toFixed(2)}</span>
                 </div>
               </div>
 

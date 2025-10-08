@@ -19,7 +19,7 @@ export function HomePageClient({ featuredProducts, newProducts, trendingProducts
   const [quickViewProduct, setQuickViewProduct] = useState<(Product & { _id: string }) | null>(null)
 
   return (
-    <>
+    <div className="w-full overflow-x-hidden">
       <HeroSlider />
 
       {/* Featured Products */}
@@ -98,6 +98,6 @@ export function HomePageClient({ featuredProducts, newProducts, trendingProducts
       </section>
 
       <QuickViewModal product={quickViewProduct} open={!!quickViewProduct} onClose={() => setQuickViewProduct(null)} />
-    </>
+    </div>
   )
 }

@@ -54,11 +54,11 @@ export function HeroSlider() {
   }
 
   return (
-    <section className="relative h-[500px] md:h-[600px] overflow-hidden rounded-2xl mx-4 mt-4 elegant-shadow">
+    <section className="relative h-[500px] md:h-[600px] w-full overflow-hidden">
       {slides.map((slide, index) => (
         <div
           key={index}
-          className={`absolute inset-0 transition-all duration-1000 rounded-2xl overflow-hidden ${
+          className={`absolute inset-0 transition-all duration-1000 overflow-hidden ${
             index === currentSlide ? "opacity-100 scale-100" : "opacity-0 scale-105"
           }`}
         >
@@ -66,8 +66,9 @@ export function HeroSlider() {
             src={slide.image || "/placeholder.svg"}
             alt={slide.title}
             fill
-            className="object-cover"
+            className="object-cover w-full h-full"
             priority={index === 0}
+            sizes="100vw"
           />
           <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/40 to-black/20 flex items-center justify-center">
             <div className="text-center text-white space-y-6 px-4 max-w-4xl">
