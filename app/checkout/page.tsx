@@ -8,12 +8,16 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { indianStates } from "@/lib/indian-states"
 import type { CartItem } from "@/lib/types"
 
 export default function CheckoutPage() {
   const router = useRouter()
   const [cart, setCart] = useState<CartItem[]>([])
   const [loading, setLoading] = useState(false)
+  const [showAddressForm, setShowAddressForm] = useState(false)
   const [formData, setFormData] = useState({
     fullName: "",
     email: "",
@@ -23,7 +27,7 @@ export default function CheckoutPage() {
     city: "",
     state: "",
     postalCode: "",
-    country: "",
+    country: "India",
   })
 
   useEffect(() => {
@@ -38,9 +42,22 @@ export default function CheckoutPage() {
     setFormData({ ...formData, [e.target.name]: e.target.value })
   }
 
+  const handleStateChange = (value: string) => {
+    setFormData({ ...formData, state: value })
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
+
+    // Validate that address is filled if checkbox is checked
+    if (showAddressForm) {
+      if (!formData.addressLine1 || !formData.city || !formData.state || !formData.postalCode) {
+        alert("Please fill all required address fields")
+        setLoading(false)
+        return
+      }
+    }
 
     try {
       const response = await fetch("/api/orders", {
@@ -48,7 +65,12 @@ export default function CheckoutPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           items: cart,
-          shippingAddress: formData,
+          shippingAddress: showAddressForm ? formData : {
+            fullName: formData.fullName,
+            email: formData.email,
+            phone: formData.phone,
+            country: "India"
+          },
         }),
       })
 
@@ -88,10 +110,30 @@ export default function CheckoutPage() {
                 <CardTitle>Shipping Information</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
+                {/* Address Form Toggle */}
+                <div className="flex items-center space-x-2">
+                  <Checkbox 
+                    id="fillAddress" 
+                    checked={showAddressForm}
+                    onCheckedChange={(checked) => setShowAddressForm(checked as boolean)}
+                  />
+                  <Label htmlFor="fillAddress" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                    Fill shipping address
+                  </Label>
+                </div>
+
+                {/* Personal Information - Always visible */}
                 <div className="grid md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="fullName">Full Name *</Label>
-                    <Input id="fullName" name="fullName" value={formData.fullName} onChange={handleChange} required />
+                    <Input 
+                      id="fullName" 
+                      name="fullName" 
+                      placeholder="Enter your full name"
+                      value={formData.fullName} 
+                      onChange={handleChange} 
+                      required 
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="email">Email *</Label>
@@ -99,6 +141,7 @@ export default function CheckoutPage() {
                       id="email"
                       name="email"
                       type="email"
+                      placeholder="Enter your email address"
                       value={formData.email}
                       onChange={handleChange}
                       required
@@ -108,50 +151,95 @@ export default function CheckoutPage() {
 
                 <div className="space-y-2">
                   <Label htmlFor="phone">Phone *</Label>
-                  <Input id="phone" name="phone" type="tel" value={formData.phone} onChange={handleChange} required />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="addressLine1">Address Line 1 *</Label>
-                  <Input
-                    id="addressLine1"
-                    name="addressLine1"
-                    value={formData.addressLine1}
-                    onChange={handleChange}
-                    required
+                  <Input 
+                    id="phone" 
+                    name="phone" 
+                    type="tel" 
+                    placeholder="Enter your phone number"
+                    value={formData.phone} 
+                    onChange={handleChange} 
+                    required 
                   />
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="addressLine2">Address Line 2</Label>
-                  <Input id="addressLine2" name="addressLine2" value={formData.addressLine2} onChange={handleChange} />
-                </div>
+                {/* Address fields - Only visible when checkbox is checked */}
+                {showAddressForm && (
+                  <>
+                    <div className="space-y-2">
+                      <Label htmlFor="addressLine1">Address Line 1 *</Label>
+                      <Input
+                        id="addressLine1"
+                        name="addressLine1"
+                        placeholder="House number, building name, street"
+                        value={formData.addressLine1}
+                        onChange={handleChange}
+                        required={showAddressForm}
+                      />
+                    </div>
 
-                <div className="grid md:grid-cols-3 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="city">City *</Label>
-                    <Input id="city" name="city" value={formData.city} onChange={handleChange} required />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="state">State *</Label>
-                    <Input id="state" name="state" value={formData.state} onChange={handleChange} required />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="postalCode">Postal Code *</Label>
-                    <Input
-                      id="postalCode"
-                      name="postalCode"
-                      value={formData.postalCode}
-                      onChange={handleChange}
-                      required
-                    />
-                  </div>
-                </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="addressLine2">Address Line 2</Label>
+                      <Input 
+                        id="addressLine2" 
+                        name="addressLine2" 
+                        placeholder="Landmark, area, locality (optional)"
+                        value={formData.addressLine2} 
+                        onChange={handleChange} 
+                      />
+                    </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="country">Country *</Label>
-                  <Input id="country" name="country" value={formData.country} onChange={handleChange} required />
-                </div>
+                    <div className="grid md:grid-cols-3 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="city">City *</Label>
+                        <Input 
+                          id="city" 
+                          name="city" 
+                          placeholder="Enter your city"
+                          value={formData.city} 
+                          onChange={handleChange} 
+                          required={showAddressForm} 
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="state">State *</Label>
+                        <Select onValueChange={handleStateChange} value={formData.state} required={showAddressForm}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select your state" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {indianStates.map((state) => (
+                              <SelectItem key={state} value={state}>
+                                {state}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="postalCode">Postal Code *</Label>
+                        <Input
+                          id="postalCode"
+                          name="postalCode"
+                          placeholder="Enter PIN code"
+                          value={formData.postalCode}
+                          onChange={handleChange}
+                          required={showAddressForm}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="country">Country</Label>
+                      <Input 
+                        id="country" 
+                        name="country" 
+                        value="India" 
+                        readOnly 
+                        className="bg-muted cursor-not-allowed"
+                      />
+                    </div>
+                  </>
+                )}
               </CardContent>
             </Card>
           </div>
