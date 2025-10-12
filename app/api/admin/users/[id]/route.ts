@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
-import clientPromise from "@/lib/mongodb"
+import { getDatabase } from "@/lib/mongodb"
 import { ObjectId } from "mongodb"
 import type { User } from "@/lib/types"
 
@@ -51,8 +51,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
       updateFields.disabled = disabled
     }
 
-    const client = await clientPromise
-    const db = client.db("rivaayat")
+    const db = await getDatabase()
 
     const result = await db
       .collection<User>("users")

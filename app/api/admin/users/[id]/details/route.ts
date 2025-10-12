@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
-import clientPromise from "@/lib/mongodb"
+import { getDatabase } from "@/lib/mongodb"
 import { ObjectId } from "mongodb"
 import type { User, Order } from "@/lib/types"
 
@@ -19,8 +19,8 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       return NextResponse.json({ error: "Forbidden" }, { status: 403 })
     }
 
-    const client = await clientPromise
-    const db = client.db("rivaayat")
+    // Get the database connection
+    const db = await getDatabase()
 
     // Get user details
     const user = await db
@@ -42,9 +42,9 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       .toArray()
 
     // Calculate total business done
-    const totalBusiness = orders.reduce((sum, order) => {
+    const totalBusiness = orders.reduce((sum: number, order: Order) => {
       // Calculate order total considering discounts if available
-      const orderTotal = order.items.reduce((total, item) => total + (item.price * item.quantity), 0)
+      const orderTotal = order.items.reduce((total: number, item: any) => total + (item.price * item.quantity), 0)
       
       // Apply coupon discount if present
       if (order.coupon && order.coupon.discountPercent) {
@@ -58,11 +58,11 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     // Get order counts by status
     const orderStatusCounts = {
       total: orders.length,
-      placed: orders.filter(order => order.status === "placed").length,
-      processing: orders.filter(order => order.status === "processing").length,
-      shipped: orders.filter(order => order.status === "shipped").length,
-      delivered: orders.filter(order => order.status === "delivered").length,
-      cancelled: orders.filter(order => order.status === "cancelled").length,
+      placed: orders.filter((order: Order) => order.status === "placed").length,
+      processing: orders.filter((order: Order) => order.status === "processing").length,
+      shipped: orders.filter((order: Order) => order.status === "shipped").length,
+      delivered: orders.filter((order: Order) => order.status === "delivered").length,
+      cancelled: orders.filter((order: Order) => order.status === "cancelled").length,
     }
 
     const response = {
@@ -79,7 +79,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
         createdAt: user.createdAt,
         updatedAt: user.updatedAt,
       },
-      orders: orders.map(order => ({
+      orders: orders.map((order: Order) => ({
         ...order,
         _id: order._id?.toString()
       })),

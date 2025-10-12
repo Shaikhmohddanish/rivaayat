@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
-import clientPromise from "@/lib/mongodb"
+import { getDatabase } from "@/lib/mongodb"
 import type { User } from "@/lib/types"
 
 // GET /api/admin/users - Admin only endpoint to list all users
@@ -17,8 +17,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 })
     }
 
-    const client = await clientPromise
-    const db = client.db("rivaayat")
+    const db = await getDatabase()
 
     const users = await db
       .collection<User>("users")
@@ -28,13 +27,14 @@ export async function GET(request: NextRequest) {
       .toArray()
 
     return NextResponse.json(
-      users.map((user) => ({
+      users.map((user: any) => ({
         _id: user._id?.toString(),
         name: user.name,
         email: user.email,
         role: user.role,
         image: user.image,
         provider: user.provider,
+        disabled: user.disabled || false,
         createdAt: user.createdAt,
         updatedAt: user.updatedAt,
       })),
