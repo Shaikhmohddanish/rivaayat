@@ -25,12 +25,18 @@ export const authOptions: NextAuthOptions = {
 
         try {
           const db = await getDatabase()
+          // Make email search case-insensitive
           const user = await db.collection<User>("users").findOne({
-            email: credentials.email,
+            email: { $regex: `^${credentials.email}$`, $options: 'i' }
           })
 
           if (!user || !user.password) {
             throw new Error("Invalid credentials")
+          }
+          
+          // Check if the user account is disabled
+          if (user.disabled === true) {
+            throw new Error("Account disabled. Please contact support.")
           }
 
           const isValid = await bcrypt.compare(credentials.password, user.password)
@@ -58,9 +64,15 @@ export const authOptions: NextAuthOptions = {
       if (account?.provider === "google") {
         try {
           const db = await getDatabase()
+          // Make email search case-insensitive
           const existingUser = await db.collection<User>("users").findOne({
-            email: user.email!,
+            email: { $regex: `^${user.email!}$`, $options: 'i' }
           })
+          
+          // Check if existing user is disabled
+          if (existingUser && existingUser.disabled === true) {
+            throw new Error("This account has been disabled. Please contact support.")
+          }
 
           if (!existingUser) {
             await db.collection<User>("users").insertOne({
@@ -84,10 +96,16 @@ export const authOptions: NextAuthOptions = {
       if (user) {
         try {
           const db = await getDatabase()
+          // Make email search case-insensitive
           const dbUser = await db.collection<User>("users").findOne({
-            email: user.email!,
+            email: { $regex: `^${user.email!}$`, $options: 'i' }
           })
           if (dbUser) {
+            // Check if user has been disabled since their last authentication
+            if (dbUser.disabled === true) {
+              throw new Error("This account has been disabled. Please contact support.")
+            }
+            
             token.role = dbUser.role
             token.id = dbUser._id!.toString()
           } else {

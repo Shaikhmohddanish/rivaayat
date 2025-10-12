@@ -10,6 +10,7 @@ export interface User {
   dateOfBirth?: Date | string
   addresses?: Address[] // For backward compatibility
   addressIds?: string[] // New reference-based approach
+  disabled?: boolean // Flag to disable user accounts
   createdAt: Date
   updatedAt: Date
 }

@@ -19,7 +19,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
     }
 
     const body = await request.json()
-    const { name, role, image } = body
+    const { name, role, image, disabled } = body
 
     const updateFields: Partial<User> = {
       updatedAt: new Date(),
@@ -42,6 +42,14 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
     if (image !== undefined) {
       updateFields.image = image
     }
+    
+    // Handle disabled status
+    if (disabled !== undefined) {
+      if (typeof disabled !== "boolean") {
+        return NextResponse.json({ error: "Disabled must be a boolean value" }, { status: 400 })
+      }
+      updateFields.disabled = disabled
+    }
 
     const client = await clientPromise
     const db = client.db("rivaayat")
@@ -49,7 +57,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
     const result = await db
       .collection<User>("users")
       .findOneAndUpdate(
-        { _id: new ObjectId(params.id) },
+        { _id: new ObjectId(params.id) as any },
         { $set: updateFields },
         { returnDocument: "after", projection: { password: 0 } },
       )

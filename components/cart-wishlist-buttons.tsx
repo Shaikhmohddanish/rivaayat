@@ -12,43 +12,39 @@ export function CartWishlistButtons() {
 
   useEffect(() => {
     setMounted(true)
-    
     const updateCounts = () => {
-      const cart = JSON.parse(localStorage.getItem("cart") || "[]")
-      const wishlist = JSON.parse(localStorage.getItem("wishlist") || "[]")
-      setCartCount(cart.reduce((sum: number, item: any) => sum + item.quantity, 0))
-      setWishlistCount(wishlist.length)
+      try {
+        const cart = JSON.parse(localStorage.getItem("cart") || "[]")
+        const wishlist = JSON.parse(localStorage.getItem("wishlist") || "[]")
+        setCartCount(Array.isArray(cart) ? cart.reduce((sum: number, item: any) => sum + (item?.quantity || 0), 0) : 0)
+        setWishlistCount(Array.isArray(wishlist) ? wishlist.length : 0)
+      } catch {
+        setCartCount(0); setWishlistCount(0)
+      }
     }
-
     updateCounts()
-
-    // Listen for storage events to update counts when items are added/removed
     window.addEventListener("storage", updateCounts)
-    // Custom event for same-tab updates
-    window.addEventListener("cartUpdated", updateCounts)
-    window.addEventListener("wishlistUpdated", updateCounts)
-
+    window.addEventListener("cartUpdated", updateCounts as EventListener)
+    window.addEventListener("wishlistUpdated", updateCounts as EventListener)
     return () => {
       window.removeEventListener("storage", updateCounts)
-      window.removeEventListener("cartUpdated", updateCounts)
-      window.removeEventListener("wishlistUpdated", updateCounts)
+      window.removeEventListener("cartUpdated", updateCounts as EventListener)
+      window.removeEventListener("wishlistUpdated", updateCounts as EventListener)
     }
   }, [])
 
+  // Keep the same layout during SSR to prevent hydration mismatch
   if (!mounted) {
     return (
       <>
-        <Link href="/search" className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-10 w-10 elegant-hover">
+        <Link href="/search" className="inline-flex items-center justify-center rounded-xl h-10 w-10 hover:bg-accent elegant-hover" aria-label="Search">
           <Search className="h-5 w-5" />
-          <span className="sr-only">Search</span>
         </Link>
-        <Link href="/wishlist" className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-10 w-10 relative elegant-hover">
+        <Link href="/wishlist" className="inline-flex items-center justify-center rounded-xl h-10 w-10 relative hover:bg-accent elegant-hover" aria-label="Wishlist">
           <Heart className="h-5 w-5" />
-          <span className="sr-only">Wishlist</span>
         </Link>
-        <Link href="/cart" className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-10 w-10 relative elegant-hover">
+        <Link href="/cart" className="inline-flex items-center justify-center rounded-xl h-10 w-10 relative hover:bg-accent elegant-hover" aria-label="Cart">
           <ShoppingCart className="h-5 w-5" />
-          <span className="sr-only">Cart</span>
         </Link>
       </>
     )
@@ -56,33 +52,26 @@ export function CartWishlistButtons() {
 
   return (
     <>
-      <Link href="/search" className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-10 w-10 elegant-hover">
+      <Link href="/search" className="inline-flex items-center justify-center rounded-xl h-10 w-10 hover:bg-accent elegant-hover" aria-label="Search">
         <Search className="h-5 w-5" />
-        <span className="sr-only">Search</span>
       </Link>
-      <Link href="/wishlist" className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-10 w-10 relative elegant-hover">
+
+      <Link href="/wishlist" className="inline-flex items-center justify-center rounded-xl h-10 w-10 relative hover:bg-accent elegant-hover" aria-label="Wishlist">
         <Heart className="h-5 w-5" />
         {wishlistCount > 0 && (
-          <Badge
-            variant="destructive"
-            className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs bg-primary text-white border-0 rounded-full"
-          >
+          <Badge variant="destructive" className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs bg-primary text-white border-0 rounded-full">
             {wishlistCount}
           </Badge>
         )}
-        <span className="sr-only">Wishlist</span>
       </Link>
-      <Link href="/cart" className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-10 w-10 relative elegant-hover">
+
+      <Link href="/cart" className="inline-flex items-center justify-center rounded-xl h-10 w-10 relative hover:bg-accent elegant-hover" aria-label="Cart">
         <ShoppingCart className="h-5 w-5" />
         {cartCount > 0 && (
-          <Badge
-            variant="destructive"
-            className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs bg-primary text-white border-0 rounded-full"
-          >
+          <Badge variant="destructive" className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs bg-primary text-white border-0 rounded-full">
             {cartCount}
           </Badge>
         )}
-        <span className="sr-only">Cart</span>
       </Link>
     </>
   )

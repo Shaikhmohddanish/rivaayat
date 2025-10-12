@@ -4,7 +4,7 @@ import { useState } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import type { Product } from "@/lib/types"
-import { HeroSlider } from "@/components/hero-slider"
+import { HeroSliderPro, type Slide } from "@/components/hero-slider-pro"
 import { ProductCard } from "@/components/product-card"
 import { QuickViewModal } from "@/components/quick-view-modal"
 import { TrendingUp } from "lucide-react"
@@ -12,21 +12,48 @@ import { TrendingUp } from "lucide-react"
 interface HomePageClientProps {
   featuredProducts: (Product & { _id: string })[]
   newProducts: (Product & { _id: string })[]
-  trendingProducts: (Product & { _id: string })[] // Added trendingProducts prop
+  trendingProducts: (Product & { _id: string })[]
 }
 
 export function HomePageClient({ featuredProducts, newProducts, trendingProducts }: HomePageClientProps) {
   const [quickViewProduct, setQuickViewProduct] = useState<(Product & { _id: string }) | null>(null)
 
+  const slides: Slide[] = [
+    {
+      image: "/elegant-ladies-dress-fashion-banner.jpg",
+      title: "Discover Timeless Elegance",
+      description: "Exquisite dresses crafted for the sophisticated woman",
+      cta: "Shop Collection",
+      href: "/shop",
+    },
+    {
+      image: "/summer-collection-ladies-dresses.jpg",
+      title: "Summer Collection 2024",
+      description: "Breathe in the beauty of fresh, feminine styles",
+      cta: "View Collection",
+      href: "/shop",
+    },
+    {
+      image: "/exclusive-designer-dresses.jpg",
+      title: "Exclusive Designer Pieces",
+      description: "Limited edition dresses for special moments",
+      cta: "Explore Now",
+      href: "/shop",
+    },
+  ]
+
   return (
-    <div className="w-full overflow-x-hidden">
-      <HeroSlider />
+    <div className="w-full overflow-x-hidden max-w-full">
+      <HeroSliderPro slides={slides} interval={6000} />
 
       {/* Featured Products */}
       <section className="container mx-auto px-4 py-16">
         <div className="flex items-center justify-between mb-8">
           <h2 className="text-3xl font-bold">Featured Products</h2>
-          <Link href="/shop" className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2">
+          <Link
+            href="/shop"
+            className="inline-flex items-center justify-center gap-2 rounded-md text-sm font-medium border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4"
+          >
             View All
           </Link>
         </div>
@@ -42,14 +69,13 @@ export function HomePageClient({ featuredProducts, newProducts, trendingProducts
         )}
       </section>
 
+      {/* Trending */}
       <section className="bg-background py-20">
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
             <div className="inline-flex items-center gap-2 mb-4">
               <TrendingUp className="w-6 h-6 text-primary" />
-              <span className="text-sm font-medium uppercase tracking-wider text-muted-foreground">
-                What's Hot Right Now
-              </span>
+              <span className="text-sm font-medium uppercase tracking-wider text-muted-foreground">What's Hot Right Now</span>
             </div>
             <h2 className="text-4xl md:text-5xl font-bold mb-4 text-balance">Trending Products</h2>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto text-pretty">
@@ -68,7 +94,10 @@ export function HomePageClient({ featuredProducts, newProducts, trendingProducts
           )}
 
           <div className="text-center mt-12">
-            <Link href="/shop" className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-11 px-8">
+            <Link
+              href="/shop"
+              className="inline-flex items-center justify-center gap-2 rounded-md text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 h-11 px-8"
+            >
               Explore All Products
             </Link>
           </div>
@@ -80,7 +109,10 @@ export function HomePageClient({ featuredProducts, newProducts, trendingProducts
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between mb-8">
             <h2 className="text-3xl font-bold">New Arrivals</h2>
-            <Link href="/shop" className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2">
+            <Link
+              href="/shop"
+              className="inline-flex items-center justify-center gap-2 rounded-md text-sm font-medium border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4"
+            >
               View All
             </Link>
           </div>

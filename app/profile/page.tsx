@@ -12,12 +12,17 @@ import { ProfileForm } from "@/components/profile-form"
 import { AddressManager } from "@/components/address-manager"
 import { PasswordUpdate } from "@/components/password-update"
 import { ShimmerHeading, ShimmerText, ShimmerButton } from "@/components/ui/shimmer"
+import { LS_KEYS } from "@/lib/local-storage"
 import type { User as UserType, Address } from "@/lib/types"
 
 export default function ProfilePage() {
   const { data: session, status, update } = useSession()
   const router = useRouter()
-  const { profile: userData, loading: profileLoading } = useUserProfile()
+  const { 
+    profile: userData, 
+    loading: profileLoading,
+    refreshProfile 
+  } = useUserProfile()
   const { 
     addresses: userAddresses, 
     loading: addressesLoading, 
@@ -61,6 +66,12 @@ export default function ProfilePage() {
 
   const handleProfileUpdate = async (profileData: { name: string; email: string; phone?: string; dateOfBirth?: string; image?: string }) => {
     try {
+      // Clear all user-specific cache before making the API call
+      if (session?.user?.email && typeof window !== 'undefined') {
+        const profileCacheKey = `${LS_KEYS.USER_PROFILE}${session.user.email}`;
+        localStorage.removeItem(profileCacheKey);
+      }
+      
       const response = await fetch("/api/user/profile", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -76,11 +87,20 @@ export default function ProfilePage() {
       // Update session if name or image changed
       if ((profileData.name || profileData.image) && update) {
         await update({
-          name: data.name,
-          image: data.image
+          name: data.user?.name || profileData.name,
+          image: data.user?.image || profileData.image
         })
       }
-
+      
+      // Refresh the profile data to update the UI with fresh data from server
+      await refreshProfile();
+      
+      // Also update the router to ensure any navigation state is refreshed
+      router.refresh();
+      
+      // Force a re-render of components that might depend on the user data
+      setError(""); // Clear any errors
+      
       return { success: true }
     } catch (error) {
       console.error("Error updating profile:", error)

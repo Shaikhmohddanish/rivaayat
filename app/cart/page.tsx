@@ -12,10 +12,25 @@ import type { CartItem } from "@/lib/types"
 export default function CartPage() {
   const [cart, setCart] = useState<CartItem[]>([])
   const [couponCode, setCouponCode] = useState("")
+  const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discountPercent: number } | null>(null)
+  const [couponError, setCouponError] = useState("")
+  const [isApplyingCoupon, setIsApplyingCoupon] = useState(false)
 
   useEffect(() => {
     const savedCart = JSON.parse(localStorage.getItem("cart") || "[]")
     setCart(savedCart)
+    
+    // Load saved coupon from localStorage
+    const savedCoupon = localStorage.getItem("appliedCoupon")
+    if (savedCoupon) {
+      try {
+        const coupon = JSON.parse(savedCoupon)
+        setAppliedCoupon(coupon)
+        setCouponCode(coupon.code)
+      } catch (e) {
+        localStorage.removeItem("appliedCoupon")
+      }
+    }
   }, [])
 
   const updateCart = (newCart: CartItem[]) => {
@@ -34,9 +49,57 @@ export default function CartPage() {
     updateCart(newCart)
   }
 
+  // Apply coupon function
+  const handleApplyCoupon = async () => {
+    if (!couponCode.trim()) {
+      setCouponError("Please enter a coupon code")
+      return
+    }
+
+    setIsApplyingCoupon(true)
+    setCouponError("")
+
+    try {
+      const response = await fetch(`/api/coupons?code=${encodeURIComponent(couponCode.trim())}`)
+      
+      if (!response.ok) {
+        const data = await response.json()
+        setCouponError(data.error || "Invalid coupon code")
+        setAppliedCoupon(null)
+        localStorage.removeItem("appliedCoupon")
+        return
+      }
+
+      const coupon = await response.json()
+      setAppliedCoupon(coupon)
+      localStorage.setItem("appliedCoupon", JSON.stringify(coupon))
+      setCouponError("")
+    } catch (error) {
+      console.error("Error applying coupon:", error)
+      setCouponError("Failed to apply coupon")
+      setAppliedCoupon(null)
+    } finally {
+      setIsApplyingCoupon(false)
+    }
+  }
+
+  // Remove coupon function
+  const handleRemoveCoupon = () => {
+    setAppliedCoupon(null)
+    setCouponCode("")
+    setCouponError("")
+    localStorage.removeItem("appliedCoupon")
+  }
+
   const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0)
-  const shipping = subtotal > 1500 ? 0 : 200
-  const total = subtotal + shipping
+  
+  // Calculate discount if coupon is applied
+  const discountAmount = appliedCoupon ? (subtotal * appliedCoupon.discountPercent / 100) : 0
+  
+  // Calculate shipping after discount
+  const discountedSubtotal = subtotal - discountAmount
+  const shipping = discountedSubtotal > 1500 ? 0 : 200
+  const total = discountedSubtotal + shipping
 
   if (cart.length === 0) {
     return (
@@ -115,6 +178,15 @@ export default function CartPage() {
                   <span className="text-muted-foreground">Subtotal</span>
                   <span>₹{subtotal.toFixed(2)}</span>
                 </div>
+                
+                {/* Show discount if coupon is applied */}
+                {appliedCoupon && (
+                  <div className="flex justify-between text-green-600">
+                    <span>Discount ({appliedCoupon.code} - {appliedCoupon.discountPercent}%)</span>
+                    <span>-₹{discountAmount.toFixed(2)}</span>
+                  </div>
+                )}
+                
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Shipping</span>
                   <span>{shipping === 0 ? "Free" : `₹${shipping.toFixed(2)}`}</span>
@@ -130,10 +202,33 @@ export default function CartPage() {
               </div>
 
               <div className="space-y-2">
-                <Input placeholder="Coupon code" value={couponCode} onChange={(e) => setCouponCode(e.target.value)} />
-                <Button variant="outline" className="w-full bg-transparent">
-                  Apply Coupon
-                </Button>
+                {appliedCoupon ? (
+                  <div className="space-y-2">
+                    <div className="p-2 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-md text-sm flex justify-between items-center">
+                      <span>Coupon <strong>{appliedCoupon.code}</strong> applied!</span>
+                      <Button size="sm" variant="ghost" onClick={handleRemoveCoupon}>
+                        Remove
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <Input 
+                      placeholder="Coupon code" 
+                      value={couponCode} 
+                      onChange={(e) => setCouponCode(e.target.value.toUpperCase())} 
+                    />
+                    {couponError && <p className="text-sm text-red-500">{couponError}</p>}
+                    <Button 
+                      variant="outline" 
+                      className="w-full bg-transparent" 
+                      onClick={handleApplyCoupon}
+                      disabled={isApplyingCoupon}
+                    >
+                      {isApplyingCoupon ? 'Applying...' : 'Apply Coupon'}
+                    </Button>
+                  </div>
+                )}
               </div>
 
               <Button className="w-full" size="lg" asChild>

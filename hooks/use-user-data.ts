@@ -57,7 +57,43 @@ export function useUserProfile() {
     fetchProfile();
   }, [session]);
 
-  return { profile, loading, error };
+  // Function to force refresh profile data
+  const refreshProfile = async () => {
+    if (!session?.user?.email) return;
+    
+    try {
+      setLoading(true);
+      
+      // Clear existing cache first
+      const cacheKey = `${LS_KEYS.USER_PROFILE}${session.user.email}`;
+      localStorage.removeItem(cacheKey);
+      
+      // Fetch fresh data from server
+      const response = await fetch('/api/user/profile');
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch profile');
+      }
+      
+      const data = await response.json();
+      
+      // Update local state immediately
+      setProfile(data);
+      
+      // Create new cache entry with fresh data
+      setLocalCache(cacheKey, data);
+      
+      return data;
+    } catch (err: any) {
+      console.error('Error refreshing profile:', err);
+      setError(err.message || 'Failed to refresh profile data');
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { profile, loading, error, refreshProfile };
 }
 
 /**

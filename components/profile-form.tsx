@@ -53,6 +53,9 @@ export function ProfileForm({ user, onUpdate }: ProfileFormProps) {
   const onSubmit = async (data: ProfileFormData) => {
     setIsLoading(true)
     try {
+      // Scroll to top immediately when submission starts
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+      
       // Send the data directly to the API without date conversion
       const result = await onUpdate({
         name: data.name,
@@ -62,10 +65,22 @@ export function ProfileForm({ user, onUpdate }: ProfileFormProps) {
       })
 
       if (result.success) {
+        // Clear all user-related cache to ensure fresh data
+        if (typeof window !== 'undefined') {
+          // Find and clear any user profile related cache entries
+          for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && key.startsWith('user:profile:')) {
+              localStorage.removeItem(key);
+            }
+          }
+        }
+        
         toast({
-          title: "Profile Updated",
-          description: "Your profile information has been saved successfully.",
+          title: "Profile Updated Successfully",
+          description: "Your profile information has been saved and updated.",
           duration: 5000,
+          variant: "default",
         })
       } else {
         toast({
@@ -82,6 +97,9 @@ export function ProfileForm({ user, onUpdate }: ProfileFormProps) {
       })
     } finally {
       setIsLoading(false)
+      
+      // Ensure we're at the top of the page after the form submission completes
+      window.scrollTo({ top: 0, behavior: 'smooth' })
     }
   }
 
@@ -111,6 +129,17 @@ export function ProfileForm({ user, onUpdate }: ProfileFormProps) {
 
     setImageUploading(true)
     try {
+      // Clear any cached user profile data before uploading
+      if (typeof window !== 'undefined') {
+        // Find and clear any user profile related cache entries
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key && key.startsWith('user:profile:')) {
+            localStorage.removeItem(key);
+          }
+        }
+      }
+      
       const formData = new FormData()
       formData.append('file', file)
 
@@ -140,10 +169,14 @@ export function ProfileForm({ user, onUpdate }: ProfileFormProps) {
       })
 
       if (result.success) {
+        // Scroll to top to ensure user sees the success message
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        
         toast({
           title: "Profile Picture Updated",
           description: "Your profile picture has been updated successfully.",
           duration: 5000,
+          variant: "default",
         })
       } else {
         toast({

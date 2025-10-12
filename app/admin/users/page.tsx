@@ -16,7 +16,10 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Pencil, Search } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
+import { UserDetails } from "@/components/ui/user-details"
+import { Pencil, Search, Info, User as UserIcon, Ban } from "lucide-react"
+import { Checkbox } from "@/components/ui/checkbox"
 import type { User } from "@/lib/types"
 
 export default function AdminUsersPage() {
@@ -27,8 +30,14 @@ export default function AdminUsersPage() {
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
   const [editingUser, setEditingUser] = useState<User | null>(null)
-  const [editForm, setEditForm] = useState({ name: "", role: "user" as "user" | "admin", image: "" })
+  const [editForm, setEditForm] = useState({ 
+    name: "", 
+    role: "user" as "user" | "admin", 
+    image: "", 
+    disabled: false 
+  })
   const [saving, setSaving] = useState(false)
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null)
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -81,6 +90,7 @@ export default function AdminUsersPage() {
       name: user.name,
       role: user.role,
       image: user.image || "",
+      disabled: user.disabled || false,
     })
   }
 
@@ -149,13 +159,14 @@ export default function AdminUsersPage() {
                 <th className="text-left p-4 font-medium">Email</th>
                 <th className="text-left p-4 font-medium">Role</th>
                 <th className="text-left p-4 font-medium">Provider</th>
+                <th className="text-left p-4 font-medium">Status</th>
                 <th className="text-left p-4 font-medium">Joined</th>
                 <th className="text-right p-4 font-medium">Actions</th>
               </tr>
             </thead>
             <tbody>
               {filteredUsers.map((user) => (
-                <tr key={user._id} className="border-b last:border-0 hover:bg-muted/50">
+                <tr key={user._id} className={`border-b last:border-0 hover:bg-muted/50 ${user.disabled ? "bg-muted/30" : ""}`}>
                   <td className="p-4">
                     <div className="flex items-center gap-3">
                       <Avatar>
@@ -167,22 +178,34 @@ export default function AdminUsersPage() {
                   </td>
                   <td className="p-4 text-muted-foreground">{user.email}</td>
                   <td className="p-4">
-                    <span
-                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        user.role === "admin"
-                          ? "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200"
-                          : "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
-                      }`}
-                    >
+                    <Badge variant={user.role === "admin" ? "default" : "secondary"} className="capitalize">
                       {user.role}
-                    </span>
+                    </Badge>
                   </td>
                   <td className="p-4 text-muted-foreground capitalize">{user.provider || "credentials"}</td>
+                  <td className="p-4">
+                    {user.disabled ? (
+                      <Badge variant="destructive" className="flex items-center gap-1">
+                        <Ban className="h-3 w-3" />
+                        Disabled
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="flex items-center gap-1">
+                        <UserIcon className="h-3 w-3" />
+                        Active
+                      </Badge>
+                    )}
+                  </td>
                   <td className="p-4 text-muted-foreground">{new Date(user.createdAt).toLocaleDateString()}</td>
                   <td className="p-4 text-right">
-                    <Button variant="ghost" size="sm" onClick={() => handleEdit(user)}>
-                      <Pencil className="h-4 w-4" />
-                    </Button>
+                    <div className="flex justify-end gap-1">
+                      <Button variant="ghost" size="sm" onClick={() => user._id && setSelectedUserId(user._id)} title="View Details">
+                        <Info className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="sm" onClick={() => handleEdit(user)} title="Edit User">
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -239,6 +262,18 @@ export default function AdminUsersPage() {
                 placeholder="https://example.com/avatar.jpg"
               />
             </div>
+
+            <div className="flex items-center space-x-2 pt-2">
+              <Checkbox 
+                id="disabled" 
+                checked={editForm.disabled}
+                onCheckedChange={(checked) => 
+                  setEditForm({ ...editForm, disabled: checked === true })}
+              />
+              <Label htmlFor="disabled" className="text-sm font-medium leading-none">
+                Disable this account
+              </Label>
+            </div>
           </div>
 
           <DialogFooter>
@@ -251,6 +286,15 @@ export default function AdminUsersPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      
+      {/* User Details Modal */}
+      {selectedUserId && (
+        <UserDetails 
+          userId={selectedUserId} 
+          isOpen={!!selectedUserId} 
+          onClose={() => setSelectedUserId(null)} 
+        />
+      )}
     </div>
   )
 }
