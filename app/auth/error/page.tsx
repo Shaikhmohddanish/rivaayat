@@ -10,6 +10,7 @@ const errorMessages: Record<string, string> = {
   Configuration: "There is a problem with the server configuration.",
   AccessDenied: "You do not have permission to sign in.",
   Verification: "The verification token has expired or has already been used.",
+  AccountDisabled: "Your account has been disabled by an administrator. Please contact support for assistance.",
   Default: "An error occurred during authentication.",
 }
 
@@ -25,6 +26,11 @@ export default function AuthErrorPage() {
       return "Authentication service is temporarily unavailable. Please try again later."
     }
     
+    // Handle disabled account error
+    if (error.includes("Account disabled") || error.includes("disabled")) {
+      return errorMessages.AccountDisabled
+    }
+    
     return errorMessages[error] || errorMessages.Default
   }
 
@@ -36,7 +42,9 @@ export default function AuthErrorPage() {
             <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-red-100">
               <AlertCircle className="h-6 w-6 text-red-600" />
             </div>
-            <CardTitle className="text-2xl">Authentication Error</CardTitle>
+            <CardTitle className="text-2xl">
+              {error?.includes("disabled") ? "Account Disabled" : "Authentication Error"}
+            </CardTitle>
             <CardDescription>
               {getErrorMessage(error)}
             </CardDescription>

@@ -6,6 +6,7 @@ import { Analytics } from "@vercel/analytics/next"
 import { Suspense } from "react"
 import { SiteLayout } from "@/components/site-layout"
 import { Providers } from "@/components/providers"
+import { Toaster } from "@/components/ui/toaster"
 import "./globals.css"
 
 export const metadata: Metadata = {
@@ -22,6 +23,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <Suspense fallback={null}>
             <SiteLayout>{children}</SiteLayout>
           </Suspense>
+          <Toaster />
         </Providers>
         <Analytics />
       </body>

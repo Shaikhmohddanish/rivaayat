@@ -23,6 +23,7 @@ import {
 } from "lucide-react"
 import { signOut, useSession } from "next-auth/react"
 import { useTheme } from "next-themes"
+import { deleteLocalCachePattern } from "@/lib/local-storage"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -306,7 +307,16 @@ function MobileNav({ onNavigate, onSearch }: { onNavigate: () => void; onSearch:
   }, [])
 
   const go = (href: string) => { router.push(href); onNavigate() }
-  const handleSignOut = () => { signOut(); onNavigate() }
+  const handleSignOut = () => { 
+    // Clear user data from localStorage before signOut
+    if (typeof window !== 'undefined') {
+      // Clear all user-related cache when logged out manually
+      deleteLocalCachePattern('user:*');
+    }
+    
+    signOut(); 
+    onNavigate(); 
+  }
 
   return (
     <div className="flex flex-col">

@@ -79,7 +79,7 @@ export function ProfileForm({ user, onUpdate }: ProfileFormProps) {
         toast({
           title: "Profile Updated Successfully",
           description: "Your profile information has been saved and updated.",
-          duration: 5000,
+          duration: 3000,
           variant: "default",
         })
       } else {
@@ -175,7 +175,7 @@ export function ProfileForm({ user, onUpdate }: ProfileFormProps) {
         toast({
           title: "Profile Picture Updated",
           description: "Your profile picture has been updated successfully.",
-          duration: 5000,
+          duration: 3000,
           variant: "default",
         })
       } else {

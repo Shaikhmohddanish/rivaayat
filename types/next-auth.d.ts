@@ -8,6 +8,7 @@ declare module "next-auth" {
       name: string
       role: "user" | "admin"
       image?: string
+      disabled?: boolean
     }
   }
 

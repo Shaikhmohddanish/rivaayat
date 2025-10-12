@@ -74,7 +74,7 @@ export function PasswordUpdate({ user }: PasswordUpdateProps) {
       toast({
         title: "Success",
         description: result.message,
-        duration: 5000,
+        duration: 3000,
       })
 
       reset()

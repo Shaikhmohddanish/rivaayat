@@ -36,7 +36,12 @@ export default function LoginPage() {
       })
 
       if (result?.error) {
-        setError("Invalid email or password")
+        // Check for specific error messages
+        if (result.error.includes("disabled") || result.error.includes("suspended")) {
+          setError("This account has been disabled by an administrator. Please contact support for assistance.")
+        } else {
+          setError("Invalid email or password")
+        }
       } else {
         // Redirect to the callback URL or default to home
         router.push(callbackUrl)

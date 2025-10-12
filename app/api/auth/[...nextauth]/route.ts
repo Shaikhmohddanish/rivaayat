@@ -3,6 +3,7 @@ import GoogleProvider from "next-auth/providers/google"
 import CredentialsProvider from "next-auth/providers/credentials"
 import { getDatabase } from "@/lib/mongodb"
 import { getCurrentDateIST } from "@/lib/date-utils"
+import { ObjectId } from "mongodb"
 import bcrypt from "bcryptjs"
 import type { User } from "@/lib/types"
 
@@ -36,7 +37,7 @@ export const authOptions: NextAuthOptions = {
           
           // Check if the user account is disabled
           if (user.disabled === true) {
-            throw new Error("Account disabled. Please contact support.")
+            throw new Error("Account disabled. Your account has been suspended by an administrator.")
           }
 
           const isValid = await bcrypt.compare(credentials.password, user.password)
@@ -71,7 +72,7 @@ export const authOptions: NextAuthOptions = {
           
           // Check if existing user is disabled
           if (existingUser && existingUser.disabled === true) {
-            throw new Error("This account has been disabled. Please contact support.")
+            throw new Error("Account disabled. Your account has been suspended by an administrator.")
           }
 
           if (!existingUser) {
@@ -103,7 +104,7 @@ export const authOptions: NextAuthOptions = {
           if (dbUser) {
             // Check if user has been disabled since their last authentication
             if (dbUser.disabled === true) {
-              throw new Error("This account has been disabled. Please contact support.")
+              throw new Error("Account disabled. Your account has been suspended by an administrator.")
             }
             
             token.role = dbUser.role
@@ -123,8 +124,25 @@ export const authOptions: NextAuthOptions = {
     },
     async session({ session, token }) {
       if (session.user) {
-        session.user.role = token.role as "user" | "admin"
-        session.user.id = token.id as string
+        try {
+          // Extra security - verify the user isn't disabled on every request
+          const db = await getDatabase()
+          const user = await db.collection<User>("users").findOne({ 
+            _id: token.id as string 
+          });
+
+          if (user?.disabled === true) {
+            // Return the session but mark it for logout processing on the client
+            session.user.disabled = true;
+            return session;
+          }
+          
+          session.user.role = token.role as "user" | "admin"
+          session.user.id = token.id as string
+        } catch (error) {
+          // If there's an error, still allow the session but log the error
+          console.error("Session error:", error);
+        }
       }
       return session
     },
