@@ -1,72 +1,40 @@
-import { productDb as mockProductDb } from "@/lib/db";
-import { getDatabase, isMongoDBAvailable } from "@/lib/mongodb-safe";
+import { getDatabase } from "@/lib/mongodb-safe";
 import { ObjectId } from "mongodb";
 import type { Product } from "@/lib/types";
 
-// Database abstraction layer without Redis
+// Database abstraction layer using MongoDB
 export class DatabaseService {
-  private static mongoChecked = false;
-
   static async getProducts(options: {
     featured?: boolean;
     limit?: number;
     sort?: 'newest' | 'trending';
-  } = {}): Promise<(Product & { _id: string })[]> {
+  } = {}): Promise<Product[]> {
     try {
       console.log(`Fetching products from database with options:`, options);
-      
-      if (!this.mongoChecked) {
-        await this.checkMongoConnection();
-      }
-
-      if (isMongoDBAvailable()) {
-        return await this.getMongoProducts(options);
-      } else {
-        return await this.getMockProducts(options);
-      }
+      return await this.getMongoProducts(options);
     } catch (error) {
-      console.warn('Database connection failed, falling back to mock data:', error);
-      return await this.getMockProducts(options);
+      console.error('Database connection failed:', error);
+      throw new Error('Failed to fetch products from database');
     }
   }
 
-  static async getProductById(id: string): Promise<(Product & { _id: string }) | null> {
+  static async getProductById(id: string): Promise<Product | null> {
     try {
       console.log(`Fetching product ${id} from database`);
-      
-      if (!this.mongoChecked) {
-        await this.checkMongoConnection();
-      }
-
-      if (isMongoDBAvailable()) {
-        return await this.getMongoProductById(id);
-      } else {
-        return await this.getMockProductById(id);
-      }
+      return await this.getMongoProductById(id);
     } catch (error) {
-      console.warn('Product fetch failed, falling back to mock data:', error);
-      return await this.getMockProductById(id);
+      console.error('Product fetch failed:', error);
+      throw new Error('Failed to fetch product from database');
     }
   }
 
-  private static async checkMongoConnection() {
-    this.mongoChecked = true;
-    try {
-      if (isMongoDBAvailable()) {
-        console.log('MongoDB connection successful');
-      } else {
-        console.log('MongoDB not available, using mock data');
-      }
-    } catch (error) {
-      console.warn('MongoDB connection check failed:', error);
-    }
-  }
+  // No connection check needed since we're using only MongoDB
 
   private static async getMongoProducts(options: {
     featured?: boolean;
     limit?: number;
     sort?: 'newest' | 'trending';
-  }): Promise<(Product & { _id: string })[]> {
+  }): Promise<Product[]> {
     const db = await getDatabase();
     if (!db) throw new Error('Database not available');
     
@@ -75,7 +43,7 @@ export class DatabaseService {
     const pipeline: any[] = [];
 
     if (options.featured) {
-      pipeline.push({ $match: { featured: true } });
+      pipeline.push({ $match: { isFeatured: true } });
     }
 
     if (options.sort === 'newest') {
@@ -95,7 +63,7 @@ export class DatabaseService {
     }));
   }
 
-  private static async getMongoProductById(id: string): Promise<(Product & { _id: string }) | null> {
+  private static async getMongoProductById(id: string): Promise<Product | null> {
     const db = await getDatabase();
     if (!db) throw new Error('Database not available');
     
@@ -114,26 +82,5 @@ export class DatabaseService {
     } : null;
   }
 
-  private static async getMockProducts(options: {
-    featured?: boolean;
-    limit?: number;
-    sort?: 'newest' | 'trending';
-  }): Promise<(Product & { _id: string })[]> {
-    const filters: any = {};
-    if (options.featured) {
-      filters.featured = true;
-    }
-
-    const products = await mockProductDb.find(filters);
-    return products.map((p: any) => ({
-      ...p,
-      _id: p._id.toString()
-    }));
-  }
-
-  private static async getMockProductById(id: string): Promise<(Product & { _id: string }) | null> {
-    const products = await mockProductDb.find({});
-    const product = products.find((p: any) => p._id === id);
-    return product ? { ...product, _id: product._id.toString() } : null;
-  }
+  // Mock methods removed as we're using MongoDB exclusively
 }

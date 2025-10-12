@@ -9,6 +9,7 @@ import { Heart, ShoppingCart, Eye } from "lucide-react"
 import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import type { Product } from "@/lib/types"
+import { useToast } from "@/hooks/use-toast"
 
 interface ProductCardProps {
   product: Product & { _id: string }
@@ -18,6 +19,7 @@ interface ProductCardProps {
 export function ProductCard({ product, onQuickView }: ProductCardProps) {
   const { data: session } = useSession()
   const router = useRouter()
+  const { toast } = useToast()
   const [isWishlisted, setIsWishlisted] = useState(false)
 
   useEffect(() => {
@@ -49,23 +51,37 @@ export function ProductCard({ product, onQuickView }: ProductCardProps) {
       return
     }
 
-    const firstVariant = product.variations?.variants?.[0]
-    if (!firstVariant) return
-
+    // If product has variations, open the quick view modal to select variations
+    if (product.variations?.colors?.length > 0 || product.variations?.sizes?.length > 0) {
+      if (onQuickView) {
+        onQuickView(product)
+        
+        // Show a toast guiding the user to select options
+        toast({
+          title: "Select options",
+          description: "Please choose color and size options for this product",
+          variant: "default"
+        })
+      }
+      return
+    }
+    
+    // For products without variations, add directly
     const cartItem = {
       productId: product._id,
       name: product.name,
       price: product.price,
       image: product.images[0]?.url || "",
-      color: firstVariant.color,
-      size: firstVariant.size,
       quantity: 1,
+      variant: {
+        color: "",
+        size: ""
+      }
     }
 
     const cart = JSON.parse(localStorage.getItem("cart") || "[]")
     const existingIndex = cart.findIndex(
-      (item: any) =>
-        item.productId === cartItem.productId && item.color === cartItem.color && item.size === cartItem.size,
+      (item: any) => item.productId === cartItem.productId
     )
 
     if (existingIndex > -1) {
@@ -76,6 +92,13 @@ export function ProductCard({ product, onQuickView }: ProductCardProps) {
 
     localStorage.setItem("cart", JSON.stringify(cart))
     window.dispatchEvent(new Event("cartUpdated"))
+    
+    toast({
+      title: "Added to cart",
+      description: product.name,
+      variant: "default",
+      className: "bg-green-50 border-green-200 text-green-800"
+    })
   }
 
   const handleBuyNow = async (e: React.MouseEvent) => {

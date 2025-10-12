@@ -1,11 +1,17 @@
 import { NextResponse } from "next/server"
 import { requireAuth } from "@/lib/auth"
-import { cartDb } from "@/lib/db"
+import { getDatabase } from "@/lib/mongodb-safe"
 
 export async function GET() {
   try {
     const user = await requireAuth()
-    const cart = await cartDb.findByUserId(user.id)
+    
+    const db = await getDatabase()
+    if (!db) {
+      return NextResponse.json({ error: "Database connection error" }, { status: 500 })
+    }
+    
+    const cart = await db.collection('carts').findOne({ userId: user.id })
 
     return NextResponse.json({
       items: cart?.items || [],

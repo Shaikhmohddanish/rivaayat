@@ -12,24 +12,46 @@ export function CartWishlistButtons() {
 
   useEffect(() => {
     setMounted(true)
-    const updateCounts = () => {
+    
+    const updateCounts = async () => {
       try {
-        const cart = JSON.parse(localStorage.getItem("cart") || "[]")
-        const wishlist = JSON.parse(localStorage.getItem("wishlist") || "[]")
-        setCartCount(Array.isArray(cart) ? cart.reduce((sum: number, item: any) => sum + (item?.quantity || 0), 0) : 0)
-        setWishlistCount(Array.isArray(wishlist) ? wishlist.length : 0)
-      } catch {
-        setCartCount(0); setWishlistCount(0)
+        // Fetch cart data from API
+        const cartRes = await fetch('/api/cart', {
+          cache: 'no-store',
+          next: { revalidate: 0 }
+        })
+        const cartData = cartRes.ok ? await cartRes.json() : { items: [] }
+        const cartItems = cartData.items || []
+        setCartCount(cartItems.reduce((sum: number, item: any) => sum + (item?.quantity || 0), 0))
+        
+        // Fetch wishlist data from API
+        const wishlistRes = await fetch('/api/wishlist', {
+          cache: 'no-store',
+          next: { revalidate: 0 }
+        })
+        const wishlistData = wishlistRes.ok ? await wishlistRes.json() : { productIds: [] }
+        const productIds = wishlistData.productIds || []
+        setWishlistCount(productIds.length)
+      } catch (error) {
+        console.error('Error fetching counts:', error)
+        setCartCount(0)
+        setWishlistCount(0)
       }
     }
+    
     updateCounts()
-    window.addEventListener("storage", updateCounts)
-    window.addEventListener("cartUpdated", updateCounts as EventListener)
-    window.addEventListener("wishlistUpdated", updateCounts as EventListener)
+    
+    // Setup event listeners for updates
+    const handleUpdate = () => {
+      updateCounts()
+    }
+    
+    window.addEventListener("cartUpdated", handleUpdate)
+    window.addEventListener("wishlistUpdated", handleUpdate)
+    
     return () => {
-      window.removeEventListener("storage", updateCounts)
-      window.removeEventListener("cartUpdated", updateCounts as EventListener)
-      window.removeEventListener("wishlistUpdated", updateCounts as EventListener)
+      window.removeEventListener("cartUpdated", handleUpdate)
+      window.removeEventListener("wishlistUpdated", handleUpdate)
     }
   }, [])
 

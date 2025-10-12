@@ -17,8 +17,28 @@ export default function CartPage() {
   const [isApplyingCoupon, setIsApplyingCoupon] = useState(false)
 
   useEffect(() => {
-    const savedCart = JSON.parse(localStorage.getItem("cart") || "[]")
-    setCart(savedCart)
+    // Fetch cart data from API
+    const fetchCart = async () => {
+      try {
+        const response = await fetch('/api/cart', {
+          cache: 'no-store',
+          next: { revalidate: 0 }
+        })
+        
+        if (response.ok) {
+          const data = await response.json()
+          setCart(data.items || [])
+        } else {
+          console.error('Failed to fetch cart')
+          setCart([])
+        }
+      } catch (error) {
+        console.error('Error fetching cart:', error)
+        setCart([])
+      }
+    }
+    
+    fetchCart()
     
     // Load saved coupon from localStorage
     const savedCoupon = localStorage.getItem("appliedCoupon")
@@ -33,20 +53,78 @@ export default function CartPage() {
     }
   }, [])
 
-  const updateCart = (newCart: CartItem[]) => {
+  const updateCart = async (newCart: CartItem[]) => {
     setCart(newCart)
-    localStorage.setItem("cart", JSON.stringify(newCart))
+    
+    // Trigger event to update cart count in header
+    window.dispatchEvent(new Event("cartUpdated"))
   }
 
-  const updateQuantity = (index: number, delta: number) => {
-    const newCart = [...cart]
-    newCart[index].quantity = Math.max(1, newCart[index].quantity + delta)
-    updateCart(newCart)
+  const updateQuantity = async (index: number, delta: number) => {
+    const item = cart[index]
+    const newQuantity = Math.max(1, item.quantity + delta)
+    
+    // Update quantity via API
+    try {
+      const response = await fetch('/api/cart/items', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          productId: item.productId,
+          name: item.name,
+          price: item.price,
+          variant: item.variant,
+          quantity: newQuantity,
+          image: item.image,
+        }),
+      })
+      
+      if (response.ok) {
+        // Update local state with new quantity
+        const newCart = [...cart]
+        newCart[index].quantity = newQuantity
+        setCart(newCart)
+        
+        // Trigger event to update cart count
+        window.dispatchEvent(new Event("cartUpdated"))
+      } else {
+        console.error('Failed to update cart item')
+      }
+    } catch (error) {
+      console.error('Error updating cart item:', error)
+    }
   }
 
-  const removeItem = (index: number) => {
-    const newCart = cart.filter((_, i) => i !== index)
-    updateCart(newCart)
+  const removeItem = async (index: number) => {
+    const item = cart[index]
+    
+    try {
+      const response = await fetch('/api/cart/items', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          productId: item.productId,
+          variant: item.variant,
+        }),
+      })
+      
+      if (response.ok) {
+        // Update local state
+        const newCart = cart.filter((_, i) => i !== index)
+        setCart(newCart)
+        
+        // Trigger event to update cart count
+        window.dispatchEvent(new Event("cartUpdated"))
+      } else {
+        console.error('Failed to remove cart item')
+      }
+    } catch (error) {
+      console.error('Error removing cart item:', error)
+    }
   }
 
   // Apply coupon function
@@ -140,7 +218,7 @@ export default function CartPage() {
                       <div>
                         <h3 className="font-semibold">{item.name}</h3>
                         <p className="text-sm text-muted-foreground">
-                          Color: {item.color} | Size: {item.size}
+                          Color: {item.variant?.color || item.color} | Size: {item.variant?.size || item.size}
                         </p>
                       </div>
                       <Button variant="ghost" size="icon" onClick={() => removeItem(index)}>

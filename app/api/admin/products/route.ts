@@ -76,7 +76,8 @@ export async function POST(request: NextRequest) {
       finalSlug = `${finalSlug}-${timestamp}`
     }
 
-    const newProduct: Product = {
+    // Create product without _id, MongoDB will generate one
+    const productData = {
       name,
       slug: finalSlug, // Use our guaranteed unique slug
       description,
@@ -88,13 +89,16 @@ export async function POST(request: NextRequest) {
       updatedAt: new Date(),
     }
 
-    const result = await db.collection<Product>("products").insertOne(newProduct)
+    const result = await db.collection<Product>("products").insertOne(productData as any)
+
+    // Add the generated _id to create the complete product
+    const newProduct: Product = {
+      _id: result.insertedId.toString(),
+      ...productData
+    }
 
     return NextResponse.json(
-      {
-        _id: result.insertedId.toString(),
-        ...newProduct,
-      },
+      newProduct,
       { status: 201 },
     )
   } catch (error) {

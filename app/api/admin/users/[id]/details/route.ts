@@ -6,8 +6,10 @@ import { ObjectId } from "mongodb"
 import type { User, Order } from "@/lib/types"
 
 // GET /api/admin/users/[id]/details - Admin only endpoint to get detailed user info including orders
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params
+    
     // Verify admin session
     const session = await getServerSession(authOptions)
 
@@ -26,7 +28,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     const user = await db
       .collection<User>("users")
       .findOne(
-        { _id: new ObjectId(params.id) as any },
+        { _id: new ObjectId(id) as any },
         { projection: { password: 0 } } // Exclude password field
       )
 
@@ -37,7 +39,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     // Get user orders
     const orders = await db
       .collection<Order>("orders")
-      .find({ userId: params.id })
+      .find({ userId: id })
       .sort({ createdAt: -1 })
       .toArray()
 

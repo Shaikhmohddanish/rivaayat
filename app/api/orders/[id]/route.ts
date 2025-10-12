@@ -4,16 +4,16 @@ import { getCurrentUser } from "@/lib/auth"
 import { ObjectId } from "mongodb"
 import type { Order } from "@/lib/types"
 
-export async function GET(request: Request, { params }: { params: { id: string } }) {
+export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const { id } = params
+    const { id } = await params
 
     if (!ObjectId.isValid(id)) {
       return NextResponse.json({ error: "Invalid order ID" }, { status: 400 })
     }
 
     const db = await getDatabase()
-    const order = await db.collection<Order>("orders").findOne({ _id: new ObjectId(id) })
+    const order = await db.collection<Order>("orders").findOne({ _id: new ObjectId(id) as any })
 
     if (!order) {
       return NextResponse.json({ error: "Order not found" }, { status: 404 })
@@ -26,16 +26,16 @@ export async function GET(request: Request, { params }: { params: { id: string }
   }
 }
 
-export async function PATCH(request: Request, { params }: { params: { id: string } }) {
+export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params
+    
     const user = await getCurrentUser()
 
     // Admin-only endpoint
     if (!user || user.role !== "admin") {
       return NextResponse.json({ error: "Admin access required" }, { status: 403 })
     }
-
-    const { id } = params
 
     if (!ObjectId.isValid(id)) {
       return NextResponse.json({ error: "Invalid order ID" }, { status: 400 })
@@ -59,7 +59,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
     }
 
     const db = await getDatabase()
-    const result = await db.collection<Order>("orders").updateOne({ _id: new ObjectId(id) }, { $set: updateFields })
+    const result = await db.collection<Order>("orders").updateOne({ _id: new ObjectId(id) as any }, { $set: updateFields })
 
     if (result.matchedCount === 0) {
       return NextResponse.json({ error: "Order not found" }, { status: 404 })

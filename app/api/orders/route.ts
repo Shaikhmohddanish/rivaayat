@@ -1,12 +1,24 @@
 import { NextResponse } from "next/server"
 import { requireAuth } from "@/lib/auth"
-import { orderDb } from "@/lib/db"
+import { getDatabase } from "@/lib/mongodb-safe"
+import { ObjectId } from "mongodb"
 
 export async function GET() {
   try {
     const user = await requireAuth()
     
-    const orders = await orderDb.findByUserId(user.id)
+    const db = await getDatabase();
+    if (!db) {
+      return NextResponse.json({ error: "Database connection error" }, { status: 500 });
+    }
+    
+    // Fetch from MongoDB
+    const orders = await db.collection('orders')
+      .find({ userId: user.id })
+      .sort({ createdAt: -1 })
+      .toArray();
+    
+    console.log("Orders fetched from MongoDB:", orders.length);
     
     return NextResponse.json({ orders })
   } catch (error) {
@@ -21,7 +33,7 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const user = await requireAuth()
-    const { items, couponCode } = await request.json()
+    const { items, coupon, shippingAddress } = await request.json()
 
     if (!items || items.length === 0) {
       return NextResponse.json({ error: "Cart is empty" }, { status: 400 })
@@ -41,27 +53,53 @@ export async function POST(request: Request) {
       }
     }
 
-    // Mock coupon validation
-    let coupon
-    if (couponCode) {
-      // In real app, validate against database
-      if (couponCode === "SAVE10") {
-        coupon = { code: couponCode, discountPercent: 10 }
-      }
-    }
+    // Use the coupon information passed from client
+    // In a real app, you'd validate the coupon again server-side
 
-    const order = await orderDb.create({
+    // Generate a tracking number (format: RIV-YYYYMMDD-XXXX)
+    const date = new Date();
+    const dateStr = `${date.getFullYear()}${String(date.getMonth() + 1).padStart(2, '0')}${String(date.getDate()).padStart(2, '0')}`;
+    const randomPart = Math.floor(1000 + Math.random() * 9000); // 4-digit random number
+    const trackingNumber = `RIV-${dateStr}-${randomPart}`;
+    
+    // Create the order object
+    const orderData = {
       userId: user.id,
       items,
       status: "placed",
+      trackingNumber,
+      shippingAddress,
       ...(coupon && { coupon }),
       createdAt: new Date(),
-    })
+      updatedAt: new Date(),
+    };
+    
+    // Get MongoDB connection
+    const db = await getDatabase();
+    if (!db) {
+      return NextResponse.json({ error: "Database connection error" }, { status: 500 });
+    }
+    
+    // Save to MongoDB
+    const result = await db.collection('orders').insertOne(orderData);
+    
+    if (!result.acknowledged) {
+      return NextResponse.json({ error: "Failed to create order" }, { status: 500 });
+    }
+    
+    // Get the created order with its ID
+    const order = {
+      _id: result.insertedId.toString(),
+      ...orderData
+    };
+    
+    console.log("Order saved to MongoDB successfully");
 
     return NextResponse.json(
       {
         message: "Order created successfully",
-        orderId: order._id,
+        orderId: result.insertedId.toString(),
+        trackingNumber,
         order,
       },
       { status: 201 },

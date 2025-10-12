@@ -13,48 +13,102 @@ export default function WishlistPage() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const savedWishlist = JSON.parse(localStorage.getItem("wishlist") || "[]")
-    setWishlist(savedWishlist)
-
-    // Fetch product details
-    if (savedWishlist.length > 0) {
-      Promise.all(
-        savedWishlist.map((id: string) =>
-          fetch(`/api/products/${id}`)
-            .then((res) => res.json())
-            .catch(() => null),
-        ),
-      ).then((results) => {
-        setProducts(results.filter((p) => p !== null))
+    async function fetchWishlist() {
+      try {
+        // Get the wishlist from the API
+        const wishlistRes = await fetch('/api/wishlist')
+        
+        if (!wishlistRes.ok) {
+          setLoading(false)
+          return
+        }
+        
+        const wishlistData = await wishlistRes.json()
+        const productIds = wishlistData.productIds || []
+        setWishlist(productIds)
+        
+        // Fetch product details if we have items
+        if (productIds.length > 0) {
+          const productPromises = productIds.map((id: string) => 
+            fetch(`/api/products/${id}`)
+              .then(res => res.json())
+              .catch(() => null)
+          )
+          
+          const results = await Promise.all(productPromises)
+          setProducts(results.filter(p => p !== null))
+        }
+      } catch (error) {
+        console.error("Failed to fetch wishlist:", error)
+      } finally {
         setLoading(false)
-      })
-    } else {
-      setLoading(false)
+      }
     }
+    
+    fetchWishlist()
   }, [])
 
-  const removeFromWishlist = (productId: string) => {
-    const newWishlist = wishlist.filter((id) => id !== productId)
-    setWishlist(newWishlist)
-    setProducts(products.filter((p) => p._id !== productId))
-    localStorage.setItem("wishlist", JSON.stringify(newWishlist))
+  const removeFromWishlist = async (productId: string) => {
+    try {
+      const response = await fetch('/api/wishlist', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ productId }),
+      })
+      
+      if (!response.ok) {
+        throw new Error('Failed to remove from wishlist')
+      }
+      
+      const data = await response.json()
+      
+      // Update local state
+      setWishlist(data.productIds)
+      setProducts(products.filter((p) => p._id !== productId))
+    } catch (error) {
+      console.error('Error removing from wishlist:', error)
+    }
   }
 
-  const addToCart = (product: any) => {
-    const cartItem = {
-      productId: product._id,
-      name: product.name,
-      price: product.price,
-      quantity: 1,
-      color: product.colors[0] || "",
-      size: product.sizes[0] || "",
-      image: product.images[0],
-    }
+  const addToCart = async (product: any) => {
+    try {
+      // Get first available variant
+      const firstVariant = product.variations?.variants?.[0] || { 
+        color: product.variations?.colors?.[0] || '', 
+        size: product.variations?.sizes?.[0] || '' 
+      }
+      
+      const cartItem = {
+        productId: product._id,
+        name: product.name,
+        price: product.price,
+        quantity: 1,
+        variant: {
+          color: firstVariant.color || '',
+          size: firstVariant.size || '',
+        },
+        image: product.images?.[0]?.url,
+      }
 
-    const cart = JSON.parse(localStorage.getItem("cart") || "[]")
-    cart.push(cartItem)
-    localStorage.setItem("cart", JSON.stringify(cart))
-    alert("Added to cart!")
+      const response = await fetch('/api/cart/items', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(cartItem),
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to add to cart')
+      }
+
+      alert("Added to cart!")
+    } catch (error) {
+      console.error('Error adding to cart:', error)
+      alert("Failed to add to cart. Please try again.")
+    }
   }
 
   if (loading) {

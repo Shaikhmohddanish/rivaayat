@@ -12,6 +12,8 @@ import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
 import { ProductImageUpload } from "@/components/product-image-upload"
 import { SlugInput } from "@/components/slug-input"
+import { ColorSelector, SizeSelector } from "@/components/product-variation-selectors"
+import { VariantInventory } from "@/components/variant-inventory"
 import { ArrowLeft, Plus, X } from "lucide-react"
 import Link from "next/link"
 import type { ProductImage, ProductVariant } from "@/lib/types"
@@ -33,8 +35,9 @@ export default function NewProductPage() {
   const { slug, setName, setSlug, status: slugStatus, message: slugMessage, isValid: isSlugValid, checkSlug } = useSlug()
 
   const [images, setImages] = useState<ProductImage[]>([])
-  const [colors, setColors] = useState<string[]>([""])
-  const [sizes, setSizes] = useState<string[]>([""])
+  const [colors, setColors] = useState<string[]>([])
+  const [sizes, setSizes] = useState<string[]>([])
+  const [variants, setVariants] = useState<ProductVariant[]>([])
   
   if (status === "loading") {
     return (
@@ -58,33 +61,8 @@ export default function NewProductPage() {
     setName(name)
   }
 
-  const addColor = () => {
-    setColors([...colors, ""])
-  }
-
-  const updateColor = (index: number, value: string) => {
-    const newColors = [...colors]
-    newColors[index] = value
-    setColors(newColors)
-  }
-
-  const removeColor = (index: number) => {
-    setColors(colors.filter((_, i) => i !== index))
-  }
-
-  const addSize = () => {
-    setSizes([...sizes, ""])
-  }
-
-  const updateSize = (index: number, value: string) => {
-    const newSizes = [...sizes]
-    newSizes[index] = value
-    setSizes(newSizes)
-  }
-
-  const removeSize = (index: number) => {
-    setSizes(sizes.filter((_, i) => i !== index))
-  }
+  // No longer need the individual add/update/remove functions for colors and sizes
+  // as our new components handle this internally
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -115,13 +93,31 @@ export default function NewProductPage() {
       alert("Please add at least one color and one size")
       return
     }
-
-    const variants: ProductVariant[] = []
+    
+    // Make sure all combinations have stock values
+    // If any are missing, create them with stock=0
+    let updatedVariants = [...variants];
+    
+    // Create a map of existing variants for quick lookup
+    const variantMap: Record<string, ProductVariant> = {};
+    updatedVariants.forEach(v => {
+      variantMap[`${v.color}-${v.size}`] = v;
+    });
+    
+    // Ensure all combinations exist
     validColors.forEach((color) => {
       validSizes.forEach((size) => {
-        variants.push({ color, size })
-      })
-    })
+        const key = `${color}-${size}`;
+        if (!variantMap[key]) {
+          updatedVariants.push({ color, size, stock: 0 });
+        }
+      });
+    });
+    
+    // Filter out variants that aren't in our valid colors and sizes
+    updatedVariants = updatedVariants.filter(
+      v => validColors.includes(v.color) && validSizes.includes(v.size)
+    );
 
     setSaving(true)
 
@@ -137,7 +133,7 @@ export default function NewProductPage() {
           variations: {
             colors: validColors,
             sizes: validSizes,
-            variants,
+            variants: updatedVariants,
           },
         }),
       })
@@ -239,56 +235,29 @@ export default function NewProductPage() {
           <h2 className="text-xl font-semibold">Variations</h2>
 
           <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <Label>Colors *</Label>
-              <Button type="button" variant="outline" size="sm" onClick={addColor}>
-                <Plus className="h-4 w-4 mr-1" />
-                Add Color
-              </Button>
-            </div>
-            <div className="space-y-2">
-              {colors.map((color, index) => (
-                <div key={index} className="flex gap-2">
-                  <Input
-                    value={color}
-                    onChange={(e) => updateColor(index, e.target.value)}
-                    placeholder="e.g., Red, Blue, Black"
-                  />
-                  {colors.length > 1 && (
-                    <Button type="button" variant="outline" size="icon" onClick={() => removeColor(index)}>
-                      <X className="h-4 w-4" />
-                    </Button>
-                  )}
-                </div>
-              ))}
-            </div>
+            <Label>Colors *</Label>
+            <ColorSelector selectedColors={colors} onChange={setColors} />
           </div>
 
           <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <Label>Sizes *</Label>
-              <Button type="button" variant="outline" size="sm" onClick={addSize}>
-                <Plus className="h-4 w-4 mr-1" />
-                Add Size
-              </Button>
-            </div>
-            <div className="space-y-2">
-              {sizes.map((size, index) => (
-                <div key={index} className="flex gap-2">
-                  <Input
-                    value={size}
-                    onChange={(e) => updateSize(index, e.target.value)}
-                    placeholder="e.g., S, M, L, XL"
-                  />
-                  {sizes.length > 1 && (
-                    <Button type="button" variant="outline" size="icon" onClick={() => removeSize(index)}>
-                      <X className="h-4 w-4" />
-                    </Button>
-                  )}
-                </div>
-              ))}
-            </div>
+            <Label>Sizes *</Label>
+            <SizeSelector selectedSizes={sizes} onChange={setSizes} />
           </div>
+          
+          {colors.length > 0 && sizes.length > 0 && (
+            <div className="space-y-4 pt-4 border-t">
+              <div className="flex items-center justify-between">
+                <Label>Inventory Management</Label>
+                <p className="text-sm text-muted-foreground">Enter available quantity for each variant</p>
+              </div>
+              <VariantInventory 
+                colors={colors.filter(c => c.trim() !== "")}
+                sizes={sizes.filter(s => s.trim() !== "")}
+                variants={variants}
+                onChange={setVariants}
+              />
+            </div>
+          )}
         </div>
 
         <div className="flex gap-4">

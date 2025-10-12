@@ -6,8 +6,9 @@ import { ObjectId } from "mongodb"
 import type { Coupon } from "@/lib/types"
 
 // PATCH /api/coupons/[id] - Admin only endpoint to update coupon
-export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params
     const session = await getServerSession(authOptions)
 
     if (!session?.user) {
@@ -40,14 +41,13 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
       updateFields.isActive = isActive
     }
 
-    const client = await clientPromise
-    const db = client.db("rivaayat")
+    const db = await getDatabase()
 
     // If updating code, check if new code already exists
     if (code) {
       const existingCoupon = await db.collection<Coupon>("coupons").findOne({
         code: code.toUpperCase(),
-        _id: { $ne: new ObjectId(params.id) },
+        _id: { $ne: new ObjectId(id) as any },
       })
 
       if (existingCoupon) {
@@ -57,7 +57,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
 
     const result = await db
       .collection<Coupon>("coupons")
-      .findOneAndUpdate({ _id: new ObjectId(params.id) }, { $set: updateFields }, { returnDocument: "after" })
+      .findOneAndUpdate({ _id: new ObjectId(id) as any }, { $set: updateFields }, { returnDocument: "after" })
 
     if (!result) {
       return NextResponse.json({ error: "Coupon not found" }, { status: 404 })

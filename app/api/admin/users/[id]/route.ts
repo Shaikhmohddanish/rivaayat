@@ -6,8 +6,9 @@ import { ObjectId } from "mongodb"
 import type { User } from "@/lib/types"
 
 // PATCH /api/admin/users/[id] - Admin only endpoint to update user
-export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params
     const session = await getServerSession(authOptions)
 
     if (!session?.user) {
@@ -56,7 +57,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
     const result = await db
       .collection<User>("users")
       .findOneAndUpdate(
-        { _id: new ObjectId(params.id) as any },
+        { _id: new ObjectId(id) as any },
         { $set: updateFields },
         { returnDocument: "after", projection: { password: 0 } },
       )

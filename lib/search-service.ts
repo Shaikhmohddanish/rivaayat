@@ -1,5 +1,4 @@
-import { getDatabase, isMongoDBAvailable } from "@/lib/mongodb-safe"
-import { productDb as mockProductDb } from "@/lib/db"
+import { getDatabase } from "@/lib/mongodb-safe"
 import type { Product } from "@/lib/types"
 
 // Extended Product interface for search functionality
@@ -66,18 +65,14 @@ export class SearchService {
   }
 
   /**
-   * Search in database (MongoDB or fallback to mock data)
+   * Search in MongoDB database
    */
   private static async searchInDatabase(options: SearchOptions): Promise<(SearchableProduct & { _id: string })[]> {
     try {
-      if (isMongoDBAvailable()) {
-        return await this.searchInMongoDB(options)
-      } else {
-        return await this.searchInMockData(options)
-      }
+      return await this.searchInMongoDB(options)
     } catch (error) {
-      console.warn('Database search failed, falling back to mock data:', error)
-      return await this.searchInMockData(options)
+      console.error('Database search failed:', error)
+      throw new Error('Failed to search products in database')
     }
   }
 
@@ -152,31 +147,7 @@ export class SearchService {
     }))
   }
 
-  /**
-   * Search in mock data as fallback
-   */
-  private static async searchInMockData(options: SearchOptions): Promise<(SearchableProduct & { _id: string })[]> {
-    const { query } = options
-    const products = await mockProductDb.find({}) as (SearchableProduct & { _id: string })[]
-
-    if (!query.trim()) return products
-
-    const searchQuery = query.toLowerCase()
-    
-    return products.filter((product) => {
-      const searchableText = [
-        product.name,
-        product.description,
-        product.category,
-        product.subcategory,
-        product.tags?.join(' '),
-        product.brand
-      ].filter(Boolean).join(' ').toLowerCase()
-
-      return searchableText.includes(searchQuery) ||
-             searchQuery.split(' ').some(term => searchableText.includes(term))
-    })
-  }
+  // Mock data search removed - using MongoDB exclusively
 
   /**
    * Apply additional filters and sorting to search results

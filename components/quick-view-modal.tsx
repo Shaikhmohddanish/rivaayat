@@ -6,7 +6,9 @@ import { useRouter } from "next/navigation"
 import { useSession } from "next-auth/react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import { Heart, ShoppingCart, ChevronLeft, ChevronRight } from "lucide-react"
+import { Heart, ShoppingCart, ChevronLeft, ChevronRight, Check as CheckIcon } from "lucide-react"
+import { getColorByName } from "@/lib/product-options"
+import { useToast } from "@/hooks/use-toast"
 import type { Product } from "@/lib/types"
 
 interface QuickViewModalProps {
@@ -18,47 +20,48 @@ interface QuickViewModalProps {
 export function QuickViewModal({ product, open, onClose }: QuickViewModalProps) {
   const { data: session } = useSession()
   const router = useRouter()
+  const { toast } = useToast()
   const [selectedColor, setSelectedColor] = useState("")
   const [selectedSize, setSelectedSize] = useState("")
   const [quantity, setQuantity] = useState(1)
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
-  const [availableSizes, setAvailableSizes] = useState<string[]>([])
-  const [availableColors, setAvailableColors] = useState<string[]>([])
-
+  const [isInWishlist, setIsInWishlist] = useState(false)
   useEffect(() => {
-    if (product) {
-      // Reset state when product changes
+    if (product && open) {
+      // Reset state when product changes and modal opens
       setCurrentImageIndex(0)
       setQuantity(1)
-
-      const colors = [...new Set(product.variations?.variants?.map((v) => v.color) || [])]
-      const sizes = [...new Set(product.variations?.variants?.map((v) => v.size) || [])]
-
-      setAvailableColors(colors)
-      setAvailableSizes(sizes)
-
-      // Set default selections
-      setSelectedColor(colors[0] || "")
-      setSelectedSize(sizes[0] || "")
+      
+      // Check if product is in wishlist using API
+      fetch('/api/wishlist')
+        .then(res => res.ok ? res.json() : { productIds: [] })
+        .then(wishlistData => {
+          setIsInWishlist(wishlistData.productIds?.includes(product._id))
+        })
+        .catch(err => {
+          console.error("Error fetching wishlist:", err)
+        })
+      
+      // Find first available color with stock > 0
+      const firstAvailableColor = product.variations.colors.find(color => {
+        return product.variations.variants.some(v => v.color === color && v.stock > 0)
+      }) || product.variations.colors[0] || ""
+      
+      // Find first available size for that color with stock > 0
+      const firstAvailableSize = product.variations.sizes.find(size => {
+        return product.variations.variants.some(v => 
+          v.color === firstAvailableColor && v.size === size && v.stock > 0
+        )
+      }) || product.variations.sizes[0] || ""
+      
+      setSelectedColor(firstAvailableColor)
+      setSelectedSize(firstAvailableSize)
     }
-  }, [product])
-
-  useEffect(() => {
-    if (product && selectedColor) {
-      const sizesForColor =
-        product.variations?.variants?.filter((v) => v.color === selectedColor).map((v) => v.size) || []
-      setAvailableSizes([...new Set(sizesForColor)])
-
-      // Reset size if current selection is not available
-      if (!sizesForColor.includes(selectedSize)) {
-        setSelectedSize(sizesForColor[0] || "")
-      }
-    }
-  }, [selectedColor, product, selectedSize])
+  }, [product, open])
 
   if (!product) return null
 
-  const handleAddToCart = () => {
+  const handleAddToCart = async () => {
     if (!session) {
       router.push("/auth/login")
       return
@@ -68,61 +71,136 @@ export function QuickViewModal({ product, open, onClose }: QuickViewModalProps) 
       alert("Please select color and size")
       return
     }
+    
+    // Check inventory
+    const selectedVariant = product.variations.variants.find(
+      v => v.color === selectedColor && v.size === selectedSize
+    );
+    
+    if (!selectedVariant || !selectedVariant.stock || selectedVariant.stock < quantity) {
+      alert("Not enough stock available for this variant")
+      return
+    }
 
     const cartItem = {
       productId: product._id,
       name: product.name,
       price: product.price,
       quantity,
-      color: selectedColor,
-      size: selectedSize,
+      variant: {
+        color: selectedColor,
+        size: selectedSize
+      },
       image: product.images[0]?.url || "",
     }
 
-    const cart = JSON.parse(localStorage.getItem("cart") || "[]")
-    const existingIndex = cart.findIndex(
-      (item: any) =>
-        item.productId === cartItem.productId && item.color === cartItem.color && item.size === cartItem.size,
-    )
-
-    if (existingIndex > -1) {
-      cart[existingIndex].quantity += quantity
-    } else {
-      cart.push(cartItem)
+    try {
+      // Add item to cart via API
+      const response = await fetch('/api/cart/items', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(cartItem),
+      })
+      
+      if (!response.ok) {
+        throw new Error('Failed to add to cart')
+      }
+      
+      // Trigger event to update cart count in header
+      window.dispatchEvent(new Event("cartUpdated"))
+    } catch (error) {
+      console.error('Error adding to cart:', error)
+      toast({
+        title: "Error",
+        description: "Could not add item to cart",
+        variant: "destructive"
+      })
+      return
     }
-
-    localStorage.setItem("cart", JSON.stringify(cart))
-    window.dispatchEvent(new Event("cartUpdated"))
-    alert("Added to cart!")
+    
+    toast({
+      title: "Added to cart",
+      description: `${product.name} - ${selectedColor}, ${selectedSize}`,
+      variant: "default",
+      className: "bg-green-50 border-green-200 text-green-800"
+    })
+    
     onClose()
   }
 
-  const handleBuyNow = () => {
+  const handleBuyNow = async () => {
     if (!session) {
       router.push("/auth/login")
       return
     }
 
-    handleAddToCart()
+    await handleAddToCart()
     router.push("/cart")
+  }
+  
+  const handleWishlist = async () => {
+    if (!session) {
+      router.push("/auth/login")
+      return
+    }
+    
+    try {
+      const response = await fetch('/api/wishlist', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ productId: product._id }),
+      })
+      
+      if (!response.ok) {
+        throw new Error('Failed to update wishlist')
+      }
+      
+      const data = await response.json()
+      
+      // Update UI state
+      const isNowInWishlist = data.productIds.includes(product._id)
+      setIsInWishlist(isNowInWishlist)
+      
+      // Broadcast event for other components
+      window.dispatchEvent(new Event("wishlistUpdated"))
+      
+      // Show toast
+      toast({
+        title: isNowInWishlist ? "Added to wishlist" : "Removed from wishlist",
+        description: product.name,
+        variant: "default",
+        className: isNowInWishlist ? "bg-pink-50 border-pink-200 text-pink-800" : "bg-gray-50 border-gray-200"
+      })
+    } catch (error) {
+      console.error('Error updating wishlist:', error)
+      toast({
+        title: "Error",
+        description: "Could not update wishlist",
+        variant: "destructive"
+      })
+    }
   }
 
   const nextImage = () => {
-    setCurrentImageIndex((prev) => (prev + 1) % product.images.length)
+    setCurrentImageIndex((prev: number) => (prev + 1) % product.images.length)
   }
 
   const prevImage = () => {
-    setCurrentImageIndex((prev) => (prev - 1 + product.images.length) % product.images.length)
+    setCurrentImageIndex((prev: number) => (prev - 1 + product.images.length) % product.images.length)
   }
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>{product.name}</DialogTitle>
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto p-6">
+        <DialogHeader className="pb-2">
+          <DialogTitle className="text-xl font-bold">{product.name}</DialogTitle>
         </DialogHeader>
 
-        <div className="grid md:grid-cols-2 gap-6">
+        <div className="grid md:grid-cols-2 gap-8">
           {/* Image Gallery */}
           <div className="space-y-4">
             <div className="relative aspect-[3/4] rounded-lg overflow-hidden bg-muted">
@@ -177,50 +255,102 @@ export function QuickViewModal({ product, open, onClose }: QuickViewModalProps) 
 
           {/* Details */}
           <div className="space-y-4">
-            <p className="text-2xl font-bold text-primary">₹{product.price.toFixed(2)}</p>
+            <div className="flex items-center gap-3">
+              <p className="text-2xl font-bold">₹{product.price.toFixed(0)}</p>
+              <p className="text-green-600 font-medium">(82% OFF)</p>
+            </div>
             <p className="text-muted-foreground">{product.description}</p>
 
-            {/* Color Selection */}
-            {availableColors.length > 0 && (
-              <div>
-                <label className="block text-sm font-semibold mb-2">Color</label>
-                <div className="flex gap-2 flex-wrap">
-                  {availableColors.map((color) => (
-                    <button
-                      key={color}
-                      onClick={() => setSelectedColor(color)}
-                      className={`px-3 py-1 rounded-md border-2 text-sm ${
-                        selectedColor === color
-                          ? "border-primary bg-primary text-primary-foreground"
-                          : "border-border hover:border-primary"
-                      }`}
-                    >
-                      {color}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Size Selection */}
-            {availableSizes.length > 0 && (
-              <div>
-                <label className="block text-sm font-semibold mb-2">Size</label>
-                <div className="flex gap-2 flex-wrap">
-                  {availableSizes.map((size) => (
-                    <button
-                      key={size}
-                      onClick={() => setSelectedSize(size)}
-                      className={`px-3 py-1 rounded-md border-2 text-sm ${
-                        selectedSize === size
-                          ? "border-primary bg-primary text-primary-foreground"
-                          : "border-border hover:border-primary"
-                      }`}
-                    >
-                      {size}
-                    </button>
-                  ))}
-                </div>
+            {/* Simple Variation Selection */}
+            {product.variations && (
+              <div className="space-y-4">
+                {/* Color Selection */}
+                {product.variations.colors.length > 0 && (
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium">Color</label>
+                    <div className="flex flex-wrap gap-2">
+                      {product.variations.colors.map((color) => {
+                        const colorInfo = getColorByName(color);
+                        const totalStock = product.variations.variants
+                          .filter(v => v.color === color)
+                          .reduce((sum, v) => sum + (v.stock || 0), 0);
+                          
+                        const isOutOfStock = totalStock <= 0;
+                        
+                        return (
+                          <button
+                            key={color}
+                            type="button"
+                            disabled={isOutOfStock}
+                            onClick={() => {
+                              setSelectedColor(color);
+                              
+                              // Find first available size for this color
+                              const availableSize = product.variations.sizes.find(size => {
+                                const variant = product.variations.variants.find(
+                                  v => v.color === color && v.size === size && v.stock > 0
+                                );
+                                return variant !== undefined;
+                              }) || product.variations.sizes[0];
+                              
+                              if (availableSize) {
+                                setSelectedSize(availableSize);
+                              }
+                            }}
+                            className={`w-8 h-8 rounded-full flex items-center justify-center border-2 transition-all ${
+                              color === selectedColor
+                                ? "ring-2 ring-primary ring-offset-2"
+                                : isOutOfStock 
+                                  ? "opacity-50 cursor-not-allowed"
+                                  : ""
+                            }`}
+                            style={{ backgroundColor: colorInfo.hex }}
+                            aria-label={`Color: ${color}`}
+                          >
+                            {color === selectedColor && (
+                              <CheckIcon className="h-4 w-4 text-white stroke-[3]" />
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+                
+                {/* Size Selection */}
+                {product.variations.sizes.length > 0 && (
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium">Select Size</label>
+                    <div className="flex flex-wrap gap-2">
+                      {product.variations.sizes.map((size) => {
+                        const stockForSize = selectedColor ? 
+                          product.variations.variants
+                            .find(v => v.color === selectedColor && v.size === size)?.stock || 0
+                          : 0;
+                          
+                        const isOutOfStock = stockForSize <= 0;
+                        
+                        return (
+                          <button
+                            key={size}
+                            type="button"
+                            disabled={isOutOfStock}
+                            onClick={() => setSelectedSize(size)}
+                            className={`min-w-[3rem] h-10 rounded-full border flex items-center justify-center px-3 transition-all ${
+                              size === selectedSize
+                                ? "bg-primary text-white border-primary"
+                                : isOutOfStock
+                                  ? "bg-muted text-muted-foreground opacity-50 cursor-not-allowed"
+                                  : "bg-background hover:border-primary"
+                            }`}
+                          >
+                            {size}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
@@ -247,20 +377,42 @@ export function QuickViewModal({ product, open, onClose }: QuickViewModalProps) 
                 </Button>
               </div>
             </div>
+            
+            {/* Delivery Options */}
+            <div className="border rounded-md p-4 bg-muted/20">
+              <h3 className="font-medium mb-2 flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-truck">
+                  <path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"></path>
+                  <path d="M11 18h1a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h4"></path>
+                  <circle cx="18" cy="18" r="2"></circle>
+                  <circle cx="7" cy="18" r="2"></circle>
+                </svg>
+                DELIVERY OPTIONS
+              </h3>
+              <div className="text-sm text-muted-foreground">
+                Free delivery on orders above ₹500
+              </div>
+            </div>
 
             {/* Actions */}
-            <div className="space-y-2 pt-4">
-              <div className="flex gap-2">
-                <Button onClick={handleAddToCart} className="flex-1">
-                  <ShoppingCart className="mr-2 h-4 w-4" />
-                  Add to Cart
-                </Button>
-                <Button variant="outline" size="icon" aria-label="Add to Wishlist">
-                  <Heart className="h-4 w-4" />
-                </Button>
-              </div>
-              <Button onClick={handleBuyNow} variant="secondary" className="w-full">
-                Buy Now
+            <div className="space-y-3 pt-4">
+              <Button 
+                onClick={handleAddToCart} 
+                className="w-full bg-primary hover:bg-primary/90 text-white h-12 text-base font-medium"
+              >
+                <ShoppingCart className="mr-2 h-5 w-5" />
+                ADD TO BAG
+              </Button>
+              <Button 
+                onClick={handleWishlist} 
+                variant={isInWishlist ? "secondary" : "outline"}
+                className={`w-full border-2 h-12 text-base font-medium ${
+                  isInWishlist ? "border-pink-200 bg-pink-50 text-pink-600" : ""
+                }`}
+                aria-label={isInWishlist ? "Remove from Wishlist" : "Add to Wishlist"}
+              >
+                <Heart className={`mr-2 h-5 w-5 ${isInWishlist ? "fill-pink-500" : ""}`} />
+                {isInWishlist ? "WISHLISTED" : "WISHLIST"}
               </Button>
             </div>
           </div>

@@ -40,10 +40,11 @@ export interface ProductImage {
 export interface ProductVariant {
   color: string
   size: string
+  stock: number  // Available quantity for this color-size combination
 }
 
 export interface Product {
-  _id?: string
+  _id: string
   name: string
   slug: string
   description: string
@@ -106,8 +107,14 @@ export interface CartItem {
   name: string
   price: number
   quantity: number
-  color: string
-  size: string
+  // Support both formats for backward compatibility
+  variant?: {
+    color: string
+    size: string
+  }
+  // Legacy format
+  color?: string
+  size?: string
   image: string
 }
 

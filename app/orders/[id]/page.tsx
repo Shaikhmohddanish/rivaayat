@@ -1,8 +1,8 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, use } from "react"
 import { useSession } from "next-auth/react"
-import { useRouter, useParams } from "next/navigation"
+import { useRouter } from "next/navigation"
 import Image from "next/image"
 import Link from "next/link"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -13,11 +13,10 @@ import { ArrowLeft, Package, Truck, CheckCircle, XCircle, Clock, MapPin, Calenda
 import { formatDateTimeIST, formatDateDDMMYYYY } from "@/lib/date-utils"
 import type { Order } from "@/lib/types"
 
-export default function OrderDetailsPage() {
+export default function OrderDetailsPage({ params }: { params: Promise<{ id: string }> }) {
   const { data: session, status } = useSession()
   const router = useRouter()
-  const params = useParams()
-  const orderId = params.id as string
+  const { id: orderId } = use(params)
   
   const [order, setOrder] = useState<Order | null>(null)
   const [loading, setLoading] = useState(true)

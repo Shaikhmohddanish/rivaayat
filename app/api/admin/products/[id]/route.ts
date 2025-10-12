@@ -7,7 +7,7 @@ import { ObjectId } from "mongodb"
 import type { Product } from "@/lib/types"
 
 // GET /api/admin/products/[id] - Admin only endpoint to get single product
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const session = await getServerSession(authOptions)
 
@@ -19,11 +19,13 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       return NextResponse.json({ error: "Forbidden" }, { status: 403 })
     }
 
+    const { id } = await params
+    
     const client = await clientPromise
     if (!client) throw new Error("Failed to connect to database")
     const db = client.db("rivaayat")
 
-    const product = await db.collection<Product>("products").findOne({ _id: new ObjectId(params.id) as any })
+    const product = await db.collection<Product>("products").findOne({ _id: new ObjectId(id) as any })
 
     if (!product) {
       return NextResponse.json({ error: "Product not found" }, { status: 404 })
@@ -40,8 +42,9 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
 }
 
 // PATCH /api/admin/products/[id] - Admin only endpoint to update product
-export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params
     const session = await getServerSession(authOptions)
 
     if (!session?.user) {
@@ -62,12 +65,14 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
     if (name !== undefined) updateFields.name = name
     if (slug !== undefined) {
       // Check if new slug already exists on a different product
+      const { id } = await params
+      
       const client = await clientPromise
       if (!client) throw new Error("Failed to connect to database")
       const db = client.db("rivaayat")
       const existingProduct = await db.collection<Product>("products").findOne({
         slug,
-        _id: { $ne: new ObjectId(params.id) as any },
+        _id: { $ne: new ObjectId(id) as any },
       })
 
       if (existingProduct) {
@@ -88,7 +93,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
 
     const result = await db
       .collection<Product>("products")
-      .findOneAndUpdate({ _id: new ObjectId(params.id) as any }, { $set: updateFields }, { returnDocument: "after" })
+      .findOneAndUpdate({ _id: new ObjectId(id) as any }, { $set: updateFields }, { returnDocument: "after" })
 
     if (!result) {
       return NextResponse.json({ error: "Product not found" }, { status: 404 })

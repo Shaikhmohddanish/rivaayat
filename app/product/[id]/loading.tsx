@@ -32,21 +32,16 @@ export default function Loading() {
 
               {/* Variants */}
               <div className="space-y-6">
-                <div className="space-y-3">
-                  <ShimmerText className="w-16 h-5" />
-                  <div className="flex gap-3">
-                    {[1, 2, 3, 4].map((i) => (
-                      <div key={i} className="w-12 h-12 rounded-full shimmer-card" />
-                    ))}
+                {/* Variations */}
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <ShimmerText className="w-16 h-5" />
+                    <ShimmerButton className="w-full h-10" />
                   </div>
-                </div>
-                
-                <div className="space-y-3">
-                  <ShimmerText className="w-12 h-5" />
-                  <div className="flex gap-3">
-                    {[1, 2, 3, 4].map((i) => (
-                      <ShimmerButton key={i} className="w-12 h-10" />
-                    ))}
+                  
+                  <div className="space-y-2">
+                    <ShimmerText className="w-12 h-5" />
+                    <ShimmerButton className="w-full h-10" />
                   </div>
                 </div>
               </div>

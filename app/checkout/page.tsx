@@ -18,6 +18,7 @@ export default function CheckoutPage() {
   const [cart, setCart] = useState<CartItem[]>([])
   const [loading, setLoading] = useState(false)
   const [showAddressForm, setShowAddressForm] = useState(false)
+  const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discountPercent: number } | null>(null)
   const [formData, setFormData] = useState({
     fullName: "",
     email: "",
@@ -34,8 +35,40 @@ export default function CheckoutPage() {
     const savedCart = JSON.parse(localStorage.getItem("cart") || "[]")
     if (savedCart.length === 0) {
       router.push("/cart")
+      return;
     }
-    setCart(savedCart)
+    
+    // Ensure all cart items have the correct variant structure
+    const updatedCart = savedCart.map((item: CartItem) => {
+      if (!item.variant && (item.color || item.size)) {
+        return {
+          ...item,
+          variant: {
+            color: item.color || "",
+            size: item.size || ""
+          }
+        };
+      }
+      return item;
+    });
+    
+    setCart(updatedCart);
+    
+    // If the cart structure was updated, save it back
+    if (JSON.stringify(updatedCart) !== JSON.stringify(savedCart)) {
+      localStorage.setItem("cart", JSON.stringify(updatedCart));
+    }
+    
+    // Load saved coupon from localStorage
+    const savedCoupon = localStorage.getItem("appliedCoupon")
+    if (savedCoupon) {
+      try {
+        const coupon = JSON.parse(savedCoupon)
+        setAppliedCoupon(coupon)
+      } catch (e) {
+        localStorage.removeItem("appliedCoupon")
+      }
+    }
   }, [router])
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -65,6 +98,7 @@ export default function CheckoutPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           items: cart,
+          coupon: appliedCoupon,
           shippingAddress: showAddressForm ? formData : {
             fullName: formData.fullName,
             email: formData.email,
@@ -82,11 +116,17 @@ export default function CheckoutPage() {
         return
       }
 
-      // Clear cart
+      // Clear cart and coupon
       localStorage.removeItem("cart")
+      localStorage.removeItem("appliedCoupon")
 
-      // Redirect to success page
-      router.push(`/order-success?trackingNumber=${data.trackingNumber}`)
+      // Redirect to success page with tracking number
+      if (data.trackingNumber) {
+        router.push(`/order-success?trackingNumber=${data.trackingNumber}`)
+      } else {
+        // Fallback to orderId if trackingNumber is not available
+        router.push(`/order-success?trackingNumber=${data.orderId}`)
+      }
     } catch (error) {
       alert("An error occurred. Please try again.")
       setLoading(false)
@@ -94,8 +134,10 @@ export default function CheckoutPage() {
   }
 
   const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0)
-  const shipping = subtotal > 1500 ? 0 : 200
-  const total = subtotal + shipping
+  const discountAmount = appliedCoupon ? (subtotal * appliedCoupon.discountPercent / 100) : 0
+  const discountedSubtotal = subtotal - discountAmount
+  const shipping = discountedSubtotal > 1500 ? 0 : 200
+  const total = discountedSubtotal + shipping
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -254,9 +296,14 @@ export default function CheckoutPage() {
                 <div className="space-y-2">
                   {cart.map((item, index) => (
                     <div key={index} className="flex justify-between text-sm">
-                      <span>
-                        {item.name} x {item.quantity}
-                      </span>
+                      <div>
+                        <div>{item.name} x {item.quantity}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {item.variant ? 
+                            `${item.variant.color} / ${item.variant.size}` : 
+                            (item.color && item.size ? `${item.color} / ${item.size}` : "")}
+                        </div>
+                      </div>
                       <span>₹{(item.price * item.quantity).toFixed(2)}</span>
                     </div>
                   ))}
@@ -267,6 +314,15 @@ export default function CheckoutPage() {
                     <span className="text-muted-foreground">Subtotal</span>
                     <span>₹{subtotal.toFixed(2)}</span>
                   </div>
+                  
+                  {/* Show discount if coupon is applied */}
+                  {appliedCoupon && (
+                    <div className="flex justify-between text-green-600">
+                      <span>Discount ({appliedCoupon.code} - {appliedCoupon.discountPercent}%)</span>
+                      <span>-₹{discountAmount.toFixed(2)}</span>
+                    </div>
+                  )}
+                  
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Shipping</span>
                     <span>{shipping === 0 ? "Free" : `₹${shipping.toFixed(2)}`}</span>

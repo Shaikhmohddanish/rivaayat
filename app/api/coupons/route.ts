@@ -14,8 +14,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Coupon code is required" }, { status: 400 })
     }
 
-    const client = await clientPromise
-    const db = client.db("rivaayat")
+    const db = await getDatabase()
 
     const coupon = await db.collection<Coupon>("coupons").findOne({ code: code.toUpperCase() })
 
@@ -61,8 +60,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Discount percent must be between 0 and 100" }, { status: 400 })
     }
 
-    const client = await clientPromise
-    const db = client.db("rivaayat")
+    const db = await getDatabase()
 
     // Check if coupon code already exists
     const existingCoupon = await db.collection<Coupon>("coupons").findOne({ code: code.toUpperCase() })

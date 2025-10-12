@@ -1,6 +1,18 @@
 import { NextResponse } from "next/server"
 import { requireAuth } from "@/lib/auth"
-import { cartDb } from "@/lib/db"
+import { getDatabase } from "@/lib/mongodb-safe"
+
+interface CartItem {
+  productId: string
+  name: string
+  price: number
+  variant: {
+    color: string
+    size: string
+  }
+  quantity: number
+  image?: string
+}
 
 export async function POST(request: Request) {
   try {
@@ -11,12 +23,18 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
     }
 
-    const cart = await cartDb.findByUserId(user.id)
+    const db = await getDatabase()
+    if (!db) {
+      return NextResponse.json({ error: "Database connection error" }, { status: 500 })
+    }
+    
+    // Find existing cart or create a new one
+    const cart = await db.collection('carts').findOne({ userId: user.id })
     const items = cart?.items || []
 
     // Find existing item with same product and variant
     const existingIndex = items.findIndex(
-      (item) =>
+      (item: CartItem) =>
         item.productId === productId && item.variant.color === variant.color && item.variant.size === variant.size,
     )
 
@@ -35,11 +53,21 @@ export async function POST(request: Request) {
       })
     }
 
-    const updatedCart = await cartDb.upsert(user.id, items)
+    // Upsert the cart
+    const result = await db.collection('carts').updateOne(
+      { userId: user.id },
+      { 
+        $set: { 
+          items: items,
+          updatedAt: new Date()
+        }
+      },
+      { upsert: true }
+    )
 
     return NextResponse.json({
       message: "Cart updated",
-      items: updatedCart.items,
+      items: items,
     })
   } catch (error) {
     if (error instanceof Error && error.message === "Unauthorized") {
@@ -58,14 +86,40 @@ export async function DELETE(request: Request) {
     if (!productId || !variant?.color || !variant?.size) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
     }
-
-    await cartDb.deleteItem(user.id, productId, variant)
-
-    const cart = await cartDb.findByUserId(user.id)
+    
+    const db = await getDatabase()
+    if (!db) {
+      return NextResponse.json({ error: "Database connection error" }, { status: 500 })
+    }
+    
+    // Get the current cart
+    const cart = await db.collection('carts').findOne({ userId: user.id })
+    if (!cart) {
+      return NextResponse.json({ error: "Cart not found" }, { status: 404 })
+    }
+    
+    // Filter out the item to be deleted
+    const updatedItems = cart.items.filter(
+      (item: CartItem) =>
+        !(item.productId === productId && 
+          item.variant.color === variant.color && 
+          item.variant.size === variant.size)
+    )
+    
+    // Update the cart
+    await db.collection('carts').updateOne(
+      { userId: user.id },
+      { 
+        $set: { 
+          items: updatedItems,
+          updatedAt: new Date()
+        }
+      }
+    )
 
     return NextResponse.json({
       message: "Item removed",
-      items: cart?.items || [],
+      items: updatedItems || [],
     })
   } catch (error) {
     if (error instanceof Error && error.message === "Unauthorized") {
