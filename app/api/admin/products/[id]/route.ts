@@ -2,6 +2,7 @@ import { type NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { getDatabase } from "@/lib/mongodb"
+import clientPromise from "@/lib/mongodb-safe"
 import { ObjectId } from "mongodb"
 import type { Product } from "@/lib/types"
 
@@ -19,6 +20,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     }
 
     const client = await clientPromise
+    if (!client) throw new Error("Failed to connect to database")
     const db = client.db("rivaayat")
 
     const product = await db.collection<Product>("products").findOne({ _id: new ObjectId(params.id) as any })
@@ -61,6 +63,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
     if (slug !== undefined) {
       // Check if new slug already exists on a different product
       const client = await clientPromise
+      if (!client) throw new Error("Failed to connect to database")
       const db = client.db("rivaayat")
       const existingProduct = await db.collection<Product>("products").findOne({
         slug,
@@ -80,6 +83,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
     if (variations !== undefined) updateFields.variations = variations
 
     const client = await clientPromise
+    if (!client) throw new Error("Failed to connect to database")
     const db = client.db("rivaayat")
 
     const result = await db

@@ -11,9 +11,11 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
 import { ProductImageUpload } from "@/components/product-image-upload"
+import { SlugInput } from "@/components/slug-input"
 import { ArrowLeft, Plus, X } from "lucide-react"
 import Link from "next/link"
 import type { Product, ProductImage, ProductVariant } from "@/lib/types"
+import { useSlug } from "@/hooks/use-slug"
 
 export default function EditProductPage({ params }: { params: { id: string } }) {
   const { data: session, status } = useSession()
@@ -21,10 +23,20 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [product, setProduct] = useState<Product | null>(null)
+  
+  // Use our slug hook with product ID for edit mode
+  const { 
+    slug, 
+    setName: setSlugName, 
+    setSlug, 
+    status: slugStatus, 
+    message: slugMessage, 
+    isValid: isSlugValid, 
+    checkSlug 
+  } = useSlug('', { productId: params.id })
 
   const [formData, setFormData] = useState({
     name: "",
-    slug: "",
     description: "",
     price: "",
     isFeatured: false,
@@ -52,11 +64,12 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
         setProduct(data)
         setFormData({
           name: data.name,
-          slug: data.slug,
           description: data.description,
           price: data.price.toString(),
           isFeatured: data.isFeatured,
         })
+        // Set the slug using our hook
+        setSlug(data.slug)
         setImages(data.images)
         setColors(data.variations.colors)
         setSizes(data.variations.sizes)
@@ -84,19 +97,13 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
     return null
   }
 
-  const generateSlug = (name: string) => {
-    return name
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-|-$/g, "")
-  }
-
   const handleNameChange = (name: string) => {
     setFormData({
       ...formData,
       name,
-      slug: generateSlug(name),
     })
+    // Update slug with our hook
+    setSlugName(name)
   }
 
   const addColor = () => {
@@ -130,9 +137,18 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (!formData.name || !formData.slug || !formData.description || !formData.price) {
+    if (!formData.name || !slug || !formData.description || !formData.price) {
       alert("Please fill in all required fields")
       return
+    }
+    
+    // Validate the slug
+    if (!isSlugValid) {
+      const isAvailable = await checkSlug()
+      if (!isAvailable) {
+        alert("Please use a different slug. This one is already taken.")
+        return
+      }
     }
 
     if (images.length === 0) {
@@ -163,6 +179,7 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...formData,
+          slug, // Use our managed slug
           price: Number.parseFloat(formData.price),
           images,
           variations: {
@@ -214,17 +231,13 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
             />
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="slug">Slug *</Label>
-            <Input
-              id="slug"
-              value={formData.slug}
-              onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
-              placeholder="product-slug"
-              required
-            />
-            <p className="text-sm text-muted-foreground">URL-friendly version of the name</p>
-          </div>
+          {/* Use our new SlugInput component */}
+          <SlugInput 
+            slug={slug}
+            onChange={setSlug}
+            status={slugStatus}
+            message={slugMessage}
+          />
 
           <div className="space-y-2">
             <Label htmlFor="description">Description *</Label>

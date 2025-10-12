@@ -2,6 +2,7 @@ import { type NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { getDatabase } from "@/lib/mongodb"
+import clientPromise from "@/lib/mongodb-safe"
 import type { Product } from "@/lib/types"
 
 // GET /api/admin/products - Admin only endpoint to list all products
@@ -18,6 +19,7 @@ export async function GET(request: NextRequest) {
     }
 
     const client = await clientPromise
+    if (!client) throw new Error("Failed to connect to database")
     const db = client.db("rivaayat")
 
     const products = await db.collection<Product>("products").find({}).sort({ createdAt: -1 }).toArray()
@@ -54,19 +56,29 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
     }
 
+    // Enhanced slug validation and handling
+    let finalSlug = slug.toLowerCase()
+      .trim()
+      .replace(/[^\w\s-]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-+|-+$/g, '')
+    
     const client = await clientPromise
+    if (!client) throw new Error("Failed to connect to database")
     const db = client.db("rivaayat")
 
-    // Check if slug already exists
-    const existingProduct = await db.collection<Product>("products").findOne({ slug })
+    // Check if slug already exists, if it does, make it unique with a timestamp
+    const existingProduct = await db.collection<Product>("products").findOne({ slug: finalSlug })
 
     if (existingProduct) {
-      return NextResponse.json({ error: "Product with this slug already exists" }, { status: 400 })
+      const timestamp = Date.now().toString().slice(-5)
+      finalSlug = `${finalSlug}-${timestamp}`
     }
 
     const newProduct: Product = {
       name,
-      slug,
+      slug: finalSlug, // Use our guaranteed unique slug
       description,
       images,
       price,

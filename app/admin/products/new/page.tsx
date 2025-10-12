@@ -11,9 +11,11 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
 import { ProductImageUpload } from "@/components/product-image-upload"
+import { SlugInput } from "@/components/slug-input"
 import { ArrowLeft, Plus, X } from "lucide-react"
 import Link from "next/link"
 import type { ProductImage, ProductVariant } from "@/lib/types"
+import { useSlug } from "@/hooks/use-slug"
 
 export default function NewProductPage() {
   const { data: session, status } = useSession()
@@ -22,16 +24,18 @@ export default function NewProductPage() {
 
   const [formData, setFormData] = useState({
     name: "",
-    slug: "",
     description: "",
     price: "",
     isFeatured: false,
   })
 
+  // Use our new slug hook
+  const { slug, setName, setSlug, status: slugStatus, message: slugMessage, isValid: isSlugValid, checkSlug } = useSlug()
+
   const [images, setImages] = useState<ProductImage[]>([])
   const [colors, setColors] = useState<string[]>([""])
   const [sizes, setSizes] = useState<string[]>([""])
-
+  
   if (status === "loading") {
     return (
       <div className="flex min-h-screen items-center justify-center">
@@ -45,19 +49,13 @@ export default function NewProductPage() {
     return null
   }
 
-  const generateSlug = (name: string) => {
-    return name
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-|-$/g, "")
-  }
-
   const handleNameChange = (name: string) => {
     setFormData({
       ...formData,
       name,
-      slug: generateSlug(name),
     })
+    // Update the slug using our new hook
+    setName(name)
   }
 
   const addColor = () => {
@@ -91,9 +89,18 @@ export default function NewProductPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (!formData.name || !formData.slug || !formData.description || !formData.price) {
+    if (!formData.name || !slug || !formData.description || !formData.price) {
       alert("Please fill in all required fields")
       return
+    }
+    
+    // Validate slug availability
+    if (!isSlugValid) {
+      const isAvailable = await checkSlug()
+      if (!isAvailable) {
+        alert("Please use a different slug. This one is already taken.")
+        return
+      }
     }
 
     if (images.length === 0) {
@@ -124,6 +131,7 @@ export default function NewProductPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...formData,
+          slug, // Use our managed slug state
           price: Number.parseFloat(formData.price),
           images,
           variations: {
@@ -175,17 +183,13 @@ export default function NewProductPage() {
             />
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="slug">Slug *</Label>
-            <Input
-              id="slug"
-              value={formData.slug}
-              onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
-              placeholder="product-slug"
-              required
-            />
-            <p className="text-sm text-muted-foreground">URL-friendly version of the name</p>
-          </div>
+          {/* Use our new SlugInput component */}
+          <SlugInput 
+            slug={slug}
+            onChange={setSlug}
+            status={slugStatus}
+            message={slugMessage}
+          />
 
           <div className="space-y-2">
             <Label htmlFor="description">Description *</Label>
