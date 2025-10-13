@@ -2,6 +2,12 @@ import { NextResponse } from "next/server"
 import { requireAuth } from "@/lib/auth"
 import { getDatabase } from "@/lib/mongodb-safe"
 
+// Helper function to normalize userId to string
+function normalizeUserId(user: any): string {
+  // Use optional chaining and nullish coalescing for safe type handling
+  return user?.id?.toString?.() || user?.id || '';
+}
+
 // GET the user's wishlist
 export async function GET() {
   try {
@@ -12,7 +18,10 @@ export async function GET() {
       return NextResponse.json({ error: "Database connection error" }, { status: 500 })
     }
     
-    const wishlist = await db.collection('wishlists').findOne({ userId: user.id })
+    // Normalize user ID for consistent querying
+    const userId = normalizeUserId(user)
+    
+    const wishlist = await db.collection('wishlists').findOne({ userId })
 
     return NextResponse.json({
       productIds: wishlist?.productIds || [],
@@ -30,6 +39,7 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const user = await requireAuth()
+    
     const { productId } = await request.json()
 
     if (!productId) {
@@ -41,8 +51,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Database connection error" }, { status: 500 })
     }
     
-    // Find existing wishlist
-    const wishlist = await db.collection('wishlists').findOne({ userId: user.id })
+    // Find existing wishlist - use string userId for consistency
+    const userId = normalizeUserId(user)
+    
+    const wishlist = await db.collection('wishlists').findOne({ userId })
     const productIds = wishlist?.productIds || []
     
     // Toggle the product
@@ -59,18 +71,18 @@ export async function POST(request: Request) {
       action = "added"
     }
     
-    // Update the wishlist
     await db.collection('wishlists').updateOne(
-      { userId: user.id },
+      { userId },
       { 
         $set: { 
+          userId, // Ensure userId is set correctly
           productIds: newProductIds,
           updatedAt: new Date()
         }
       },
       { upsert: true }
     )
-
+    
     return NextResponse.json({
       message: `Product ${action}`,
       productIds: newProductIds,

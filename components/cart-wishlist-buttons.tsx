@@ -15,6 +15,8 @@ export function CartWishlistButtons() {
     
     const updateCounts = async () => {
       try {
+        console.log("Updating cart and wishlist counts...")
+        
         // Fetch cart data from API
         const cartRes = await fetch('/api/cart', {
           cache: 'no-store',
@@ -22,16 +24,21 @@ export function CartWishlistButtons() {
         })
         const cartData = cartRes.ok ? await cartRes.json() : { items: [] }
         const cartItems = cartData.items || []
-        setCartCount(cartItems.reduce((sum: number, item: any) => sum + (item?.quantity || 0), 0))
+        const newCartCount = cartItems.reduce((sum: number, item: any) => sum + (item?.quantity || 0), 0)
+        setCartCount(newCartCount)
+        console.log("Updated cart count:", newCartCount)
         
-        // Fetch wishlist data from API
-        const wishlistRes = await fetch('/api/wishlist', {
+        // Fetch wishlist data from API with timestamp to avoid caching
+        const timestamp = new Date().getTime()
+        const wishlistRes = await fetch(`/api/wishlist?t=${timestamp}`, {
           cache: 'no-store',
           next: { revalidate: 0 }
         })
         const wishlistData = wishlistRes.ok ? await wishlistRes.json() : { productIds: [] }
         const productIds = wishlistData.productIds || []
-        setWishlistCount(productIds.length)
+        const newWishlistCount = productIds.length
+        setWishlistCount(newWishlistCount)
+        console.log("Updated wishlist count:", newWishlistCount, "Products:", productIds)
       } catch (error) {
         console.error('Error fetching counts:', error)
         setCartCount(0)

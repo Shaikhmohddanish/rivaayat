@@ -18,7 +18,10 @@ export default function CheckoutPage() {
   const [cart, setCart] = useState<CartItem[]>([])
   const [loading, setLoading] = useState(false)
   const [showAddressForm, setShowAddressForm] = useState(false)
-  const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discountPercent: number } | null>(null)
+  const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discountPercent: number; minOrderValue: number } | null>(null)
+  const [couponCode, setCouponCode] = useState("")
+  const [couponError, setCouponError] = useState("")
+  const [applyingCoupon, setApplyingCoupon] = useState(false)
   const [formData, setFormData] = useState({
     fullName: "",
     email: "",
@@ -79,6 +82,47 @@ export default function CheckoutPage() {
     setFormData({ ...formData, state: value })
   }
 
+  const handleApplyCoupon = async () => {
+    if (!couponCode.trim()) return
+    
+    setApplyingCoupon(true)
+    setCouponError("")
+    
+    try {
+      const response = await fetch("/api/coupons/validate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: couponCode.trim() })
+      })
+      
+      const data = await response.json()
+      
+      if (!response.ok) {
+        setCouponError(data.error || "Failed to apply coupon")
+        setAppliedCoupon(null)
+        localStorage.removeItem("appliedCoupon")
+        return
+      }
+      
+      // Check minimum order value requirement
+      if (data.minOrderValue && subtotal < data.minOrderValue) {
+        setCouponError(`This coupon requires a minimum order of ₹${data.minOrderValue}`)
+        setAppliedCoupon(null)
+        localStorage.removeItem("appliedCoupon")
+        return
+      }
+      
+      // Apply the coupon
+      setAppliedCoupon(data)
+      localStorage.setItem("appliedCoupon", JSON.stringify(data))
+      setCouponCode("")
+    } catch (error) {
+      setCouponError("An error occurred. Please try again.")
+    } finally {
+      setApplyingCoupon(false)
+    }
+  }
+  
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
@@ -90,6 +134,13 @@ export default function CheckoutPage() {
         setLoading(false)
         return
       }
+    }
+    
+    // Check coupon minimum order value if applied
+    if (appliedCoupon && appliedCoupon.minOrderValue > subtotal) {
+      alert(`The applied coupon requires a minimum order of ₹${appliedCoupon.minOrderValue}`)
+      setLoading(false)
+      return
     }
 
     try {
@@ -309,6 +360,31 @@ export default function CheckoutPage() {
                   ))}
                 </div>
 
+                {/* Coupon Code Input */}
+                <div className="border-t pt-4 pb-2">
+                  <div className="flex gap-2 mb-3">
+                    <Input 
+                      id="couponCode"
+                      placeholder="Enter coupon code"
+                      value={couponCode}
+                      onChange={(e) => setCouponCode(e.target.value)}
+                      className="flex-1"
+                    />
+                    <Button 
+                      type="button" 
+                      variant="secondary" 
+                      onClick={handleApplyCoupon}
+                      disabled={!couponCode || applyingCoupon}
+                    >
+                      {applyingCoupon ? "Applying..." : "Apply"}
+                    </Button>
+                  </div>
+                  
+                  {couponError && (
+                    <div className="text-sm text-red-600 mb-2">{couponError}</div>
+                  )}
+                </div>
+                
                 <div className="border-t pt-4 space-y-2">
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Subtotal</span>
@@ -318,7 +394,20 @@ export default function CheckoutPage() {
                   {/* Show discount if coupon is applied */}
                   {appliedCoupon && (
                     <div className="flex justify-between text-green-600">
-                      <span>Discount ({appliedCoupon.code} - {appliedCoupon.discountPercent}%)</span>
+                      <div className="flex items-center gap-2">
+                        <span>Discount ({appliedCoupon.code} - {appliedCoupon.discountPercent}%)</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setAppliedCoupon(null)
+                            localStorage.removeItem("appliedCoupon")
+                          }}
+                          className="text-xs text-red-500 hover:text-red-700"
+                          aria-label="Remove coupon"
+                        >
+                          ✕
+                        </button>
+                      </div>
                       <span>-₹{discountAmount.toFixed(2)}</span>
                     </div>
                   )}
