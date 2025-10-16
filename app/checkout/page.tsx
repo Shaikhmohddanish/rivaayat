@@ -112,10 +112,8 @@ export default function CheckoutPage() {
     setCouponError("")
     
     try {
-      const response = await fetch("/api/coupons/validate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code: couponCode.trim() })
+      const response = await fetch(`/api/coupons?code=${encodeURIComponent(couponCode.trim())}`, {
+        method: "GET"
       })
       
       const data = await response.json()
