@@ -45,19 +45,31 @@ export async function PATCH(
       return NextResponse.json({ error: "Order not found" }, { status: 404 })
     }
     
-    // Create new tracking status entry
-    const trackingStatus = {
+    // Create new tracking event
+    const trackingEvent = {
       status,
       timestamp: new Date(),
       message: message || getDefaultMessage(status),
       updatedBy: user.id
     }
     
-    // Update order with new tracking status
-    const result = await db.collection('orders').updateOne(
+    // 🚀 Update tracking in separate collection (better performance and scalability)
+    const trackingResult = await db.collection('order_tracking').updateOne(
+      { orderId },
+      {
+        $push: { events: trackingEvent } as any,
+        $set: { 
+          currentStatus: status,
+          updatedAt: new Date() 
+        }
+      },
+      { upsert: true } // Create if doesn't exist
+    )
+    
+    // Update order status (denormalized for queries)
+    const orderResult = await db.collection('orders').updateOne(
       { _id: new ObjectId(orderId) },
       {
-        $push: { trackingHistory: trackingStatus } as any,
         $set: { 
           status: mapTrackingStatusToOrderStatus(status),
           updatedAt: new Date() 
@@ -65,16 +77,16 @@ export async function PATCH(
       }
     )
     
-    if (result.modifiedCount === 0) {
+    if (orderResult.modifiedCount === 0 && trackingResult.modifiedCount === 0) {
       return NextResponse.json({ error: "Failed to update order" }, { status: 500 })
     }
     
-    // Get updated order
-    const updatedOrder = await db.collection('orders').findOne({ _id: new ObjectId(orderId) })
+    // Get updated tracking
+    const tracking = await db.collection('order_tracking').findOne({ orderId })
     
     return NextResponse.json({
       message: "Order tracking status updated successfully",
-      order: updatedOrder
+      tracking
     })
     
   } catch (error) {

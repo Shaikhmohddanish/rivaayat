@@ -3,6 +3,7 @@
 import { useEffect } from "react"
 import { SessionProvider, useSession, signOut } from "next-auth/react"
 import { ThemeProvider } from "@/components/theme-provider"
+import { CartWishlistProvider } from "@/components/cart-wishlist-provider"
 import { useLocalCacheCleanup, deleteLocalCachePattern } from "@/lib/local-storage"
 import { useToast } from "@/hooks/use-toast"
 
@@ -64,7 +65,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
     >
       <SessionProvider>
         <CacheManager>
-          {children}
+          <CartWishlistProvider>
+            {children}
+          </CartWishlistProvider>
         </CacheManager>
       </SessionProvider>
     </ThemeProvider>

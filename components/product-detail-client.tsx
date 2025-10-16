@@ -202,17 +202,76 @@ export default function ProductDetailClient({ product }: Props) {
       return router.push("/auth/login")
     }
     
-    const res = await fetch("/api/wishlist", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ productId: product._id }),
-    })
-    if (!res.ok) return toast({ title: "Error", description: "Could not update wishlist", variant: "destructive" })
-    const data = await res.json()
-    const now = Boolean(data.productIds?.includes(product._id))
-    setIsWishlisted(now)
+    // 🚀 Optimistic update - Update UI immediately for instant feedback
+    const previousState = isWishlisted
+    const newState = !isWishlisted
+    setIsWishlisted(newState)
+    
+    // Update cache immediately
+    try {
+      const { getCachedWishlist, updateWishlistCache } = await import("@/lib/wishlist-cache")
+      const cached = getCachedWishlist()
+      if (cached) {
+        const newProductIds = newState 
+          ? [...cached.productIds, product._id]
+          : cached.productIds.filter(id => id !== product._id)
+        updateWishlistCache(newProductIds)
+      }
+    } catch (e) {
+      console.debug("Wishlist cache update skipped:", e)
+    }
+    
+    // Dispatch event immediately
     window.dispatchEvent(new Event("wishlistUpdated"))
-    toast({ title: now ? "Added to wishlist" : "Removed from wishlist", description: product.name })
+    
+    // Show toast immediately
+    toast({ 
+      title: newState ? "Added to wishlist" : "Removed from wishlist", 
+      description: product.name 
+    })
+    
+    // Sync with API in background
+    try {
+      const res = await fetch("/api/wishlist", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ productId: product._id }),
+      })
+      
+      if (!res.ok) {
+        // Revert on failure
+        setIsWishlisted(previousState)
+        toast({ 
+          title: "Error", 
+          description: "Could not update wishlist. Please try again.", 
+          variant: "destructive" 
+        })
+        
+        // Revert cache
+        try {
+          const { getCachedWishlist, updateWishlistCache } = await import("@/lib/wishlist-cache")
+          const cached = getCachedWishlist()
+          if (cached) {
+            const revertedIds = previousState 
+              ? [...cached.productIds, product._id]
+              : cached.productIds.filter(id => id !== product._id)
+            updateWishlistCache(revertedIds)
+          }
+        } catch (e) {
+          console.debug("Wishlist cache revert skipped:", e)
+        }
+        
+        window.dispatchEvent(new Event("wishlistUpdated"))
+      }
+    } catch (error) {
+      // Revert on error
+      setIsWishlisted(previousState)
+      toast({ 
+        title: "Error", 
+        description: "Network error. Please check your connection.", 
+        variant: "destructive" 
+      })
+    }
   }
 
   return (
@@ -342,7 +401,7 @@ export default function ProductDetailClient({ product }: Props) {
           <div dangerouslySetInnerHTML={{ __html: product.detailsHtml }} />
         ) : (
           <ul>
-            <li>Brand: {product.brand ?? "—"}</li>
+            {product.brand &&<li>Brand: {product.brand ?? "—"}</li>}
             <li>Color(s): {colors.join(", ") || "—"}</li>
             <li>Sizes: {sizes.join(", ") || "—"}</li>
             {product.material && <li>Material: {product.material ?? "—"}</li>}

@@ -81,7 +81,19 @@ export interface OrderTrackingStatus {
   status: "order_confirmed" | "processing" | "shipped" | "out_for_delivery" | "delivered" | "cancelled"
   timestamp: Date
   message: string
-  updatedBy?: string // Admin ID who updated the status
+  updatedBy?: string // Admin user ID who updated the status
+}
+
+// Separate collection for order tracking events
+export interface OrderTracking {
+  _id?: string
+  orderId: string // Reference to Order._id
+  trackingNumber: string // For quick lookup
+  userId: string // For user-specific queries
+  events: OrderTrackingStatus[] // Array of tracking events
+  currentStatus: OrderTrackingStatus['status'] // Denormalized for quick queries
+  createdAt: Date
+  updatedAt: Date
 }
 
 export interface Order {
@@ -90,7 +102,7 @@ export interface Order {
   items: OrderItem[]
   status: "placed" | "processing" | "shipped" | "delivered" | "cancelled"
   trackingNumber?: string
-  trackingHistory?: OrderTrackingStatus[] // Array of tracking status updates
+  // Removed trackingHistory - now in separate OrderTracking collection
   tracking?: {
     carrier?: string
     trackingId?: string

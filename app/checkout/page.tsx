@@ -196,9 +196,20 @@ export default function CheckoutPage() {
         return
       }
 
-      // Cart is already cleared on the server, just clear local storage
+      // 🚀 Cart is already cleared on the server, now clear all local caches
       localStorage.removeItem("cart")
       localStorage.removeItem("appliedCoupon")
+      
+      // Clear cart cache
+      try {
+        const { updateCartCache } = await import("@/lib/cart-cache")
+        updateCartCache([]) // Clear cart cache
+      } catch (e) {
+        console.debug("Cart cache clear skipped:", e)
+      }
+      
+      // Dispatch event to update UI (header cart count, etc.)
+      window.dispatchEvent(new Event("cartUpdated"))
 
       // Redirect to success page with tracking number
       if (data.trackingNumber) {

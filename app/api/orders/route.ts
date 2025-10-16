@@ -136,20 +136,12 @@ export async function POST(request: Request) {
     const randomPart = Math.floor(1000 + Math.random() * 9000); // 4-digit random number
     const trackingNumber = `RIV-${dateStr}-${randomPart}`;
     
-    // Create initial tracking status
-    const initialTrackingStatus = {
-      status: "order_confirmed" as const,
-      timestamp: new Date(),
-      message: "Your order has been confirmed and is being prepared for processing."
-    };
-    
-    // Create the order object
+    // Create the order object (without tracking history - that's in separate collection now)
     const orderData = {
       userId: user.id,
       items,
       status: "placed" as const,
       trackingNumber,
-      trackingHistory: [initialTrackingStatus], // Initialize with order confirmed status
       shippingAddress,
       ...(coupon && { coupon }),
       createdAt: new Date(),
@@ -163,21 +155,40 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Failed to create order" }, { status: 500 });
     }
 
+    const orderId = result.insertedId.toString();
+
+    // 🚀 Create initial tracking entry in separate collection
+    const initialTrackingEvent = {
+      status: "order_confirmed" as const,
+      timestamp: new Date(),
+      message: "Your order has been confirmed and is being prepared for processing."
+    };
+
+    await db.collection('order_tracking').insertOne({
+      orderId,
+      trackingNumber,
+      userId: user.id,
+      events: [initialTrackingEvent],
+      currentStatus: "order_confirmed" as const,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+
     // 🚀 OPTIMIZATION: Batch update all product stocks in single operation
     if (bulkOps.length > 0) {
       await db.collection('products').bulkWrite(bulkOps)
     }
 
-    // Clear user's cart
+    // 🚀 Clear user's cart from database
     await db.collection('carts').deleteOne({ userId: user.id })
     
     // Get the created order with its ID
     const order = {
-      _id: result.insertedId.toString(),
+      _id: orderId,
       ...orderData
     };
     
-    console.log("Order saved to MongoDB successfully, stock updated, cart cleared");
+    console.log("✅ Order created, tracking initialized, stock updated, cart cleared");
 
     return NextResponse.json(
       {
