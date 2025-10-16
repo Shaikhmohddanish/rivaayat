@@ -16,7 +16,9 @@ export async function GET(request: NextRequest) {
 
     const db = await getDatabase()
 
-    const coupon = await db.collection<Coupon>("coupons").findOne({ code: code.toUpperCase() })
+    const coupon = await db.collection<Coupon>("coupons").findOne({ 
+      code: { $regex: new RegExp(`^${code}$`, "i") }
+    })
 
     if (!coupon) {
       return NextResponse.json({ error: "Coupon not found" }, { status: 404 })
@@ -26,9 +28,15 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Coupon is not active" }, { status: 400 })
     }
 
+    // Check if coupon has expired
+    if (coupon.expiryDate && new Date(coupon.expiryDate) < new Date()) {
+      return NextResponse.json({ error: "Coupon has expired" }, { status: 400 })
+    }
+
     return NextResponse.json({
       code: coupon.code,
       discountPercent: coupon.discountPercent,
+      minOrderValue: coupon.minOrderValue || 0,
     })
   } catch (error) {
     console.error("Error fetching coupon:", error)

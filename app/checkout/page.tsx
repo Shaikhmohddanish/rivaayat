@@ -35,38 +35,55 @@ export default function CheckoutPage() {
   })
 
   useEffect(() => {
-    const savedCart = JSON.parse(localStorage.getItem("cart") || "[]")
-    if (savedCart.length === 0) {
-      router.push("/cart")
-      return;
-    }
-    
-    // Ensure all cart items have the correct variant structure
-    const updatedCart = savedCart.map((item: CartItem) => {
-      if (!item.variant && (item.color || item.size)) {
-        return {
-          ...item,
-          variant: {
-            color: item.color || "",
-            size: item.size || ""
+    // Fetch cart from API instead of localStorage
+    const fetchCart = async () => {
+      try {
+        const response = await fetch('/api/cart', {
+          cache: 'no-store',
+        })
+        
+        if (!response.ok) {
+          router.push("/cart")
+          return
+        }
+        
+        const data = await response.json()
+        const cartItems = data.items || []
+        
+        if (cartItems.length === 0) {
+          router.push("/cart")
+          return
+        }
+        
+        // Ensure all cart items have the correct variant structure
+        const updatedCart = cartItems.map((item: CartItem) => {
+          if (!item.variant && (item.color || item.size)) {
+            return {
+              ...item,
+              variant: {
+                color: item.color || "",
+                size: item.size || ""
+              }
+            }
           }
-        };
+          return item
+        })
+        
+        setCart(updatedCart)
+      } catch (error) {
+        console.error('Error fetching cart:', error)
+        router.push("/cart")
       }
-      return item;
-    });
-    
-    setCart(updatedCart);
-    
-    // If the cart structure was updated, save it back
-    if (JSON.stringify(updatedCart) !== JSON.stringify(savedCart)) {
-      localStorage.setItem("cart", JSON.stringify(updatedCart));
     }
     
-    // Load saved coupon from localStorage
+    fetchCart()
+    
+    // Load and validate saved coupon from localStorage
     const savedCoupon = localStorage.getItem("appliedCoupon")
     if (savedCoupon) {
       try {
         const coupon = JSON.parse(savedCoupon)
+        // Set the applied coupon from localStorage
         setAppliedCoupon(coupon)
       } catch (e) {
         localStorage.removeItem("appliedCoupon")
@@ -84,6 +101,12 @@ export default function CheckoutPage() {
 
   const handleApplyCoupon = async () => {
     if (!couponCode.trim()) return
+    
+    // Prevent applying multiple coupons
+    if (appliedCoupon) {
+      setCouponError("Please remove the current coupon before applying a new one")
+      return
+    }
     
     setApplyingCoupon(true)
     setCouponError("")
@@ -115,7 +138,8 @@ export default function CheckoutPage() {
       // Apply the coupon
       setAppliedCoupon(data)
       localStorage.setItem("appliedCoupon", JSON.stringify(data))
-      setCouponCode("")
+      setCouponCode("") // Clear the input after successful application
+      setCouponError("")
     } catch (error) {
       setCouponError("An error occurred. Please try again.")
     } finally {
@@ -167,7 +191,15 @@ export default function CheckoutPage() {
         return
       }
 
-      // Clear cart and coupon
+      // Clear cart from API and localStorage
+      try {
+        await fetch("/api/cart", {
+          method: "DELETE",
+        })
+      } catch (error) {
+        console.error("Error clearing cart:", error)
+      }
+      
       localStorage.removeItem("cart")
       localStorage.removeItem("appliedCoupon")
 
@@ -362,26 +394,51 @@ export default function CheckoutPage() {
 
                 {/* Coupon Code Input */}
                 <div className="border-t pt-4 pb-2">
-                  <div className="flex gap-2 mb-3">
-                    <Input 
-                      id="couponCode"
-                      placeholder="Enter coupon code"
-                      value={couponCode}
-                      onChange={(e) => setCouponCode(e.target.value)}
-                      className="flex-1"
-                    />
-                    <Button 
-                      type="button" 
-                      variant="secondary" 
-                      onClick={handleApplyCoupon}
-                      disabled={!couponCode || applyingCoupon}
-                    >
-                      {applyingCoupon ? "Applying..." : "Apply"}
-                    </Button>
-                  </div>
-                  
-                  {couponError && (
-                    <div className="text-sm text-red-600 mb-2">{couponError}</div>
+                  {!appliedCoupon ? (
+                    <>
+                      <div className="flex gap-2 mb-3">
+                        <Input 
+                          id="couponCode"
+                          placeholder="Enter coupon code"
+                          value={couponCode}
+                          onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                          className="flex-1"
+                          disabled={applyingCoupon}
+                        />
+                        <Button 
+                          type="button" 
+                          variant="secondary" 
+                          onClick={handleApplyCoupon}
+                          disabled={!couponCode || applyingCoupon}
+                        >
+                          {applyingCoupon ? "Applying..." : "Apply"}
+                        </Button>
+                      </div>
+                      
+                      {couponError && (
+                        <div className="text-sm text-red-600 mb-2">{couponError}</div>
+                      )}
+                    </>
+                  ) : (
+                    <div className="p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-md text-sm">
+                      <div className="flex justify-between items-center">
+                        <span className="text-green-700 dark:text-green-300">
+                          Coupon <strong>{appliedCoupon.code}</strong> applied!
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setAppliedCoupon(null)
+                            localStorage.removeItem("appliedCoupon")
+                            setCouponError("")
+                          }}
+                          className="text-red-500 hover:text-red-700 font-medium"
+                          aria-label="Remove coupon"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    </div>
                   )}
                 </div>
                 

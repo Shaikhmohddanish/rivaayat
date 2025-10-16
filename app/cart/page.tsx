@@ -134,6 +134,12 @@ export default function CartPage() {
       return
     }
 
+    // Prevent applying multiple coupons
+    if (appliedCoupon) {
+      setCouponError("Please remove the current coupon before applying a new one")
+      return
+    }
+
     setIsApplyingCoupon(true)
     setCouponError("")
 
@@ -149,8 +155,18 @@ export default function CartPage() {
       }
 
       const coupon = await response.json()
+      
+      // Check minimum order value
+      if (coupon.minOrderValue && subtotal < coupon.minOrderValue) {
+        setCouponError(`This coupon requires a minimum order of ₹${coupon.minOrderValue}`)
+        setAppliedCoupon(null)
+        localStorage.removeItem("appliedCoupon")
+        return
+      }
+      
       setAppliedCoupon(coupon)
       localStorage.setItem("appliedCoupon", JSON.stringify(coupon))
+      setCouponCode(coupon.code) // Set to the actual coupon code from response
       setCouponError("")
     } catch (error) {
       console.error("Error applying coupon:", error)

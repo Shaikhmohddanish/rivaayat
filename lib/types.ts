@@ -50,10 +50,13 @@ export interface Product {
   description: string
   images: ProductImage[]
   price: number
+  mrp?: number
   isFeatured: boolean
   category?: string
   subcategory?: string
   brand?: string
+  material?: string
+  detailsHtml?: string
   tags?: string[]
   rating?: number
   variations: {
@@ -123,6 +126,9 @@ export interface Coupon {
   code: string
   discountPercent: number
   isActive: boolean
+  minOrderValue?: number
+  expiryDate?: Date
+  singleUse?: boolean
   createdAt: Date
   updatedAt: Date
 }
