@@ -12,10 +12,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Badge } from "@/components/ui/badge"
 import { UpdateOrderTracking } from "@/components/update-order-tracking"
 import type { Order } from "@/lib/types"
+import { useToast } from "@/hooks/use-toast"
 
 export default function AdminOrdersPage() {
   const { data: session, status } = useSession()
   const router = useRouter()
+  const { toast } = useToast()
   const [orders, setOrders] = useState<(Order & { _id: string })[]>([])
   const [loading, setLoading] = useState(true)
   const [editingOrder, setEditingOrder] = useState<(Order & { _id: string }) | null>(null)
@@ -84,12 +86,25 @@ export default function AdminOrdersPage() {
       if (response.ok) {
         await fetchOrders()
         setEditingOrder(null)
+        toast({
+          title: "Success",
+          description: "Order updated successfully",
+          variant: "default"
+        })
       } else {
-        alert("Failed to update order")
+        toast({
+          title: "Error",
+          description: "Failed to update order",
+          variant: "destructive"
+        })
       }
     } catch (error) {
       console.error("Failed to update order:", error)
-      alert("Failed to update order")
+      toast({
+        title: "Error", 
+        description: "Failed to update order",
+        variant: "destructive"
+      })
     }
   }
 
@@ -149,7 +164,7 @@ export default function AdminOrdersPage() {
                     <Badge className={getStatusColor(order.status)}>{order.status}</Badge>
                     <UpdateOrderTracking
                       orderId={order._id}
-                      currentStatus={order.trackingHistory?.[order.trackingHistory.length - 1]?.status || "order_confirmed"}
+                      currentStatus={order.status === "placed" ? "order_confirmed" : order.status}
                       onStatusUpdated={fetchOrders}
                     />
                     <Dialog>

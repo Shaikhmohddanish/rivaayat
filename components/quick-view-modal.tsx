@@ -68,7 +68,11 @@ export function QuickViewModal({ product, open, onClose }: QuickViewModalProps) 
     }
 
     if (!selectedColor || !selectedSize) {
-      alert("Please select color and size")
+      toast({
+        title: "Selection Required",
+        description: "Please select color and size",
+        variant: "destructive"
+      })
       return
     }
     
@@ -78,7 +82,11 @@ export function QuickViewModal({ product, open, onClose }: QuickViewModalProps) 
     );
     
     if (!selectedVariant || !selectedVariant.stock || selectedVariant.stock < quantity) {
-      alert("Not enough stock available for this variant")
+      toast({
+        title: "Stock Unavailable",
+        description: "Not enough stock available for this variant",
+        variant: "destructive"
+      })
       return
     }
 

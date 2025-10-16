@@ -8,6 +8,7 @@ import { getColorByName } from '@/lib/product-options'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Heart, ShoppingCart, ChevronLeft, ChevronRight } from "lucide-react"
 import type { Product, ProductVariant } from "@/lib/types"
+import { useToast } from "@/hooks/use-toast"
 
 interface BasicQuickViewModalProps {
   product: (Product & { _id: string }) | null
@@ -16,6 +17,7 @@ interface BasicQuickViewModalProps {
 }
 
 export function BasicQuickViewModal({ product, open, onClose }: BasicQuickViewModalProps) {
+  const { toast } = useToast()
   const [selectedColor, setSelectedColor] = useState("")
   const [selectedSize, setSelectedSize] = useState("")
   const [quantity, setQuantity] = useState(1)
@@ -53,7 +55,11 @@ export function BasicQuickViewModal({ product, open, onClose }: BasicQuickViewMo
 
   const handleAddToCart = () => {
     if (!selectedColor || !selectedSize) {
-      alert("Please select color and size")
+      toast({
+        title: "Selection Required",
+        description: "Please select color and size",
+        variant: "destructive"
+      })
       return
     }
     
@@ -62,11 +68,19 @@ export function BasicQuickViewModal({ product, open, onClose }: BasicQuickViewMo
     )
     
     if (!selectedVariant || selectedVariant.stock < quantity) {
-      alert("Not enough stock available")
+      toast({
+        title: "Stock Unavailable",
+        description: "Not enough stock available",
+        variant: "destructive"
+      })
       return
     }
     
-    alert(`Added to cart: ${product.name} - Color: ${selectedColor}, Size: ${selectedSize}, Quantity: ${quantity}`)
+    toast({
+      title: "Added to Cart",
+      description: `${product.name} - Color: ${selectedColor}, Size: ${selectedSize}, Quantity: ${quantity}`,
+      variant: "default"
+    })
     onClose()
   }
   

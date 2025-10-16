@@ -12,9 +12,11 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { indianStates } from "@/lib/indian-states"
 import type { CartItem } from "@/lib/types"
+import { useToast } from "@/hooks/use-toast"
 
 export default function CheckoutPage() {
   const router = useRouter()
+  const { toast } = useToast()
   const [cart, setCart] = useState<CartItem[]>([])
   const [loading, setLoading] = useState(false)
   const [showAddressForm, setShowAddressForm] = useState(false)
@@ -155,7 +157,11 @@ export default function CheckoutPage() {
     // Validate that address is filled if checkbox is checked
     if (showAddressForm) {
       if (!formData.addressLine1 || !formData.city || !formData.state || !formData.postalCode) {
-        alert("Please fill all required address fields")
+        toast({
+          title: "Validation Error",
+          description: "Please fill all required address fields",
+          variant: "destructive"
+        })
         setLoading(false)
         return
       }
@@ -163,7 +169,11 @@ export default function CheckoutPage() {
     
     // Check coupon minimum order value if applied
     if (appliedCoupon && appliedCoupon.minOrderValue && appliedCoupon.minOrderValue > subtotal) {
-      alert(`The applied coupon requires a minimum order of ₹${appliedCoupon.minOrderValue}`)
+      toast({
+        title: "Coupon Error", 
+        description: `The applied coupon requires a minimum order of ₹${appliedCoupon.minOrderValue}`,
+        variant: "destructive"
+      })
       setLoading(false)
       return
     }
@@ -191,9 +201,17 @@ export default function CheckoutPage() {
       if (!response.ok) {
         // Handle specific error cases
         if (data.error === "Insufficient stock" && data.details) {
-          alert(`Stock Issues:\n\n${data.details.join("\n")}\n\nPlease refresh the page and update your cart.`)
+          toast({
+            title: "Stock Issues",
+            description: `${data.details.join(", ")}. Please refresh the page and update your cart.`,
+            variant: "destructive"
+          })
         } else {
-          alert(data.error || "Failed to create order")
+          toast({
+            title: "Order Failed",
+            description: data.error || "Failed to create order",
+            variant: "destructive"
+          })
         }
         setLoading(false)
         return
@@ -223,7 +241,11 @@ export default function CheckoutPage() {
       }
     } catch (error) {
       console.error("Order submission error:", error)
-      alert("An error occurred. Please try again.")
+      toast({
+        title: "Error",
+        description: "An error occurred. Please try again.",
+        variant: "destructive"
+      })
       setLoading(false)
     }
   }

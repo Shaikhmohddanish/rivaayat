@@ -6,6 +6,7 @@ import { Upload, X, Loader2, GripVertical } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import Image from "next/image"
 import type { ProductImage } from "@/lib/types"
+import { useToast } from "@/hooks/use-toast"
 
 interface ProductImageUploadProps {
   value: ProductImage[]
@@ -14,6 +15,7 @@ interface ProductImageUploadProps {
 }
 
 export function ProductImageUpload({ value = [], onChange, maxImages = 10 }: ProductImageUploadProps) {
+  const { toast } = useToast()
   const [uploading, setUploading] = useState(false)
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null)
 
@@ -22,7 +24,11 @@ export function ProductImageUpload({ value = [], onChange, maxImages = 10 }: Pro
     if (files.length === 0) return
 
     if (value.length + files.length > maxImages) {
-      alert(`Maximum ${maxImages} images allowed`)
+      toast({
+        title: "Upload Limit",
+        description: `Maximum ${maxImages} images allowed`,
+        variant: "destructive"
+      })
       return
     }
 
@@ -56,7 +62,11 @@ export function ProductImageUpload({ value = [], onChange, maxImages = 10 }: Pro
       onChange(updatedImages)
     } catch (error) {
       console.error("Upload error:", error)
-      alert("Failed to upload images")
+      toast({
+        title: "Upload Failed",
+        description: "Failed to upload images",
+        variant: "destructive"
+      })
     } finally {
       setUploading(false)
     }

@@ -18,6 +18,7 @@ import { ArrowLeft, Plus, X } from "lucide-react"
 import Link from "next/link"
 import type { Product, ProductImage, ProductVariant } from "@/lib/types"
 import { useSlug } from "@/hooks/use-slug"
+import { useToast } from "@/hooks/use-toast"
 
 export default function EditProductPage({ params }: { params: Promise<{ id: string }> }) {
   // Unwrap the params Promise
@@ -26,6 +27,7 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
   
   const { data: session, status } = useSession()
   const router = useRouter()
+  const { toast } = useToast()
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [product, setProduct] = useState<Product | null>(null)
@@ -82,12 +84,20 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
         setSizes(data.variations.sizes)
         setVariants(data.variations.variants)
       } else {
-        alert("Product not found")
+        toast({
+          title: "Error",
+          description: "Product not found",
+          variant: "destructive"
+        })
         router.push("/admin/products")
       }
     } catch (error) {
       console.error("Error fetching product:", error)
-      alert("Failed to load product")
+      toast({
+        title: "Error",
+        description: "Failed to load product",
+        variant: "destructive"
+      })
     } finally {
       setLoading(false)
     }
@@ -121,7 +131,11 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
     e.preventDefault()
 
     if (!formData.name || !slug || !formData.description || !formData.price) {
-      alert("Please fill in all required fields")
+      toast({
+        title: "Validation Error",
+        description: "Please fill in all required fields",
+        variant: "destructive"
+      })
       return
     }
     
@@ -129,13 +143,21 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
     if (!isSlugValid) {
       const isAvailable = await checkSlug()
       if (!isAvailable) {
-        alert("Please use a different slug. This one is already taken.")
+        toast({
+          title: "Slug Error",
+          description: "Please use a different slug. This one is already taken.",
+          variant: "destructive"
+        })
         return
       }
     }
 
     if (images.length === 0) {
-      alert("Please upload at least one image")
+      toast({
+        title: "Image Required",
+        description: "Please upload at least one image",
+        variant: "destructive"
+      })
       return
     }
 
@@ -143,7 +165,11 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
     const validSizes = sizes.filter((s) => s.trim() !== "")
 
     if (validColors.length === 0 || validSizes.length === 0) {
-      alert("Please add at least one color and one size")
+      toast({
+        title: "Variations Required",
+        description: "Please add at least one color and one size",
+        variant: "destructive"
+      })
       return
     }
     
@@ -192,14 +218,27 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
       })
 
       if (response.ok) {
+        toast({
+          title: "Success",
+          description: "Product updated successfully",
+          variant: "default"
+        })
         router.push("/admin/products")
       } else {
         const error = await response.json()
-        alert(error.error || "Failed to update product")
+        toast({
+          title: "Error",
+          description: error.error || "Failed to update product",
+          variant: "destructive"
+        })
       }
     } catch (error) {
       console.error("Error updating product:", error)
-      alert("Failed to update product")
+      toast({
+        title: "Error",
+        description: "Failed to update product",
+        variant: "destructive"
+      })
     } finally {
       setSaving(false)
     }

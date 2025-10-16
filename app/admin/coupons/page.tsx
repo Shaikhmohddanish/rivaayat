@@ -12,10 +12,12 @@ import { Badge } from "@/components/ui/badge"
 import { Switch } from "@/components/ui/switch"
 import { Plus, Edit, Ban } from "lucide-react"
 import type { Coupon } from "@/lib/types"
+import { useToast } from "@/hooks/use-toast"
 
 export default function AdminCouponsPage() {
   const { data: session, status } = useSession()
   const router = useRouter()
+  const { toast } = useToast()
   const [coupons, setCoupons] = useState<(Coupon & { _id: string })[]>([])
   const [loading, setLoading] = useState(true)
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
@@ -56,7 +58,11 @@ export default function AdminCouponsPage() {
 
   const handleAdd = async () => {
     if (!formData.code || formData.discountPercent <= 0) {
-      alert("Please fill in all fields")
+      toast({
+        title: "Validation Error",
+        description: "Please fill in all fields",
+        variant: "destructive"
+      })
       return
     }
 
@@ -71,13 +77,26 @@ export default function AdminCouponsPage() {
         await fetchCoupons()
         setIsAddDialogOpen(false)
         setFormData({ code: "", discountPercent: 0, isActive: true })
+        toast({
+          title: "Success",
+          description: "Coupon created successfully",
+          variant: "default"
+        })
       } else {
         const data = await response.json()
-        alert(data.error || "Failed to create coupon")
+        toast({
+          title: "Error",
+          description: data.error || "Failed to create coupon",
+          variant: "destructive"
+        })
       }
     } catch (error) {
       console.error("Failed to create coupon:", error)
-      alert("Failed to create coupon")
+      toast({
+        title: "Error",
+        description: "Failed to create coupon",
+        variant: "destructive"
+      })
     }
   }
 
@@ -104,12 +123,25 @@ export default function AdminCouponsPage() {
         await fetchCoupons()
         setEditingCoupon(null)
         setFormData({ code: "", discountPercent: 0, isActive: true })
+        toast({
+          title: "Success",
+          description: "Coupon updated successfully",
+          variant: "default"
+        })
       } else {
-        alert("Failed to update coupon")
+        toast({
+          title: "Error",
+          description: "Failed to update coupon",
+          variant: "destructive"
+        })
       }
     } catch (error) {
       console.error("Failed to update coupon:", error)
-      alert("Failed to update coupon")
+      toast({
+        title: "Error",
+        description: "Failed to update coupon", 
+        variant: "destructive"
+      })
     }
   }
 
@@ -123,12 +155,25 @@ export default function AdminCouponsPage() {
 
       if (response.ok) {
         await fetchCoupons()
+        toast({
+          title: "Success",
+          description: "Coupon status updated successfully",
+          variant: "default"
+        })
       } else {
-        alert("Failed to update coupon")
+        toast({
+          title: "Error",
+          description: "Failed to update coupon",
+          variant: "destructive"
+        })
       }
     } catch (error) {
       console.error("Failed to update coupon:", error)
-      alert("Failed to update coupon")
+      toast({
+        title: "Error",
+        description: "Failed to update coupon",
+        variant: "destructive"
+      })
     }
   }
 

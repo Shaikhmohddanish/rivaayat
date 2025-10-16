@@ -21,10 +21,12 @@ import { UserDetails } from "@/components/ui/user-details"
 import { Pencil, Search, Info, User as UserIcon, Ban } from "lucide-react"
 import { Checkbox } from "@/components/ui/checkbox"
 import type { User } from "@/lib/types"
+import { useToast } from "@/hooks/use-toast"
 
 export default function AdminUsersPage() {
   const { data: session, status } = useSession()
   const router = useRouter()
+  const { toast } = useToast()
   const [users, setUsers] = useState<User[]>([])
   const [filteredUsers, setFilteredUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
@@ -109,13 +111,26 @@ export default function AdminUsersPage() {
         const updatedUser = await response.json()
         setUsers(users.map((u) => (u._id === updatedUser._id ? updatedUser : u)))
         setEditingUser(null)
+        toast({
+          title: "Success",
+          description: "User updated successfully",
+          variant: "default"
+        })
       } else {
         const error = await response.json()
-        alert(error.error || "Failed to update user")
+        toast({
+          title: "Error",
+          description: error.error || "Failed to update user",
+          variant: "destructive"
+        })
       }
     } catch (error) {
       console.error("Error updating user:", error)
-      alert("Failed to update user")
+      toast({
+        title: "Error",
+        description: "Failed to update user",
+        variant: "destructive"
+      })
     } finally {
       setSaving(false)
     }

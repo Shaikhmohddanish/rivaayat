@@ -6,6 +6,7 @@ import { useState } from "react"
 import { Upload, X, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import Image from "next/image"
+import { useToast } from "@/hooks/use-toast"
 
 interface ImageUploadProps {
   value: string[]
@@ -14,6 +15,7 @@ interface ImageUploadProps {
 }
 
 export function ImageUpload({ value = [], onChange, maxImages = 5 }: ImageUploadProps) {
+  const { toast } = useToast()
   const [uploading, setUploading] = useState(false)
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -21,7 +23,11 @@ export function ImageUpload({ value = [], onChange, maxImages = 5 }: ImageUpload
     if (files.length === 0) return
 
     if (value.length + files.length > maxImages) {
-      alert(`Maximum ${maxImages} images allowed`)
+      toast({
+        title: "Upload Limit",
+        description: `Maximum ${maxImages} images allowed`,
+        variant: "destructive"
+      })
       return
     }
 
@@ -47,7 +53,11 @@ export function ImageUpload({ value = [], onChange, maxImages = 5 }: ImageUpload
       onChange([...value, ...urls])
     } catch (error) {
       console.error("Upload error:", error)
-      alert("Failed to upload images")
+      toast({
+        title: "Upload Failed",
+        description: "Failed to upload images",
+        variant: "destructive"
+      })
     } finally {
       setUploading(false)
     }
