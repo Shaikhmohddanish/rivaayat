@@ -1,16 +1,17 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import Image from "next/image"
-import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
-import { Trash2, ShoppingCart } from "lucide-react"
+import { ProductCard } from "@/components/product-card"
+import { QuickViewModal } from "@/components/quick-view-modal"
+import Link from "next/link"
+import type { Product } from "@/lib/types"
 
 export default function WishlistPage() {
   const [wishlist, setWishlist] = useState<string[]>([])
-  const [products, setProducts] = useState<any[]>([])
+  const [products, setProducts] = useState<(Product & { _id: string })[]>([])
   const [loading, setLoading] = useState(true)
+  const [quickViewProduct, setQuickViewProduct] = useState<(Product & { _id: string }) | null>(null)
 
   useEffect(() => {
     async function fetchWishlist() {
@@ -48,68 +49,44 @@ export default function WishlistPage() {
     fetchWishlist()
   }, [])
 
-  const removeFromWishlist = async (productId: string) => {
-    try {
-      const response = await fetch('/api/wishlist', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ productId }),
-      })
-      
-      if (!response.ok) {
-        throw new Error('Failed to remove from wishlist')
+  // Listen for wishlist updates
+  useEffect(() => {
+    const handleWishlistUpdate = async () => {
+      try {
+        const wishlistRes = await fetch('/api/wishlist', { cache: 'no-store' })
+        
+        if (!wishlistRes.ok) {
+          setProducts([])
+          return
+        }
+        
+        const wishlistData = await wishlistRes.json()
+        const productIds = wishlistData.productIds || []
+        
+        if (productIds.length > 0) {
+          const productPromises = productIds.map((id: string) => 
+            fetch(`/api/products/${id}`)
+              .then(res => res.json())
+              .catch(() => null)
+          )
+          
+          const results = await Promise.all(productPromises)
+          setProducts(results.filter(p => p !== null))
+        } else {
+          setProducts([])
+        }
+      } catch (error) {
+        console.error("Failed to fetch wishlist:", error)
       }
-      
-      const data = await response.json()
-      
-      // Update local state
-      setWishlist(data.productIds)
-      setProducts(products.filter((p) => p._id !== productId))
-    } catch (error) {
-      console.error('Error removing from wishlist:', error)
     }
-  }
 
-  const addToCart = async (product: any) => {
-    try {
-      // Get first available variant
-      const firstVariant = product.variations?.variants?.[0] || { 
-        color: product.variations?.colors?.[0] || '', 
-        size: product.variations?.sizes?.[0] || '' 
-      }
-      
-      const cartItem = {
-        productId: product._id,
-        name: product.name,
-        price: product.price,
-        quantity: 1,
-        variant: {
-          color: firstVariant.color || '',
-          size: firstVariant.size || '',
-        },
-        image: product.images?.[0]?.url,
-      }
-
-      const response = await fetch('/api/cart/items', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(cartItem),
-      })
-
-      if (!response.ok) {
-        throw new Error('Failed to add to cart')
-      }
-
-      alert("Added to cart!")
-    } catch (error) {
-      console.error('Error adding to cart:', error)
-      alert("Failed to add to cart. Please try again.")
+    // Add event listener for wishlist updates
+    window.addEventListener('wishlistUpdated', handleWishlistUpdate)
+    
+    return () => {
+      window.removeEventListener('wishlistUpdated', handleWishlistUpdate)
     }
-  }
+  }, [])
 
   if (loading) {
     return (
@@ -139,36 +116,19 @@ export default function WishlistPage() {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {products.map((product) => (
-          <Card key={product._id} className="group overflow-hidden">
-            <Link href={`/product/${product._id}`}>
-              <div className="relative aspect-[3/4] overflow-hidden">
-                <Image
-                  src={product.images[0] || "/placeholder.svg?height=400&width=300&query=dress"}
-                  alt={product.name}
-                  fill
-                  className="object-cover group-hover:scale-105 transition-transform duration-300"
-                />
-              </div>
-            </Link>
-            <CardContent className="p-4 space-y-3">
-              <div>
-                <h3 className="font-semibold text-lg line-clamp-1">{product.name}</h3>
-                <p className="text-xl font-bold text-primary">₹{product.price.toFixed(2)}</p>
-              </div>
-
-              <div className="flex gap-2">
-                <Button onClick={() => addToCart(product)} className="flex-1">
-                  <ShoppingCart className="mr-2 h-4 w-4" />
-                  Add to Cart
-                </Button>
-                <Button variant="outline" size="icon" onClick={() => removeFromWishlist(product._id)}>
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+          <ProductCard 
+            key={product._id} 
+            product={product}
+            onQuickView={setQuickViewProduct}
+          />
         ))}
       </div>
+
+      <QuickViewModal 
+        product={quickViewProduct} 
+        open={!!quickViewProduct} 
+        onClose={() => setQuickViewProduct(null)} 
+      />
     </div>
   )
 }

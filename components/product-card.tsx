@@ -198,8 +198,8 @@ export function ProductCard({ product, onQuickView }: ProductCardProps) {
 
   return (
     <Link href={`/product/${product.slug ?? product._id}`} className="block">
-      <Card className="group overflow-hidden hover:shadow-lg transition-all duration-300 bg-white border border-gray-100 rounded-lg max-w-sm">
-        <div className="relative aspect-[4/5] overflow-hidden">
+      <Card className="group overflow-hidden hover:shadow-lg transition-all duration-300 bg-white border border-gray-100 rounded-lg max-w-sm p-0">
+        <div className="relative aspect-[4/5] overflow-hidden rounded-t-lg">
           <Image
             src={product.images?.[0]?.url || "/placeholder.svg?height=400&width=300&query=dress"}
             alt={product.name}

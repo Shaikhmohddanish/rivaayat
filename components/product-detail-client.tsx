@@ -226,7 +226,7 @@ export default function ProductDetailClient({ product }: Props) {
                       className={`min-w-[2.5rem] h-8 rounded border text-xs font-medium ${
                         selectedSize === s
                           ? "bg-primary text-white border-primary"
-                          : "border-gray-200 text-gray-800 hover:border-primary"
+                          : "border-gray-200 text-white hover:border-primary"
                       } ${disabled ? "opacity-40 cursor-not-allowed" : ""}`}
                     >
                       {s}
@@ -267,7 +267,7 @@ export default function ProductDetailClient({ product }: Props) {
             <li>Brand: {product.brand ?? "—"}</li>
             <li>Color(s): {colors.join(", ") || "—"}</li>
             <li>Sizes: {sizes.join(", ") || "—"}</li>
-            <li>Material: {product.material ?? "—"}</li>
+            {product.material && <li>Material: {product.material ?? "—"}</li>}
           </ul>
         )}
       </div>
