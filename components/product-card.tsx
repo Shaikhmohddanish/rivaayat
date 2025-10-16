@@ -11,13 +11,16 @@ import { Button } from "@/components/ui/button"
 import { Eye, Heart, ShoppingCart } from "lucide-react"
 import type { Product } from "@/lib/types"
 import { useToast } from "@/hooks/use-toast"
+import { updateWishlistCache } from "@/lib/wishlist-cache"
 
 interface ProductCardProps {
   product: Product & { _id: string }
   onQuickView?: (product: Product & { _id: string }) => void
+  wishlistProductIds?: string[]
+  onWishlistChange?: (productIds: string[]) => void
 }
 
-export function ProductCard({ product, onQuickView }: ProductCardProps) {
+export function ProductCard({ product, onQuickView, wishlistProductIds, onWishlistChange }: ProductCardProps) {
   const { data: session, status } = useSession()
   const router = useRouter()
   const { toast } = useToast()
@@ -28,26 +31,30 @@ export function ProductCard({ product, onQuickView }: ProductCardProps) {
   const [selectedSize, setSelectedSize] = useState("")
 
   useEffect(() => {
-    const checkWishlist = async () => {
-      // Only check if we have an authenticated session
-      if (status !== "authenticated" || !session) return
-      
-      try {
-        const res = await fetch("/api/wishlist", { cache: "no-store" })
-        if (!res.ok) return
-        const data = await res.json()
-        setIsWishlisted(Boolean(data.productIds?.includes(product._id)))
-      } catch (error) {
-        // Silently fail - wishlist status not critical for card display
-        console.debug("Failed to check wishlist status:", error)
+    // 🚀 OPTIMIZATION Item 7: Use passed wishlist instead of fetching
+    if (wishlistProductIds !== undefined) {
+      setIsWishlisted(wishlistProductIds.includes(product._id))
+    } else {
+      // Fallback to individual fetch if not provided (backward compatibility)
+      const checkWishlist = async () => {
+        if (status !== "authenticated" || !session) return
+        
+        try {
+          const res = await fetch("/api/wishlist", { cache: "no-store" })
+          if (!res.ok) return
+          const data = await res.json()
+          setIsWishlisted(Boolean(data.productIds?.includes(product._id)))
+        } catch (error) {
+          console.debug("Failed to check wishlist status:", error)
+        }
       }
-    }
 
-    checkWishlist()
+      checkWishlist()
+    }
 
     if (product.variations?.colors?.length) setSelectedColor(product.variations.colors[0])
     if (product.variations?.sizes?.length) setSelectedSize(product.variations.sizes[0])
-  }, [product._id, product.variations, session, status])
+  }, [product._id, product.variations, session, status, wishlistProductIds])
 
   const checkStock = (color: string, size: string) => {
     const v = product.variations?.variants?.find((x) => x.color === color && x.size === size)
@@ -72,7 +79,15 @@ export function ProductCard({ product, onQuickView }: ProductCardProps) {
       if (!response.ok) throw new Error("wishlist")
       const data = await response.json()
       const nowIn = Boolean(data.productIds?.includes(product._id))
+      const freshIds = data.productIds || []
       setIsWishlisted(nowIn)
+      
+      // 🚀 OPTIMIZATION Item 7 & 11: Update parent state and cache
+      if (onWishlistChange) {
+        onWishlistChange(freshIds)
+      }
+      updateWishlistCache(freshIds)
+      
       window.dispatchEvent(new Event("wishlistUpdated"))
       toast({
         title: nowIn ? "Added to wishlist" : "Removed from wishlist",

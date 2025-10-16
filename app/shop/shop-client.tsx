@@ -1,6 +1,7 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
+import { useSession } from "next-auth/react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -11,6 +12,8 @@ import type { Product } from "@/lib/types"
 import { ProductCard } from "@/components/product-card"
 import { QuickViewModal } from "@/components/quick-view-modal"
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
+import { getCachedWishlist, updateWishlistCache } from "@/lib/wishlist-cache"
+import { setCachedProductList } from "@/lib/product-list-cache"
 
 interface ShopPageClientProps {
   products: (Product & { _id: string })[]
@@ -22,11 +25,54 @@ interface ShopPageClientProps {
 const ITEMS_PER_PAGE = 12
 
 export function ShopPageClient({ products, availableColors, availableSizes, isLoading = false }: ShopPageClientProps) {
+  const { data: session, status } = useSession()
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedColors, setSelectedColors] = useState<string[]>([])
   const [selectedSizes, setSelectedSizes] = useState<string[]>([])
   const [quickViewProduct, setQuickViewProduct] = useState<(Product & { _id: string }) | null>(null)
   const [displayCount, setDisplayCount] = useState(ITEMS_PER_PAGE)
+  const [wishlistProductIds, setWishlistProductIds] = useState<string[]>([])
+
+  // 🚀 OPTIMIZATION Item 12: Cache product list in sessionStorage
+  useEffect(() => {
+    if (products.length > 0) {
+      setCachedProductList(products)
+    }
+  }, [products])
+
+  // 🚀 OPTIMIZATION Item 7 & 11: Fetch wishlist once with cache support
+  useEffect(() => {
+    const fetchWishlist = async () => {
+      if (status !== "authenticated" || !session) {
+        setWishlistProductIds([])
+        return
+      }
+      
+      // Try cache first for instant display
+      const cached = getCachedWishlist()
+      if (cached) {
+        setWishlistProductIds(cached.productIds)
+        console.log("Wishlist loaded from cache:", cached.productIds.length, "items")
+      }
+      
+      try {
+        // Fetch fresh data in background
+        const res = await fetch("/api/wishlist", { cache: "no-store" })
+        if (!res.ok) return
+        const data = await res.json()
+        const freshIds = data.productIds || []
+        setWishlistProductIds(freshIds)
+        
+        // Update cache
+        updateWishlistCache(freshIds)
+        console.log("Wishlist updated from API:", freshIds.length, "items")
+      } catch (error) {
+        console.debug("Failed to fetch wishlist:", error)
+      }
+    }
+
+    fetchWishlist()
+  }, [session, status])
 
   // Filter products based on search and filters
   const filteredProducts = useMemo(() => {
@@ -233,7 +279,13 @@ export function ShopPageClient({ products, availableColors, availableSizes, isLo
             <>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 {displayedProducts.map((product) => (
-                  <ProductCard key={product._id} product={product} onQuickView={setQuickViewProduct} />
+                  <ProductCard 
+                    key={product._id} 
+                    product={product} 
+                    onQuickView={setQuickViewProduct}
+                    wishlistProductIds={wishlistProductIds}
+                    onWishlistChange={setWishlistProductIds}
+                  />
                 ))}
               </div>
 

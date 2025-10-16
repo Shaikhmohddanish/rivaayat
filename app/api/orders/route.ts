@@ -53,8 +53,82 @@ export async function POST(request: Request) {
       }
     }
 
-    // Use the coupon information passed from client
-    // In a real app, you'd validate the coupon again server-side
+    // Get MongoDB connection
+    const db = await getDatabase();
+    if (!db) {
+      return NextResponse.json({ error: "Database connection error" }, { status: 500 });
+    }
+
+    // 🚀 OPTIMIZATION: Batch fetch all products in single query
+    const productIds = items.map((item: any) => new ObjectId(item.productId))
+    const products = await db.collection('products').find({ 
+      _id: { $in: productIds } 
+    }).toArray()
+
+    // Create a map for quick product lookup
+    const productMap = new Map(products.map(p => [p._id.toString(), p]))
+
+    // Validate stock availability and prepare update operations
+    const stockUpdates: any[] = []
+    const insufficientStock: string[] = []
+    const bulkOps: any[] = []
+
+    for (const item of items) {
+      // Get product from map (no DB query)
+      const product = productMap.get(item.productId)
+
+      if (!product) {
+        return NextResponse.json({ 
+          error: `Product "${item.name}" not found` 
+        }, { status: 400 })
+      }
+
+      // Find the specific variant
+      const variant = product.variations?.variants?.find(
+        (v: any) => v.color === item.variant.color && v.size === item.variant.size
+      )
+
+      if (!variant) {
+        return NextResponse.json({ 
+          error: `Variant ${item.variant.color}/${item.variant.size} not found for "${item.name}"` 
+        }, { status: 400 })
+      }
+
+      // Check if sufficient stock is available
+      if (variant.stock < item.quantity) {
+        insufficientStock.push(
+          `${item.name} (${item.variant.color}/${item.variant.size}): Only ${variant.stock} available, but ${item.quantity} requested`
+        )
+      } else {
+        // Prepare the stock update for bulkWrite
+        bulkOps.push({
+          updateOne: {
+            filter: {
+              _id: new ObjectId(item.productId),
+              'variations.variants': {
+                $elemMatch: {
+                  color: item.variant.color,
+                  size: item.variant.size
+                }
+              }
+            },
+            update: {
+              $inc: {
+                'variations.variants.$.stock': -item.quantity
+              }
+            }
+          }
+        })
+      }
+    }
+
+    // If any item has insufficient stock, return error
+    if (insufficientStock.length > 0) {
+      return NextResponse.json({ 
+        error: "Insufficient stock",
+        details: insufficientStock
+      }, { status: 400 })
+    }
 
     // Generate a tracking number (format: RIV-YYYYMMDD-XXXX)
     const date = new Date();
@@ -66,7 +140,7 @@ export async function POST(request: Request) {
     const orderData = {
       userId: user.id,
       items,
-      status: "placed",
+      status: "placed" as const,
       trackingNumber,
       shippingAddress,
       ...(coupon && { coupon }),
@@ -74,18 +148,20 @@ export async function POST(request: Request) {
       updatedAt: new Date(),
     };
     
-    // Get MongoDB connection
-    const db = await getDatabase();
-    if (!db) {
-      return NextResponse.json({ error: "Database connection error" }, { status: 500 });
-    }
-    
-    // Save to MongoDB
+    // Save order to MongoDB
     const result = await db.collection('orders').insertOne(orderData);
     
     if (!result.acknowledged) {
       return NextResponse.json({ error: "Failed to create order" }, { status: 500 });
     }
+
+    // 🚀 OPTIMIZATION: Batch update all product stocks in single operation
+    if (bulkOps.length > 0) {
+      await db.collection('products').bulkWrite(bulkOps)
+    }
+
+    // Clear user's cart
+    await db.collection('carts').deleteOne({ userId: user.id })
     
     // Get the created order with its ID
     const order = {
@@ -93,7 +169,7 @@ export async function POST(request: Request) {
       ...orderData
     };
     
-    console.log("Order saved to MongoDB successfully");
+    console.log("Order saved to MongoDB successfully, stock updated, cart cleared");
 
     return NextResponse.json(
       {

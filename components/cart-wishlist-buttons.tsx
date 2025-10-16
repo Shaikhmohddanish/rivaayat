@@ -4,6 +4,8 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 import { Search, ShoppingCart, Heart } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
+import { getCachedCart, updateCartCache } from "@/lib/cart-cache"
+import { getCachedWishlist, updateWishlistCache } from "@/lib/wishlist-cache"
 
 export function CartWishlistButtons() {
   const [cartCount, setCartCount] = useState(0)
@@ -14,35 +16,49 @@ export function CartWishlistButtons() {
     setMounted(true)
     
     const updateCounts = async () => {
+      // 🚀 OPTIMIZATION Item 10 & 11: Try cache first for instant display
+      let cachedCart = getCachedCart()
+      let cachedWishlist = getCachedWishlist()
+      
       try {
         console.log("Updating cart and wishlist counts...")
         
-        // Fetch cart data from API
-        const cartRes = await fetch('/api/cart', {
-          cache: 'no-store',
-          next: { revalidate: 0 }
-        })
-        const cartData = cartRes.ok ? await cartRes.json() : { items: [] }
-        const cartItems = cartData.items || []
-        const newCartCount = cartItems.reduce((sum: number, item: any) => sum + (item?.quantity || 0), 0)
-        setCartCount(newCartCount)
-        console.log("Updated cart count:", newCartCount)
+        if (cachedCart) {
+          setCartCount(cachedCart.count)
+          console.log("Cart count from cache:", cachedCart.count)
+        }
         
-        // Fetch wishlist data from API with timestamp to avoid caching
-        const timestamp = new Date().getTime()
-        const wishlistRes = await fetch(`/api/wishlist?t=${timestamp}`, {
+        if (cachedWishlist) {
+          setWishlistCount(cachedWishlist.count)
+          console.log("Wishlist count from cache:", cachedWishlist.count)
+        }
+        
+        // Fetch fresh data from API (in background)
+        const res = await fetch('/api/cart-wishlist-counts', {
           cache: 'no-store',
           next: { revalidate: 0 }
         })
-        const wishlistData = wishlistRes.ok ? await wishlistRes.json() : { productIds: [] }
-        const productIds = wishlistData.productIds || []
-        const newWishlistCount = productIds.length
-        setWishlistCount(newWishlistCount)
-        console.log("Updated wishlist count:", newWishlistCount, "Products:", productIds)
+        
+        if (res.ok) {
+          const data = await res.json()
+          setCartCount(data.cartCount || 0)
+          setWishlistCount(data.wishlistCount || 0)
+          
+          // Update cache with fresh data
+          updateCartCache(data.cartItems || [])
+          updateWishlistCache(data.wishlistProductIds || [])
+          
+          console.log("Updated counts from API - Cart:", data.cartCount, "Wishlist:", data.wishlistCount)
+        } else {
+          // User not authenticated or error
+          if (!cachedCart) setCartCount(0)
+          if (!cachedWishlist) setWishlistCount(0)
+        }
       } catch (error) {
         console.error('Error fetching counts:', error)
-        setCartCount(0)
-        setWishlistCount(0)
+        // Keep cache values if API fails
+        if (!cachedCart) setCartCount(0)
+        if (!cachedWishlist) setWishlistCount(0)
       }
     }
     

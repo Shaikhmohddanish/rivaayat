@@ -8,6 +8,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Trash2, Plus, Minus } from "lucide-react"
 import type { CartItem } from "@/lib/types"
+import { getCachedCart, updateCartCache } from "@/lib/cart-cache"
 
 export default function CartPage() {
   const [cart, setCart] = useState<CartItem[]>([])
@@ -17,9 +18,17 @@ export default function CartPage() {
   const [isApplyingCoupon, setIsApplyingCoupon] = useState(false)
 
   useEffect(() => {
-    // Fetch cart data from API
+    // 🚀 OPTIMIZATION Item 10: Try cache first for instant display
     const fetchCart = async () => {
+      // Load from cache immediately
+      const cached = getCachedCart()
+      if (cached) {
+        setCart(cached.items)
+        console.log("Cart loaded from cache:", cached.items.length, "items")
+      }
+      
       try {
+        // Fetch fresh data in background
         const response = await fetch('/api/cart', {
           cache: 'no-store',
           next: { revalidate: 0 }
@@ -27,14 +36,19 @@ export default function CartPage() {
         
         if (response.ok) {
           const data = await response.json()
-          setCart(data.items || [])
+          const freshItems = data.items || []
+          setCart(freshItems)
+          
+          // Update cache
+          updateCartCache(freshItems)
+          console.log("Cart updated from API:", freshItems.length, "items")
         } else {
           console.error('Failed to fetch cart')
-          setCart([])
+          if (!cached) setCart([])
         }
       } catch (error) {
         console.error('Error fetching cart:', error)
-        setCart([])
+        if (!cached) setCart([])
       }
     }
     
@@ -55,6 +69,9 @@ export default function CartPage() {
 
   const updateCart = async (newCart: CartItem[]) => {
     setCart(newCart)
+    
+    // 🚀 OPTIMIZATION Item 10: Update cache when cart changes
+    updateCartCache(newCart)
     
     // Trigger event to update cart count in header
     window.dispatchEvent(new Event("cartUpdated"))

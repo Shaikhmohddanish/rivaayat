@@ -24,6 +24,10 @@ import {
 import { signOut, useSession } from "next-auth/react"
 import { useTheme } from "next-themes"
 import { deleteLocalCachePattern } from "@/lib/local-storage"
+import { clearCartCache } from "@/lib/cart-cache"
+import { clearWishlistCache } from "@/lib/wishlist-cache"
+import { clearUserProfileCache } from "@/lib/user-profile-cache"
+import { clearProductListCache } from "@/lib/product-list-cache"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -308,10 +312,16 @@ function MobileNav({ onNavigate, onSearch }: { onNavigate: () => void; onSearch:
 
   const go = (href: string) => { router.push(href); onNavigate() }
   const handleSignOut = () => { 
-    // Clear user data from localStorage before signOut
+    // 🚀 OPTIMIZATION: Clear all caches on logout
     if (typeof window !== 'undefined') {
       // Clear all user-related cache when logged out manually
       deleteLocalCachePattern('user:*');
+      
+      // Clear all optimization caches
+      clearCartCache();
+      clearWishlistCache();
+      clearUserProfileCache();
+      clearProductListCache();
     }
     
     signOut(); 

@@ -82,16 +82,29 @@ export interface Order {
   userId: string
   items: OrderItem[]
   status: "placed" | "processing" | "shipped" | "delivered" | "cancelled"
+  trackingNumber?: string
   tracking?: {
     carrier?: string
     trackingId?: string
     notes?: string
+  }
+  shippingAddress?: {
+    fullName: string
+    email: string
+    phone: string
+    addressLine1?: string
+    addressLine2?: string
+    city?: string
+    state?: string
+    postalCode?: string
+    country: string
   }
   coupon?: {
     code: string
     discountPercent: number
   }
   createdAt: Date
+  updatedAt?: Date
 }
 
 export interface OrderItem {

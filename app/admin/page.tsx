@@ -18,25 +18,14 @@ export default function AdminDashboard() {
   const [stats, loading, error, refreshStats] = useAdminCache<Stats>(
     ADMIN_CACHE_KEYS.DASHBOARD_STATS,
     async () => {
-      const [productsRes, usersRes, couponsRes] = await Promise.all([
-        fetch("/api/admin/products"), 
-        fetch("/api/admin/users"),
-        fetch("/api/admin/coupons")
-      ])
-
-      const products = productsRes.ok ? await productsRes.json() : []
-      const users = usersRes.ok ? await usersRes.json() : []
-      const coupons = couponsRes.ok ? await couponsRes.json() : []
-
-      // Count only active coupons
-      const activeCoupons = coupons.filter((coupon: any) => coupon.isActive).length
-
-      return {
-        products: products.length,
-        users: users.length,
-        orders: 0,
-        coupons: activeCoupons,
+      // 🚀 OPTIMIZATION: Single API call for all dashboard stats
+      const response = await fetch("/api/admin/dashboard")
+      
+      if (!response.ok) {
+        throw new Error("Failed to fetch dashboard stats")
       }
+
+      return await response.json()
     }
   )
   

@@ -2,7 +2,8 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -10,10 +11,20 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Package, Truck, CheckCircle, Clock } from "lucide-react"
 
 export default function OrderTrackingPage() {
-  const [trackingNumber, setTrackingNumber] = useState("")
+  const searchParams = useSearchParams()
+  const trackingNumberFromUrl = searchParams.get("trackingNumber")
+  
+  const [trackingNumber, setTrackingNumber] = useState(trackingNumberFromUrl || "")
   const [order, setOrder] = useState<any>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
+
+  // Auto-track if tracking number is in URL
+  useEffect(() => {
+    if (trackingNumberFromUrl && !order) {
+      handleTrack({ preventDefault: () => {} } as React.FormEvent)
+    }
+  }, [trackingNumberFromUrl])
 
   const handleTrack = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -105,40 +116,69 @@ export default function OrderTrackingPage() {
                 <div className="space-y-3">
                   {order.items.map((item: any, index: number) => (
                     <div key={index} className="flex justify-between text-sm">
-                      <span>
-                        {item.name} x {item.quantity}
-                      </span>
-                      <span>₹{(item.price * item.quantity).toFixed(2)}</span>
+                      <div>
+                        <span className="font-medium">{item.name}</span>
+                        <p className="text-xs text-muted-foreground">
+                          {item.variant?.color} • {item.variant?.size} • Qty: {item.quantity}
+                        </p>
+                      </div>
+                      <span className="font-semibold">₹{(item.price * item.quantity).toFixed(2)}</span>
                     </div>
                   ))}
                 </div>
               </div>
 
               <div className="border-t pt-4">
-                <div className="flex justify-between font-semibold">
-                  <span>Total</span>
-                  <span>₹{order.total.toFixed(2)}</span>
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Subtotal</span>
+                    <span>₹{order.items.reduce((total: number, item: any) => total + (item.price * item.quantity), 0).toFixed(2)}</span>
+                  </div>
+                  {order.coupon && (
+                    <div className="flex justify-between text-sm text-green-600">
+                      <span>Discount ({order.coupon.code})</span>
+                      <span>-₹{(order.items.reduce((total: number, item: any) => total + (item.price * item.quantity), 0) * (order.coupon.discountPercent / 100)).toFixed(2)}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between font-semibold">
+                    <span>Total</span>
+                    <span>₹{(() => {
+                      const subtotal = order.items.reduce((total: number, item: any) => total + (item.price * item.quantity), 0);
+                      const discount = order.coupon ? subtotal * (order.coupon.discountPercent / 100) : 0;
+                      return (subtotal - discount).toFixed(2);
+                    })()}</span>
+                  </div>
                 </div>
               </div>
 
-              <div className="border-t pt-4">
-                <h3 className="font-semibold mb-2">Shipping Address</h3>
-                <p className="text-sm text-muted-foreground">
-                  {order.shippingAddress.fullName}
-                  <br />
-                  {order.shippingAddress.addressLine1}
-                  <br />
-                  {order.shippingAddress.addressLine2 && (
-                    <>
-                      {order.shippingAddress.addressLine2}
-                      <br />
-                    </>
-                  )}
-                  {order.shippingAddress.city}, {order.shippingAddress.state} {order.shippingAddress.postalCode}
-                  <br />
-                  {order.shippingAddress.country}
-                </p>
-              </div>
+              {order.shippingAddress && (
+                <div className="border-t pt-4">
+                  <h3 className="font-semibold mb-2">Shipping Address</h3>
+                  <p className="text-sm text-muted-foreground">
+                    {order.shippingAddress.fullName}
+                    <br />
+                    {order.shippingAddress.addressLine1 && (
+                      <>
+                        {order.shippingAddress.addressLine1}
+                        <br />
+                      </>
+                    )}
+                    {order.shippingAddress.addressLine2 && (
+                      <>
+                        {order.shippingAddress.addressLine2}
+                        <br />
+                      </>
+                    )}
+                    {order.shippingAddress.city && order.shippingAddress.state && (
+                      <>
+                        {order.shippingAddress.city}, {order.shippingAddress.state} {order.shippingAddress.postalCode}
+                        <br />
+                      </>
+                    )}
+                    {order.shippingAddress.country}
+                  </p>
+                </div>
+              )}
             </CardContent>
           </Card>
         )}

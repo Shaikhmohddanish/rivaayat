@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { requireAuth } from "@/lib/auth"
 import { getDatabase } from "@/lib/mongodb-safe"
+import { ObjectId } from "mongodb"
 
 interface CartItem {
   productId: string
@@ -27,9 +28,37 @@ export async function POST(request: Request) {
     if (!db) {
       return NextResponse.json({ error: "Database connection error" }, { status: 500 })
     }
+
+    // 🚀 OPTIMIZATION: Parallel fetch product and cart
+    const [product, cart] = await Promise.all([
+      db.collection('products').findOne({ _id: new ObjectId(productId) }),
+      db.collection('carts').findOne({ userId: user.id })
+    ])
+
+    if (!product) {
+      return NextResponse.json({ error: "Product not found" }, { status: 404 })
+    }
+
+    // Find the specific variant
+    const productVariant = product.variations?.variants?.find(
+      (v: any) => v.color === variant.color && v.size === variant.size
+    )
+
+    if (!productVariant) {
+      return NextResponse.json({ 
+        error: "Variant not found" 
+      }, { status: 404 })
+    }
+
+    // Check if requested quantity is available
+    if (productVariant.stock < quantity) {
+      return NextResponse.json({ 
+        error: "Insufficient stock",
+        availableStock: productVariant.stock,
+        requestedQuantity: quantity
+      }, { status: 400 })
+    }
     
-    // Find existing cart or create a new one
-    const cart = await db.collection('carts').findOne({ userId: user.id })
     const items = cart?.items || []
 
     // Find existing item with same product and variant
@@ -39,8 +68,17 @@ export async function POST(request: Request) {
     )
 
     if (existingIndex > -1) {
-      // Update quantity
-      items[existingIndex].quantity = quantity
+      // Update quantity (check against stock again for existing items)
+      const newQuantity = items[existingIndex].quantity + quantity
+      if (productVariant.stock < newQuantity) {
+        return NextResponse.json({ 
+          error: "Insufficient stock for requested quantity",
+          availableStock: productVariant.stock,
+          currentInCart: items[existingIndex].quantity,
+          requestedTotal: newQuantity
+        }, { status: 400 })
+      }
+      items[existingIndex].quantity = newQuantity
     } else {
       // Add new item
       items.push({
@@ -54,7 +92,7 @@ export async function POST(request: Request) {
     }
 
     // Upsert the cart
-    const result = await db.collection('carts').updateOne(
+    await db.collection('carts').updateOne(
       { userId: user.id },
       { 
         $set: { 

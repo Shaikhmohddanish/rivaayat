@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { getLocalCache, setLocalCache, LS_KEYS } from '@/lib/local-storage';
+import { getCachedUserProfile, updateUserProfileCache, clearUserProfileCache } from '@/lib/user-profile-cache';
 import type { User, Address } from '@/lib/types';
 
 /**
  * Custom hook to fetch and cache user profile data
- * Uses localStorage for caching to avoid Redis usage for individual user data
+ * 🚀 OPTIMIZATION Item 13: Uses sessionStorage for profile caching
  */
 export function useUserProfile() {
   const { data: session, status } = useSession();
@@ -23,14 +24,21 @@ export function useUserProfile() {
       try {
         setLoading(true);
         
-        // Check localStorage cache first
-        const cacheKey = `${LS_KEYS.USER_PROFILE}${session.user.email}`;
-        const cachedProfile = getLocalCache<User>(cacheKey);
+        // 🚀 OPTIMIZATION Item 13: Check sessionStorage cache first
+        const cachedProfile = getCachedUserProfile();
         
         if (cachedProfile) {
-          console.log('Using cached profile data');
+          console.log('Using cached profile data from sessionStorage');
           setProfile(cachedProfile);
           setLoading(false);
+          
+          // Still fetch fresh data in background
+          const response = await fetch('/api/user/profile');
+          if (response.ok) {
+            const data = await response.json();
+            setProfile(data);
+            updateUserProfileCache(data);
+          }
           return;
         }
 
@@ -45,6 +53,10 @@ export function useUserProfile() {
         setProfile(data);
         
         // Cache the profile data
+        updateUserProfileCache(data);
+        
+        // Also keep localStorage cache for backward compatibility
+        const cacheKey = `${LS_KEYS.USER_PROFILE}${session.user.email}`;
         setLocalCache(cacheKey, data);
       } catch (err: any) {
         console.error('Error fetching profile:', err);
@@ -64,7 +76,8 @@ export function useUserProfile() {
     try {
       setLoading(true);
       
-      // Clear existing cache first
+      // Clear existing caches first
+      clearUserProfileCache();
       const cacheKey = `${LS_KEYS.USER_PROFILE}${session.user.email}`;
       localStorage.removeItem(cacheKey);
       

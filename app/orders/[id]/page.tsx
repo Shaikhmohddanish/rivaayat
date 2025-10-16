@@ -276,6 +276,11 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                 <p className="text-muted-foreground">
                   Placed on {formatDateTimeIST(order.createdAt)} • IST
                 </p>
+                {order.trackingNumber && (
+                  <p className="text-sm font-semibold mt-2">
+                    Tracking: <span className="font-mono bg-muted px-2 py-1 rounded">{order.trackingNumber}</span>
+                  </p>
+                )}
               </div>
               <Badge
                 variant="outline"
@@ -381,7 +386,7 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                 <Card className="elegant-shadow">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
-                      <MapPin className="h-5 w-5" />
+                      <Truck className="h-5 w-5" />
                       Shipping Information
                     </CardTitle>
                   </CardHeader>
@@ -413,6 +418,37 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                   </CardContent>
                 </Card>
               )}
+
+              {/* Shipping Address */}
+              {order.shippingAddress && (
+                <Card className="elegant-shadow">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <MapPin className="h-5 w-5" />
+                      Delivery Address
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-sm space-y-1">
+                      <p className="font-semibold">{order.shippingAddress.fullName}</p>
+                      {order.shippingAddress.addressLine1 && (
+                        <p className="text-muted-foreground">{order.shippingAddress.addressLine1}</p>
+                      )}
+                      {order.shippingAddress.addressLine2 && (
+                        <p className="text-muted-foreground">{order.shippingAddress.addressLine2}</p>
+                      )}
+                      {order.shippingAddress.city && order.shippingAddress.state && (
+                        <p className="text-muted-foreground">
+                          {order.shippingAddress.city}, {order.shippingAddress.state} {order.shippingAddress.postalCode}
+                        </p>
+                      )}
+                      <p className="text-muted-foreground">{order.shippingAddress.country}</p>
+                      <p className="text-muted-foreground mt-2">Phone: {order.shippingAddress.phone}</p>
+                      <p className="text-muted-foreground">Email: {order.shippingAddress.email}</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
             </div>
 
             {/* Order Summary */}
@@ -428,13 +464,13 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                   <div className="space-y-4">
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Subtotal:</span>
-                      <span>${calculateSubtotal().toFixed(2)}</span>
+                      <span>₹{calculateSubtotal().toFixed(2)}</span>
                     </div>
                     
                     {order.coupon && (
                       <div className="flex justify-between text-green-600">
                         <span>Discount ({order.coupon.code}):</span>
-                        <span>-${calculateDiscount().toFixed(2)}</span>
+                        <span>-₹{calculateDiscount().toFixed(2)}</span>
                       </div>
                     )}
                     
@@ -447,7 +483,7 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                     
                     <div className="flex justify-between text-lg font-bold">
                       <span>Total:</span>
-                      <span>${calculateTotal().toFixed(2)}</span>
+                      <span>₹{calculateTotal().toFixed(2)}</span>
                     </div>
                   </div>
                 </CardContent>
@@ -464,8 +500,14 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                   <div className="space-y-3 text-sm">
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Order ID:</span>
-                      <span className="font-mono">{order._id}</span>
+                      <span className="font-mono text-xs">{order._id}</span>
                     </div>
+                    {order.trackingNumber && (
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Tracking #:</span>
+                        <span className="font-mono font-semibold">{order.trackingNumber}</span>
+                      </div>
+                    )}
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Date:</span>
                       <span>{formatDateDDMMYYYY(order.createdAt)}</span>
@@ -480,9 +522,22 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
 
               {/* Actions */}
               <div className="space-y-3">
+                {order.trackingNumber && (
+                  <Button 
+                    asChild 
+                    className="w-full elegant-gradient text-white"
+                  >
+                    <Link href={`/order-tracking?trackingNumber=${order.trackingNumber}`}>
+                      <Truck className="h-4 w-4 mr-2" />
+                      Track Order
+                    </Link>
+                  </Button>
+                )}
+                
                 <Button 
                   asChild 
-                  className="w-full elegant-gradient text-white"
+                  variant="outline"
+                  className="w-full elegant-hover"
                 >
                   <Link href="/shop">Continue Shopping</Link>
                 </Button>

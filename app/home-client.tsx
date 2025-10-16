@@ -1,6 +1,7 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { useSession } from "next-auth/react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import type { Product } from "@/lib/types"
@@ -8,6 +9,7 @@ import { HeroSliderPro, type Slide } from "@/components/hero-slider-pro"
 import { ProductCard } from "@/components/product-card"
 import { QuickViewModal } from "@/components/quick-view-modal"
 import { TrendingUp } from "lucide-react"
+import { getCachedWishlist, updateWishlistCache } from "@/lib/wishlist-cache"
 
 interface HomePageClientProps {
   featuredProducts: (Product & { _id: string })[]
@@ -16,7 +18,43 @@ interface HomePageClientProps {
 }
 
 export function HomePageClient({ featuredProducts, newProducts, trendingProducts }: HomePageClientProps) {
+  const { data: session, status } = useSession()
   const [quickViewProduct, setQuickViewProduct] = useState<(Product & { _id: string }) | null>(null)
+  const [wishlistProductIds, setWishlistProductIds] = useState<string[]>([])
+
+  // 🚀 OPTIMIZATION Item 7 & 11: Fetch wishlist once with cache support
+  useEffect(() => {
+    const fetchWishlist = async () => {
+      if (status !== "authenticated" || !session) {
+        setWishlistProductIds([])
+        return
+      }
+      
+      // Try cache first for instant display
+      const cached = getCachedWishlist()
+      if (cached) {
+        setWishlistProductIds(cached.productIds)
+        console.log("Wishlist loaded from cache:", cached.productIds.length, "items")
+      }
+      
+      try {
+        // Fetch fresh data in background
+        const res = await fetch("/api/wishlist", { cache: "no-store" })
+        if (!res.ok) return
+        const data = await res.json()
+        const freshIds = data.productIds || []
+        setWishlistProductIds(freshIds)
+        
+        // Update cache
+        updateWishlistCache(freshIds)
+        console.log("Wishlist updated from API:", freshIds.length, "items")
+      } catch (error) {
+        console.debug("Failed to fetch wishlist:", error)
+      }
+    }
+
+    fetchWishlist()
+  }, [session, status])
 
   const slides: Slide[] = [
     {
@@ -61,7 +99,13 @@ export function HomePageClient({ featuredProducts, newProducts, trendingProducts
         {featuredProducts.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {featuredProducts.map((product) => (
-              <ProductCard key={product._id} product={product} onQuickView={setQuickViewProduct} />
+              <ProductCard 
+                key={product._id} 
+                product={product} 
+                onQuickView={setQuickViewProduct}
+                wishlistProductIds={wishlistProductIds}
+                onWishlistChange={setWishlistProductIds}
+              />
             ))}
           </div>
         ) : (
@@ -86,7 +130,13 @@ export function HomePageClient({ featuredProducts, newProducts, trendingProducts
           {trendingProducts.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
               {trendingProducts.map((product) => (
-                <ProductCard key={product._id} product={product} onQuickView={setQuickViewProduct} />
+                <ProductCard 
+                  key={product._id} 
+                  product={product} 
+                  onQuickView={setQuickViewProduct}
+                  wishlistProductIds={wishlistProductIds}
+                  onWishlistChange={setWishlistProductIds}
+                />
               ))}
             </div>
           ) : (
@@ -120,7 +170,13 @@ export function HomePageClient({ featuredProducts, newProducts, trendingProducts
           {newProducts.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
               {newProducts.map((product) => (
-                <ProductCard key={product._id} product={product} onQuickView={setQuickViewProduct} />
+                <ProductCard 
+                  key={product._id} 
+                  product={product} 
+                  onQuickView={setQuickViewProduct}
+                  wishlistProductIds={wishlistProductIds}
+                  onWishlistChange={setWishlistProductIds}
+                />
               ))}
             </div>
           ) : (

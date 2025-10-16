@@ -24,3 +24,25 @@ export async function GET() {
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }
+
+export async function DELETE() {
+  try {
+    const user = await requireAuth()
+    
+    const db = await getDatabase()
+    if (!db) {
+      return NextResponse.json({ error: "Database connection error" }, { status: 500 })
+    }
+    
+    // Delete the user's cart
+    await db.collection('carts').deleteOne({ userId: user.id })
+
+    return NextResponse.json({ message: "Cart cleared successfully" })
+  } catch (error) {
+    if (error instanceof Error && error.message === "Unauthorized") {
+      return NextResponse.json({ error: "Authentication required" }, { status: 401 })
+    }
+    console.error("Delete cart error:", error)
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+  }
+}

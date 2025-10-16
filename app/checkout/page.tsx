@@ -166,6 +166,8 @@ export default function CheckoutPage() {
     }
 
     try {
+      // 🚀 OPTIMIZATION: Order API now handles validation, no need for pre-validation
+      // Removed duplicate stock validation call - order API does it all
       const response = await fetch("/api/orders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -184,20 +186,17 @@ export default function CheckoutPage() {
       const data = await response.json()
 
       if (!response.ok) {
-        alert(data.error || "Failed to create order")
+        // Handle specific error cases
+        if (data.error === "Insufficient stock" && data.details) {
+          alert(`Stock Issues:\n\n${data.details.join("\n")}\n\nPlease refresh the page and update your cart.`)
+        } else {
+          alert(data.error || "Failed to create order")
+        }
         setLoading(false)
         return
       }
 
-      // Clear cart from API and localStorage
-      try {
-        await fetch("/api/cart", {
-          method: "DELETE",
-        })
-      } catch (error) {
-        console.error("Error clearing cart:", error)
-      }
-      
+      // Cart is already cleared on the server, just clear local storage
       localStorage.removeItem("cart")
       localStorage.removeItem("appliedCoupon")
 
@@ -209,6 +208,7 @@ export default function CheckoutPage() {
         router.push(`/order-success?trackingNumber=${data.orderId}`)
       }
     } catch (error) {
+      console.error("Order submission error:", error)
       alert("An error occurred. Please try again.")
       setLoading(false)
     }

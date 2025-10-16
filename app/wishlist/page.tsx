@@ -28,16 +28,18 @@ export default function WishlistPage() {
         const productIds = wishlistData.productIds || []
         setWishlist(productIds)
         
-        // Fetch product details if we have items
+        // 🚀 OPTIMIZATION: Batch fetch all products in single API call
         if (productIds.length > 0) {
-          const productPromises = productIds.map((id: string) => 
-            fetch(`/api/products/${id}`)
-              .then(res => res.json())
-              .catch(() => null)
-          )
+          const batchRes = await fetch('/api/products/batch', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ productIds })
+          })
           
-          const results = await Promise.all(productPromises)
-          setProducts(results.filter(p => p !== null))
+          if (batchRes.ok) {
+            const batchData = await batchRes.json()
+            setProducts(batchData.products || [])
+          }
         }
       } catch (error) {
         console.error("Failed to fetch wishlist:", error)
@@ -63,15 +65,18 @@ export default function WishlistPage() {
         const wishlistData = await wishlistRes.json()
         const productIds = wishlistData.productIds || []
         
+        // 🚀 OPTIMIZATION: Batch fetch all products in single API call
         if (productIds.length > 0) {
-          const productPromises = productIds.map((id: string) => 
-            fetch(`/api/products/${id}`)
-              .then(res => res.json())
-              .catch(() => null)
-          )
+          const batchRes = await fetch('/api/products/batch', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ productIds })
+          })
           
-          const results = await Promise.all(productPromises)
-          setProducts(results.filter(p => p !== null))
+          if (batchRes.ok) {
+            const batchData = await batchRes.json()
+            setProducts(batchData.products || [])
+          }
         } else {
           setProducts([])
         }
