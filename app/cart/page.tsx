@@ -13,7 +13,7 @@ import { getCachedCart, updateCartCache } from "@/lib/cart-cache"
 export default function CartPage() {
   const [cart, setCart] = useState<CartItem[]>([])
   const [couponCode, setCouponCode] = useState("")
-  const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discountPercent: number } | null>(null)
+  const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discountPercent: number; minOrderValue?: number } | null>(null)
   const [couponError, setCouponError] = useState("")
   const [isApplyingCoupon, setIsApplyingCoupon] = useState(false)
   const [updatingItems, setUpdatingItems] = useState<Set<number>>(new Set())
@@ -214,6 +214,7 @@ export default function CartPage() {
       
       setAppliedCoupon(coupon)
       localStorage.setItem("appliedCoupon", JSON.stringify(coupon))
+      console.log("Coupon saved to localStorage:", coupon)
       setCouponCode(coupon.code) // Set to the actual coupon code from response
       setCouponError("")
     } catch (error) {

@@ -18,7 +18,7 @@ export default function CheckoutPage() {
   const [cart, setCart] = useState<CartItem[]>([])
   const [loading, setLoading] = useState(false)
   const [showAddressForm, setShowAddressForm] = useState(false)
-  const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discountPercent: number; minOrderValue: number } | null>(null)
+  const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discountPercent: number; minOrderValue?: number } | null>(null)
   const [couponCode, setCouponCode] = useState("")
   const [couponError, setCouponError] = useState("")
   const [applyingCoupon, setApplyingCoupon] = useState(false)
@@ -85,7 +85,10 @@ export default function CheckoutPage() {
         const coupon = JSON.parse(savedCoupon)
         // Set the applied coupon from localStorage
         setAppliedCoupon(coupon)
+        setCouponCode(coupon.code) // Also set the coupon code
+        console.log("Loaded coupon from localStorage:", coupon)
       } catch (e) {
+        console.error("Error loading coupon from localStorage:", e)
         localStorage.removeItem("appliedCoupon")
       }
     }
@@ -159,7 +162,7 @@ export default function CheckoutPage() {
     }
     
     // Check coupon minimum order value if applied
-    if (appliedCoupon && appliedCoupon.minOrderValue > subtotal) {
+    if (appliedCoupon && appliedCoupon.minOrderValue && appliedCoupon.minOrderValue > subtotal) {
       alert(`The applied coupon requires a minimum order of ₹${appliedCoupon.minOrderValue}`)
       setLoading(false)
       return
