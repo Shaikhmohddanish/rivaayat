@@ -77,12 +77,20 @@ export interface SearchableProduct extends Product {
   rating?: number
 }
 
+export interface OrderTrackingStatus {
+  status: "order_confirmed" | "processing" | "shipped" | "out_for_delivery" | "delivered" | "cancelled"
+  timestamp: Date
+  message: string
+  updatedBy?: string // Admin ID who updated the status
+}
+
 export interface Order {
   _id?: string
   userId: string
   items: OrderItem[]
   status: "placed" | "processing" | "shipped" | "delivered" | "cancelled"
   trackingNumber?: string
+  trackingHistory?: OrderTrackingStatus[] // Array of tracking status updates
   tracking?: {
     carrier?: string
     trackingId?: string

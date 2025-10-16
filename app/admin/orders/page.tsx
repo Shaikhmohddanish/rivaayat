@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Badge } from "@/components/ui/badge"
+import { UpdateOrderTracking } from "@/components/update-order-tracking"
 import type { Order } from "@/lib/types"
 
 export default function AdminOrdersPage() {
@@ -146,10 +147,15 @@ export default function AdminOrdersPage() {
                   </div>
                   <div className="flex items-center gap-2">
                     <Badge className={getStatusColor(order.status)}>{order.status}</Badge>
+                    <UpdateOrderTracking
+                      orderId={order._id}
+                      currentStatus={order.trackingHistory?.[order.trackingHistory.length - 1]?.status || "order_confirmed"}
+                      onStatusUpdated={fetchOrders}
+                    />
                     <Dialog>
                       <DialogTrigger asChild>
-                        <Button size="sm" onClick={() => handleEdit(order)}>
-                          Update
+                        <Button size="sm" variant="outline" onClick={() => handleEdit(order)}>
+                          Update Order
                         </Button>
                       </DialogTrigger>
                       <DialogContent>

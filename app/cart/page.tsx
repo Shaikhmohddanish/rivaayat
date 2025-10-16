@@ -16,6 +16,8 @@ export default function CartPage() {
   const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discountPercent: number } | null>(null)
   const [couponError, setCouponError] = useState("")
   const [isApplyingCoupon, setIsApplyingCoupon] = useState(false)
+  const [updatingItems, setUpdatingItems] = useState<Set<number>>(new Set())
+  const [removingItems, setRemovingItems] = useState<Set<number>>(new Set())
 
   useEffect(() => {
     // 🚀 OPTIMIZATION Item 10: Try cache first for instant display
@@ -78,44 +80,69 @@ export default function CartPage() {
   }
 
   const updateQuantity = async (index: number, delta: number) => {
+    // Prevent multiple simultaneous updates to the same item
+    if (updatingItems.has(index)) return
+    
     const item = cart[index]
     const newQuantity = Math.max(1, item.quantity + delta)
     
+    // Mark item as updating
+    setUpdatingItems(prev => new Set(prev).add(index))
+    
+    // Optimistic update - update UI immediately
+    const previousCart = [...cart]
+    const newCart = [...cart]
+    newCart[index].quantity = newQuantity
+    setCart(newCart)
+    updateCartCache(newCart)
+    
     // Update quantity via API
     try {
-      const response = await fetch('/api/cart/items', {
-        method: 'POST',
+      const response = await fetch('/api/cart/update-quantity', {
+        method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           productId: item.productId,
-          name: item.name,
-          price: item.price,
           variant: item.variant,
           quantity: newQuantity,
-          image: item.image,
         }),
       })
       
       if (response.ok) {
-        // Update local state with new quantity
-        const newCart = [...cart]
-        newCart[index].quantity = newQuantity
-        setCart(newCart)
-        
         // Trigger event to update cart count
         window.dispatchEvent(new Event("cartUpdated"))
       } else {
-        console.error('Failed to update cart item')
+        // Revert on failure
+        const errorData = await response.json()
+        console.error('Failed to update cart item:', errorData)
+        setCart(previousCart)
+        updateCartCache(previousCart)
       }
     } catch (error) {
+      // Revert on error
       console.error('Error updating cart item:', error)
+      setCart(previousCart)
+      updateCartCache(previousCart)
+    } finally {
+      // Remove from updating set
+      setUpdatingItems(prev => {
+        const newSet = new Set(prev)
+        newSet.delete(index)
+        return newSet
+      })
     }
   }
 
   const removeItem = async (index: number) => {
+    // Prevent multiple simultaneous removals
+    if (removingItems.has(index)) return
+    
     const item = cart[index]
+    
+    // Mark item as removing
+    setRemovingItems(prev => new Set(prev).add(index))
     
     try {
       const response = await fetch('/api/cart/items', {
@@ -132,15 +159,19 @@ export default function CartPage() {
       if (response.ok) {
         // Update local state
         const newCart = cart.filter((_, i) => i !== index)
-        setCart(newCart)
-        
-        // Trigger event to update cart count
-        window.dispatchEvent(new Event("cartUpdated"))
+        updateCart(newCart)
       } else {
         console.error('Failed to remove cart item')
       }
     } catch (error) {
       console.error('Error removing cart item:', error)
+    } finally {
+      // Remove from removing set
+      setRemovingItems(prev => {
+        const newSet = new Set(prev)
+        newSet.delete(index)
+        return newSet
+      })
     }
   }
 
@@ -254,18 +285,33 @@ export default function CartPage() {
                           Color: {item.variant?.color || item.color} | Size: {item.variant?.size || item.size}
                         </p>
                       </div>
-                      <Button variant="ghost" size="icon" onClick={() => removeItem(index)}>
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        onClick={() => removeItem(index)}
+                        disabled={removingItems.has(index)}
+                      >
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
 
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <Button variant="outline" size="icon" onClick={() => updateQuantity(index, -1)}>
+                        <Button 
+                          variant="outline" 
+                          size="icon" 
+                          onClick={() => updateQuantity(index, -1)}
+                          disabled={updatingItems.has(index) || item.quantity <= 1}
+                        >
                           <Minus className="h-4 w-4" />
                         </Button>
                         <span className="w-12 text-center font-semibold">{item.quantity}</span>
-                        <Button variant="outline" size="icon" onClick={() => updateQuantity(index, 1)}>
+                        <Button 
+                          variant="outline" 
+                          size="icon" 
+                          onClick={() => updateQuantity(index, 1)}
+                          disabled={updatingItems.has(index)}
+                        >
                           <Plus className="h-4 w-4" />
                         </Button>
                       </div>

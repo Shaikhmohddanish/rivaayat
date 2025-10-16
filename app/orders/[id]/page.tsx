@@ -13,6 +13,44 @@ import { ArrowLeft, Package, Truck, CheckCircle, XCircle, Clock, MapPin, Calenda
 import { formatDateTimeIST, formatDateDDMMYYYY } from "@/lib/date-utils"
 import type { Order } from "@/lib/types"
 
+const getTrackingStatusIcon = (status: string) => {
+  switch (status) {
+    case "order_confirmed":
+      return <CheckCircle className="h-5 w-5 text-green-500" />
+    case "processing":
+      return <Package className="h-5 w-5 text-blue-500" />
+    case "shipped":
+      return <Truck className="h-5 w-5 text-purple-500" />
+    case "out_for_delivery":
+      return <MapPin className="h-5 w-5 text-orange-500" />
+    case "delivered":
+      return <CheckCircle className="h-5 w-5 text-green-600" />
+    case "cancelled":
+      return <XCircle className="h-5 w-5 text-red-500" />
+    default:
+      return <Clock className="h-5 w-5 text-muted-foreground" />
+  }
+}
+
+const getTrackingStatusLabel = (status: string) => {
+  switch (status) {
+    case "order_confirmed":
+      return "Order Confirmed"
+    case "processing":
+      return "Processing"
+    case "shipped":
+      return "Shipped"
+    case "out_for_delivery":
+      return "Out for Delivery"
+    case "delivered":
+      return "Delivered"
+    case "cancelled":
+      return "Cancelled"
+    default:
+      return status
+  }
+}
+
 export default function OrderDetailsPage({ params }: { params: Promise<{ id: string }> }) {
   const { data: session, status } = useSession()
   const router = useRouter()
@@ -295,6 +333,50 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
           <div className="grid lg:grid-cols-3 gap-8">
             {/* Order Items */}
             <div className="lg:col-span-2 space-y-6">
+              {/* Tracking History Timeline */}
+              {order.trackingHistory && order.trackingHistory.length > 0 && (
+                <Card className="elegant-shadow">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <MapPin className="h-5 w-5" />
+                      Tracking History
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      {[...order.trackingHistory].reverse().map((tracking: any, index: number) => (
+                        <div key={index} className="flex gap-4">
+                          <div className="flex flex-col items-center">
+                            <div className="rounded-full bg-background border-2 p-1.5">
+                              {getTrackingStatusIcon(tracking.status)}
+                            </div>
+                            {index < order.trackingHistory!.length - 1 && (
+                              <div className="w-0.5 flex-1 bg-border mt-2 min-h-[40px]" />
+                            )}
+                          </div>
+                          <div className="flex-1 pb-4">
+                            <p className="font-semibold">
+                              {getTrackingStatusLabel(tracking.status)}
+                            </p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              {new Date(tracking.timestamp).toLocaleString('en-IN', {
+                                dateStyle: 'medium',
+                                timeStyle: 'short'
+                              })}
+                            </p>
+                            {tracking.message && (
+                              <p className="text-sm mt-2 text-muted-foreground">
+                                {tracking.message}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
               {/* Status Timeline */}
               <Card className="elegant-shadow">
                 <CardHeader>

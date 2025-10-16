@@ -1,7 +1,7 @@
 "use client"
 import { useEffect, useMemo, useState } from "react"
 import { Button } from "@/components/ui/button"
-import { Heart, ShoppingCart } from "lucide-react"
+import { Heart, ShoppingCart, Plus, Minus } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { useRouter } from "next/navigation"
 import { useSession } from "next-auth/react"
@@ -19,6 +19,8 @@ export default function ProductDetailClient({ product }: Props) {
   const [selectedColor, setSelectedColor] = useState<string>("")
   const [selectedSize, setSelectedSize] = useState<string>("")
   const [isWishlisted, setIsWishlisted] = useState(false)
+  const [quantity, setQuantity] = useState(1)
+  const [isAddingToCart, setIsAddingToCart] = useState(false)
 
   const colors = product.variations?.colors ?? []
   const sizes = product.variations?.sizes ?? []
@@ -49,6 +51,20 @@ export default function ProductDetailClient({ product }: Props) {
 
   const currentStock = useMemo(() => stockFor(selectedColor, selectedSize), [selectedColor, selectedSize])
 
+  const incrementQuantity = () => {
+    setQuantity(prev => {
+      const hasOptions = colors.length > 0 || sizes.length > 0
+      if (hasOptions && currentStock > 0) {
+        return Math.min(prev + 1, currentStock)
+      }
+      return prev + 1
+    })
+  }
+
+  const decrementQuantity = () => {
+    setQuantity(prev => Math.max(1, prev - 1))
+  }
+
   async function addToCart() {
     // Check authentication status
     if (status === "loading") return false
@@ -68,12 +84,24 @@ export default function ProductDetailClient({ product }: Props) {
       return false
     }
 
+    // Check if requested quantity is available
+    if (hasOptions && quantity > currentStock) {
+      toast({ 
+        title: "Insufficient stock", 
+        description: `Only ${currentStock} items available`, 
+        variant: "destructive" 
+      })
+      return false
+    }
+
+    setIsAddingToCart(true)
+    
     const cartItem = {
       productId: product._id,
       name: product.name,
       price: product.price,
       image: product.images?.[0]?.url || "",
-      quantity: 1,
+      quantity: quantity,
       variant: { color: selectedColor || "", size: selectedSize || "" },
     }
 
@@ -85,16 +113,20 @@ export default function ProductDetailClient({ product }: Props) {
       })
 
       if (!res.ok) {
-        toast({ title: "Error", description: "Could not add to cart", variant: "destructive" })
+        const error = await res.json()
+        toast({ title: "Error", description: error.error || "Could not add to cart", variant: "destructive" })
         return false
       }
 
       window.dispatchEvent(new Event("cartUpdated"))
-      toast({ title: "Added to cart", description: product.name })
+      toast({ title: "Added to cart", description: `${quantity} × ${product.name}` })
+      setQuantity(1) // Reset quantity after adding
       return true
     } catch (error) {
       toast({ title: "Error", description: "Could not add to cart", variant: "destructive" })
       return false
+    } finally {
+      setIsAddingToCart(false)
     }
   }
 
@@ -114,12 +146,23 @@ export default function ProductDetailClient({ product }: Props) {
       return toast({ title: "Out of stock", description: "Selected variant is unavailable", variant: "destructive" })
     }
 
+    // Check if requested quantity is available
+    if (hasOptions && quantity > currentStock) {
+      return toast({ 
+        title: "Insufficient stock", 
+        description: `Only ${currentStock} items available`, 
+        variant: "destructive" 
+      })
+    }
+
+    setIsAddingToCart(true)
+    
     const cartItem = {
       productId: product._id,
       name: product.name,
       price: product.price,
       image: product.images?.[0]?.url || "",
-      quantity: 1,
+      quantity: quantity,
       variant: { color: selectedColor || "", size: selectedSize || "" },
     }
 
@@ -132,7 +175,8 @@ export default function ProductDetailClient({ product }: Props) {
       })
 
       if (!res.ok) {
-        toast({ title: "Error", description: "Could not add to cart", variant: "destructive" })
+        const error = await res.json()
+        toast({ title: "Error", description: error.error || "Could not add to cart", variant: "destructive" })
         return
       }
 
@@ -146,6 +190,8 @@ export default function ProductDetailClient({ product }: Props) {
       
     } catch (error) {
       toast({ title: "Error", description: "Could not process your request", variant: "destructive" })
+    } finally {
+      setIsAddingToCart(false)
     }
   }
 
@@ -244,15 +290,47 @@ export default function ProductDetailClient({ product }: Props) {
         </div>
       )}
 
+      {/* Quantity Selector */}
+      <div className="space-y-2">
+        <label className="text-xs text-gray-500 font-medium">Quantity</label>
+        <div className="flex items-center gap-2">
+          <Button 
+            variant="outline" 
+            size="icon"
+            onClick={decrementQuantity}
+            disabled={quantity <= 1 || isAddingToCart}
+            className="h-9 w-9"
+          >
+            <Minus className="h-4 w-4" />
+          </Button>
+          <span className="w-12 text-center font-semibold text-lg">{quantity}</span>
+          <Button 
+            variant="outline" 
+            size="icon"
+            onClick={incrementQuantity}
+            disabled={isAddingToCart || (colors.length > 0 && sizes.length > 0 && quantity >= currentStock)}
+            className="h-9 w-9"
+          >
+            <Plus className="h-4 w-4" />
+          </Button>
+          {colors.length > 0 && sizes.length > 0 && currentStock > 0 && (
+            <span className="text-xs text-muted-foreground ml-2">
+              {currentStock} available
+            </span>
+          )}
+        </div>
+      </div>
+
       {/* Actions */}
       <div className="flex flex-wrap gap-3 pt-2">
-        <Button onClick={addToCart} className="gap-2">
-          <ShoppingCart className="h-4 w-4" /> Add to cart
+        <Button onClick={addToCart} className="gap-2" disabled={isAddingToCart}>
+          <ShoppingCart className="h-4 w-4" /> 
+          {isAddingToCart ? "Adding..." : "Add to cart"}
         </Button>
-        <Button variant="secondary" onClick={buyNow}>
-          Buy now
+        <Button variant="secondary" onClick={buyNow} disabled={isAddingToCart}>
+          {isAddingToCart ? "Processing..." : "Buy now"}
         </Button>
-        <Button variant="outline" onClick={toggleWishlist} className={isWishlisted ? "text-rose-600" : ""}>
+        <Button variant="outline" onClick={toggleWishlist} className={isWishlisted ? "text-rose-600" : ""} disabled={isAddingToCart}>
           <Heart className={`h-4 w-4 mr-2 ${isWishlisted ? "fill-current" : ""}`} />
           {isWishlisted ? "Wishlisted" : "Wishlist"}
         </Button>

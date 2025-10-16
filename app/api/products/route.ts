@@ -2,9 +2,20 @@ import { NextResponse } from "next/server"
 import { getDatabase } from "@/lib/mongodb"
 import { requireAdmin } from "@/lib/auth"
 import type { Product } from "@/lib/types"
+import { getCache, setCache, deleteCache, REDIS_KEYS } from "@/lib/redis"
+
+// Cache for 1 hour (3600 seconds) since products don't change frequently
+const PRODUCTS_CACHE_TTL = 3600
 
 export async function GET() {
   try {
+    // 🚀 Try to get from Redis cache first
+    const cached = await getCache<any[]>(REDIS_KEYS.PRODUCT_LIST)
+    if (cached) {
+      console.log("✅ Products loaded from Redis cache")
+      return NextResponse.json(cached)
+    }
+
     console.log("Fetching products from database")
     const db = await getDatabase()
     const products = await db.collection<Product>("products").find({}).toArray()
@@ -13,6 +24,10 @@ export async function GET() {
       ...p,
       _id: p._id?.toString(),
     }))
+
+    // 🚀 Cache the result in Redis for 1 hour
+    await setCache(REDIS_KEYS.PRODUCT_LIST, formattedProducts, PRODUCTS_CACHE_TTL)
+    console.log("✅ Products cached in Redis")
 
     return NextResponse.json(formattedProducts)
   } catch (error) {
@@ -33,7 +48,7 @@ export async function POST(request: Request) {
     }
 
     const db = await getDatabase()
-    const result = await db.collection<Product>("products").insertOne({
+    const result = await db.collection("products").insertOne({
       name,
       slug,
       description,
@@ -43,9 +58,13 @@ export async function POST(request: Request) {
       isFeatured: isFeatured || false,
       createdAt: new Date(),
       updatedAt: new Date(),
-    })
+    } as Omit<Product, '_id'>)
 
     console.log("Product created successfully")
+    
+    // 🚀 Invalidate products cache
+    await deleteCache(REDIS_KEYS.PRODUCT_LIST)
+    console.log("✅ Products cache invalidated")
     
     return NextResponse.json(
       {

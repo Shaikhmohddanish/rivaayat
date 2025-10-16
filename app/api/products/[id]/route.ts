@@ -2,10 +2,23 @@ import { NextResponse } from "next/server"
 import { getDatabase } from "@/lib/mongodb"
 import { ObjectId } from "mongodb"
 import type { Product } from "@/lib/types"
+import { getCache, setCache, REDIS_KEYS } from "@/lib/redis"
+
+// Cache individual products for 1 hour
+const PRODUCT_CACHE_TTL = 3600
 
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params
+    
+    // 🚀 Try to get from Redis cache first
+    const cacheKey = `${REDIS_KEYS.PRODUCT_DETAILS}${id}`
+    const cached = await getCache<any>(cacheKey)
+    if (cached) {
+      console.log(`✅ Product ${id} loaded from Redis cache`)
+      return NextResponse.json(cached)
+    }
+    
     const db = await getDatabase()
     
     let product: any = null
@@ -34,6 +47,10 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       ...product,
       _id: product._id?.toString(),
     }
+
+    // 🚀 Cache the product for 1 hour
+    await setCache(cacheKey, formattedProduct, PRODUCT_CACHE_TTL)
+    console.log(`✅ Product ${id} cached in Redis`)
 
     return NextResponse.json(formattedProduct)
   } catch (error) {

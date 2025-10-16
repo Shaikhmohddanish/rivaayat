@@ -14,6 +14,7 @@ import { QuickViewModal } from "@/components/quick-view-modal"
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
 import { getCachedWishlist, updateWishlistCache } from "@/lib/wishlist-cache"
 import { setCachedProductList } from "@/lib/product-list-cache"
+import { cacheProducts, isIndexedDBSupported } from "@/lib/product-cache"
 
 interface ShopPageClientProps {
   products: (Product & { _id: string })[]
@@ -33,10 +34,18 @@ export function ShopPageClient({ products, availableColors, availableSizes, isLo
   const [displayCount, setDisplayCount] = useState(ITEMS_PER_PAGE)
   const [wishlistProductIds, setWishlistProductIds] = useState<string[]>([])
 
-  // 🚀 OPTIMIZATION Item 12: Cache product list in sessionStorage
+  // 🚀 OPTIMIZATION Item 12: Cache product list in sessionStorage and IndexedDB
   useEffect(() => {
     if (products.length > 0) {
+      // SessionStorage for quick access (synchronous)
       setCachedProductList(products)
+      
+      // IndexedDB for persistent storage across sessions
+      if (isIndexedDBSupported()) {
+        cacheProducts(products).catch(err => {
+          console.debug('Failed to cache products in IndexedDB:', err)
+        })
+      }
     }
   }, [products])
 

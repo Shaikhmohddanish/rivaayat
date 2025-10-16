@@ -136,12 +136,20 @@ export async function POST(request: Request) {
     const randomPart = Math.floor(1000 + Math.random() * 9000); // 4-digit random number
     const trackingNumber = `RIV-${dateStr}-${randomPart}`;
     
+    // Create initial tracking status
+    const initialTrackingStatus = {
+      status: "order_confirmed" as const,
+      timestamp: new Date(),
+      message: "Your order has been confirmed and is being prepared for processing."
+    };
+    
     // Create the order object
     const orderData = {
       userId: user.id,
       items,
       status: "placed" as const,
       trackingNumber,
+      trackingHistory: [initialTrackingStatus], // Initialize with order confirmed status
       shippingAddress,
       ...(coupon && { coupon }),
       createdAt: new Date(),
