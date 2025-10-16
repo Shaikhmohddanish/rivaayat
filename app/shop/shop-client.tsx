@@ -33,10 +33,12 @@ export function ShopPageClient({ products, availableColors, availableSizes, isLo
   const [quickViewProduct, setQuickViewProduct] = useState<(Product & { _id: string }) | null>(null)
   const [displayCount, setDisplayCount] = useState(ITEMS_PER_PAGE)
   const [wishlistProductIds, setWishlistProductIds] = useState<string[]>([])
+  const [productsData, setProductsData] = useState(products)
 
   // 🚀 OPTIMIZATION Item 12: Cache product list in sessionStorage and IndexedDB
   useEffect(() => {
     if (products.length > 0) {
+      setProductsData(products)
       // SessionStorage for quick access (synchronous)
       setCachedProductList(products)
       
@@ -48,6 +50,43 @@ export function ShopPageClient({ products, availableColors, availableSizes, isLo
       }
     }
   }, [products])
+
+  // Listen for product stock updates and refresh products
+  useEffect(() => {
+    const handleProductStockUpdate = async () => {
+      console.log('Product stock updated, refreshing products...')
+      try {
+        // Fetch fresh product data
+        const response = await fetch('/api/products', { 
+          cache: 'no-store',
+          headers: {
+            'Cache-Control': 'no-cache'
+          }
+        })
+        if (response.ok) {
+          const freshProducts = await response.json()
+          setProductsData(freshProducts)
+          
+          // Update caches with fresh data
+          setCachedProductList(freshProducts)
+          if (isIndexedDBSupported()) {
+            cacheProducts(freshProducts).catch(err => {
+              console.debug('Failed to update products cache:', err)
+            })
+          }
+          console.log('Products refreshed with updated stock')
+        }
+      } catch (error) {
+        console.debug('Failed to refresh products:', error)
+      }
+    }
+
+    window.addEventListener('productStockUpdated', handleProductStockUpdate)
+    
+    return () => {
+      window.removeEventListener('productStockUpdated', handleProductStockUpdate)
+    }
+  }, [])
 
   // 🚀 OPTIMIZATION Item 7 & 11: Fetch wishlist once with cache support
   useEffect(() => {
@@ -85,7 +124,7 @@ export function ShopPageClient({ products, availableColors, availableSizes, isLo
 
   // Filter products based on search and filters
   const filteredProducts = useMemo(() => {
-    return products.filter((product) => {
+    return productsData.filter((product) => {
       // Search filter
       if (searchQuery) {
         const query = searchQuery.toLowerCase()
@@ -110,7 +149,7 @@ export function ShopPageClient({ products, availableColors, availableSizes, isLo
 
       return true
     })
-  }, [products, searchQuery, selectedColors, selectedSizes])
+  }, [productsData, searchQuery, selectedColors, selectedSizes])
 
   const displayedProducts = filteredProducts.slice(0, displayCount)
   const hasMore = displayCount < filteredProducts.length

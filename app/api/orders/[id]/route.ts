@@ -12,14 +12,40 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       return NextResponse.json({ error: "Invalid order ID" }, { status: 400 })
     }
 
+    const user = await getCurrentUser()
+    if (!user) {
+      return NextResponse.json({ error: "Authentication required" }, { status: 401 })
+    }
+
     const db = await getDatabase()
-    const order = await db.collection<Order>("orders").findOne({ _id: new ObjectId(id) as any })
+    
+    // Users can only access their own orders (unless admin)
+    const filter: any = { _id: new ObjectId(id) }
+    if (user.role !== "admin") {
+      filter.userId = user.id
+    }
+    
+    const order = await db.collection<Order>("orders").findOne(filter)
 
     if (!order) {
       return NextResponse.json({ error: "Order not found" }, { status: 404 })
     }
 
-    return NextResponse.json(order)
+    // Fetch tracking information if available
+    const tracking = await db.collection('order_tracking').findOne({ orderId: order._id?.toString() })
+
+    const responseData: any = {
+      ...order,
+      _id: order._id?.toString(),
+    }
+
+    // Add tracking history if available
+    if (tracking) {
+      responseData.trackingHistory = tracking.events
+      responseData.currentTrackingStatus = tracking.currentStatus
+    }
+
+    return NextResponse.json({ order: responseData })
   } catch (error) {
     console.error("Fetch order error:", error)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })

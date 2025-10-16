@@ -81,11 +81,23 @@ export function UpdateOrderTracking({ orderId, currentStatus, onStatusUpdated }:
       setOpen(false)
       setStatus("")
       setMessage("")
+
+      // Clear admin cache to reflect order status changes
+      try {
+        const { deleteAdminCache, ADMIN_CACHE_KEYS } = await import("@/lib/admin-cache")
+        deleteAdminCache(ADMIN_CACHE_KEYS.DASHBOARD_STATS)
+        console.log("Admin dashboard cache cleared after tracking update")
+      } catch (e) {
+        console.debug("Admin cache clear skipped:", e)
+      }
       
       // Call the callback to refresh order data
       if (onStatusUpdated) {
         onStatusUpdated()
       }
+
+      // Dispatch event to update admin dashboard
+      window.dispatchEvent(new Event("adminStatsUpdated"))
     } catch (error: any) {
       console.error("Update status error:", error)
       toast({

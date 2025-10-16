@@ -38,6 +38,20 @@ export default function AdminDashboard() {
     setTimeout(() => setIsRefreshing(false), 500)
   }
 
+  // Listen for admin stats updates and refresh automatically
+  useEffect(() => {
+    const handleAdminStatsUpdate = () => {
+      console.log('Admin stats updated, refreshing dashboard...')
+      refreshStats()
+    }
+
+    window.addEventListener('adminStatsUpdated', handleAdminStatsUpdate)
+    
+    return () => {
+      window.removeEventListener('adminStatsUpdated', handleAdminStatsUpdate)
+    }
+  }, [refreshStats])
+
   // Add refresh button to the dashboard
   const refreshButton = (
     <div className="mb-4 flex justify-end">

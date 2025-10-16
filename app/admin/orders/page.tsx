@@ -42,6 +42,22 @@ export default function AdminOrdersPage() {
     }
   }, [session])
 
+  // Listen for admin stats updates and refresh orders list
+  useEffect(() => {
+    const handleAdminStatsUpdate = () => {
+      console.log('Admin stats updated, refreshing orders list...')
+      if (session?.user?.role === "admin") {
+        fetchOrders()
+      }
+    }
+
+    window.addEventListener('adminStatsUpdated', handleAdminStatsUpdate)
+    
+    return () => {
+      window.removeEventListener('adminStatsUpdated', handleAdminStatsUpdate)
+    }
+  }, [session])
+
   const fetchOrders = async () => {
     try {
       const response = await fetch("/api/admin/orders")
@@ -140,8 +156,43 @@ export default function AdminOrdersPage() {
   return (
     <div className="container mx-auto py-8 px-4">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">Order Management</h1>
-        <p className="text-muted-foreground">Manage customer orders and update tracking information</p>
+        <div className="flex justify-between items-start">
+          <div>
+            <h1 className="text-3xl font-bold mb-2">Order Management</h1>
+            <p className="text-muted-foreground">Manage customer orders and update tracking information</p>
+          </div>
+          <Button 
+            variant="outline" 
+            onClick={async () => {
+              try {
+                const response = await fetch('/api/admin/orders/fix-tracking', { method: 'POST' })
+                const data = await response.json()
+                if (response.ok) {
+                  toast({
+                    title: "Success",
+                    description: data.message,
+                    variant: "default"
+                  })
+                  fetchOrders() // Refresh orders list
+                } else {
+                  toast({
+                    title: "Error", 
+                    description: data.error || "Failed to fix tracking",
+                    variant: "destructive"
+                  })
+                }
+              } catch (error) {
+                toast({
+                  title: "Error",
+                  description: "Failed to fix tracking data",
+                  variant: "destructive"
+                })
+              }
+            }}
+          >
+            Fix Missing Tracking
+          </Button>
+        </div>
       </div>
 
       {orders.length === 0 ? (

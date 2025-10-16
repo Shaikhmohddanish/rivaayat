@@ -6,7 +6,7 @@ import { ObjectId } from "mongodb"
 // Update order tracking status (Admin only)
 export async function PATCH(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const user = await requireAuth()
@@ -36,7 +36,7 @@ export async function PATCH(
       return NextResponse.json({ error: "Database connection error" }, { status: 500 })
     }
     
-    const orderId = params.id
+    const { id: orderId } = await params
     
     // Check if order exists
     const order = await db.collection('orders').findOne({ _id: new ObjectId(orderId) })

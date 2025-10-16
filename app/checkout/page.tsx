@@ -228,9 +228,38 @@ export default function CheckoutPage() {
       } catch (e) {
         console.debug("Cart cache clear skipped:", e)
       }
+
+      // Clear product cache to reflect updated stock levels
+      try {
+        const { clearProductCache } = await import("@/lib/product-cache")
+        await clearProductCache()
+        console.log("Product cache cleared after order placement")
+      } catch (e) {
+        console.debug("Product cache clear skipped:", e)
+      }
+
+      // Clear sessionStorage product cache as well
+      try {
+        const { clearProductListCache } = await import("@/lib/product-list-cache")
+        clearProductListCache()
+        console.log("SessionStorage product cache cleared after order placement")
+      } catch (e) {
+        console.debug("SessionStorage product cache clear skipped:", e)
+      }
+
+      // Clear admin cache to reflect new order count
+      try {
+        const { deleteAdminCache, ADMIN_CACHE_KEYS } = await import("@/lib/admin-cache")
+        deleteAdminCache(ADMIN_CACHE_KEYS.DASHBOARD_STATS)
+        console.log("Admin dashboard cache cleared after order placement")
+      } catch (e) {
+        console.debug("Admin cache clear skipped:", e)
+      }
       
-      // Dispatch event to update UI (header cart count, etc.)
+      // Dispatch events to update UI (header cart count, product stock, etc.)
       window.dispatchEvent(new Event("cartUpdated"))
+      window.dispatchEvent(new Event("productStockUpdated"))
+      window.dispatchEvent(new Event("adminStatsUpdated"))
 
       // Redirect to success page with tracking number
       if (data.trackingNumber) {
