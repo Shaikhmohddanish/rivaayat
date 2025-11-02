@@ -159,7 +159,7 @@ export function Header() {
                 </SheetTrigger>
                 <SheetContent side="left" className="w-[88vw] sm:w-96 p-0 overflow-y-auto">
                   <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
-                  <MobileNav onNavigate={() => setMobileOpen(false)} onSearch={(v)=>submitSearch(v)} />
+                  <MobileNav onNavigate={() => setMobileOpen(false)} />
                 </SheetContent>
               </Sheet>
 
@@ -299,9 +299,8 @@ export function Header() {
 }
 
 // MOBILE NAV
-function MobileNav({ onNavigate, onSearch }: { onNavigate: () => void; onSearch: (value: string)=>void }) {
+function MobileNav({ onNavigate }: { onNavigate: () => void }) {
   const router = useRouter()
-  const [value, setValue] = React.useState("")
   const { data: session } = useSession()
   const { theme, setTheme } = useTheme()
   const [mounted, setMounted] = React.useState(false)
@@ -354,21 +353,6 @@ function MobileNav({ onNavigate, onSearch }: { onNavigate: () => void; onSearch:
               <User className="h-4 w-4 mr-2" /> Login
             </Button>
           )}
-        </div>
-
-        <div className="mt-4">
-          <div className="relative">
-            <Input
-              placeholder="Search products…"
-              value={value}
-              onChange={(e) => setValue(e.target.value)}
-              onKeyDown={(e)=>{ if(e.key === "Enter"){ onSearch(value) } }}
-              className="pl-10"
-            />
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          </div>
-
-          {/* Search suggestions removed */}
         </div>
       </div>
 

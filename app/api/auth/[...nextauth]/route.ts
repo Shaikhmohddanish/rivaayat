@@ -3,7 +3,6 @@ import GoogleProvider from "next-auth/providers/google"
 import CredentialsProvider from "next-auth/providers/credentials"
 import { getDatabase } from "@/lib/mongodb"
 import { getCurrentDateIST } from "@/lib/date-utils"
-import { ObjectId } from "mongodb"
 import bcrypt from "bcryptjs"
 import type { User } from "@/lib/types"
 

@@ -9,9 +9,14 @@ interface ISTClockProps {
 }
 
 export function ISTClock({ className = "", showSeconds = false }: ISTClockProps) {
-  const [currentTime, setCurrentTime] = useState<Date>(new Date())
+  const [currentTime, setCurrentTime] = useState<Date | null>(null)
+  const [isMounted, setIsMounted] = useState(false)
 
   useEffect(() => {
+    // Set mounted state to prevent hydration mismatch
+    setIsMounted(true)
+    setCurrentTime(new Date())
+
     const timer = setInterval(() => {
       setCurrentTime(new Date())
     }, showSeconds ? 1000 : 60000) // Update every second if showing seconds, otherwise every minute
@@ -35,6 +40,17 @@ export function ISTClock({ className = "", showSeconds = false }: ISTClockProps)
       hour12: true,
       timeZone: 'Asia/Kolkata'
     }).format(date)
+  }
+
+  // Don't render anything until mounted on client to avoid hydration mismatch
+  if (!isMounted || !currentTime) {
+    return (
+      <div className={className}>
+        <span className="text-sm text-muted-foreground">
+          IST: --:--
+        </span>
+      </div>
+    )
   }
 
   return (

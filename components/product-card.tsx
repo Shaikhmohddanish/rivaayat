@@ -214,7 +214,7 @@ export function ProductCard({ product, onQuickView, wishlistProductIds, onWishli
   return (
     <Link href={`/product/${product.slug ?? product._id}`} className="block">
       <Card className="group overflow-hidden hover:shadow-lg transition-all duration-300 bg-white border border-gray-100 rounded-lg max-w-sm p-0">
-        <div className="relative aspect-[4/5] overflow-hidden rounded-t-lg">
+        <div className="relative aspect-4/5 overflow-hidden rounded-t-lg">
           <Image
             src={product.images?.[0]?.url || "/placeholder.svg?height=400&width=300&query=dress"}
             alt={product.name}
@@ -316,7 +316,7 @@ export function ProductCard({ product, onQuickView, wishlistProductIds, onWishli
                             if (!disabled) setSelectedSize(size)
                           }}
                           disabled={disabled}
-                          className={`min-w-[2.5rem] h-7 rounded border text-xs font-medium ${
+                          className={`min-w-10 h-7 rounded border text-xs font-medium ${
                             selectedSize === size
                               ? "bg-primary text-white border-primary"
                               : "border-gray-200 text-gray-700 hover:border-primary hover:text-primary"

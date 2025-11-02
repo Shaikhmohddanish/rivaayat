@@ -125,7 +125,7 @@ export function HeroSliderPro({ slides, interval = 6000 }: HeroSliderProProps) {
   return (
     <section
       ref={containerRef}
-      className="relative w-full overflow-hidden min-h-[450px] max-h-[680px] h-[60vh] max-w-[100vw]"
+      className="relative w-full overflow-hidden min-h-[450px] max-h-[680px] h-[60vh] max-w-screen"
       onMouseEnter={() => setPlaying(false)}
       onMouseLeave={() => setPlaying(true)}
       onFocus={() => setPlaying(false)}
@@ -154,7 +154,7 @@ export function HeroSliderPro({ slides, interval = 6000 }: HeroSliderProProps) {
               sizes="100vw"
               className="object-cover"
             />
-            <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/50 to-black/30" />
+            <div className="absolute inset-0 bg-linear-to-r from-black/70 via-black/50 to-black/30" />
             <div className="absolute inset-0 flex items-center justify-center p-4">
               <div className="text-center text-white max-w-3xl mx-auto">
                 {s.sublabel && (
