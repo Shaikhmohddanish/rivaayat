@@ -53,7 +53,20 @@ export default function OrderSuccessPage() {
     <Suspense
       fallback={
         <div className="container mx-auto px-4 py-16">
-          <p className="text-center">Loading...</p>
+          <div className="max-w-2xl mx-auto">
+            <div className="bg-card/50 rounded-2xl p-8 elegant-shadow border-0 space-y-6 animate-pulse">
+              <div className="flex justify-center mb-4">
+                <div className="h-16 w-16 rounded-full bg-muted"></div>
+              </div>
+              <div className="h-8 bg-muted rounded-lg w-3/4 mx-auto"></div>
+              <div className="h-5 bg-muted rounded w-full"></div>
+              <div className="h-5 bg-muted rounded w-2/3 mx-auto"></div>
+              <div className="flex gap-3 justify-center mt-6">
+                <div className="h-10 w-32 bg-muted rounded-lg"></div>
+                <div className="h-10 w-32 bg-muted rounded-lg"></div>
+              </div>
+            </div>
+          </div>
         </div>
       }
     >

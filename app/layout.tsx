@@ -1,5 +1,5 @@
 import type React from "react"
-import type { Metadata } from "next"
+import type { Metadata, Viewport } from "next"
 import { GeistSans } from "geist/font/sans"
 import { GeistMono } from "geist/font/mono"
 import { Analytics } from "@vercel/analytics/next"
@@ -15,10 +15,19 @@ export const metadata: Metadata = {
   generator: "v0.app",
 }
 
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+  userScalable: true,
+}
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`font-sans overflow-x-hidden ${GeistSans.variable} ${GeistMono.variable}`}>
+        {/* Skip link for keyboard users */}
+        <a href="#main-content" className="skip-link">Skip to main content</a>
         <Providers>
           <Suspense fallback={null}>
             <SiteLayout>{children}</SiteLayout>

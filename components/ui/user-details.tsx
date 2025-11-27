@@ -103,9 +103,9 @@ export function UserDetails({ userId, isOpen, onClose }: UserDetailsProps) {
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto p-4 sm:p-6">
         <DialogHeader>
-          <DialogTitle>User Details</DialogTitle>
+          <DialogTitle className="text-lg sm:text-xl">User Details</DialogTitle>
         </DialogHeader>
         
         {loading ? (
@@ -122,15 +122,15 @@ export function UserDetails({ userId, isOpen, onClose }: UserDetailsProps) {
         ) : user ? (
           <div className="space-y-6">
             {/* User Profile Section */}
-            <div className="flex flex-col md:flex-row gap-6 items-start">
-              <Avatar className="h-20 w-20">
-                <AvatarImage src={user.image || ""} alt={user.name} />
-                <AvatarFallback className="text-xl">{user.name?.charAt(0).toUpperCase()}</AvatarFallback>
+            <div className="flex flex-col md:flex-row gap-4 sm:gap-6 items-start">
+              <Avatar className="h-16 w-16 sm:h-20 sm:w-20">
+                <AvatarImage src={user.image || ""} alt={`${user.name}'s profile picture`} />
+                <AvatarFallback className="text-lg sm:text-xl">{user.name?.charAt(0).toUpperCase()}</AvatarFallback>
               </Avatar>
               
-              <div className="space-y-3 flex-1">
+              <div className="space-y-2 sm:space-y-3 flex-1 min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
-                  <h2 className="text-2xl font-bold">{user.name}</h2>
+                  <h2 className="text-xl sm:text-2xl font-bold truncate">{user.name}</h2>
                   <Badge variant={user.role === "admin" ? "default" : "secondary"} className="capitalize">
                     {user.role}
                   </Badge>
@@ -169,15 +169,16 @@ export function UserDetails({ userId, isOpen, onClose }: UserDetailsProps) {
                 </div>
               </div>
               
-              <div className="mt-4 md:mt-0">
+              <div className="mt-4 md:mt-0 w-full md:w-auto">
                 <div className="flex items-center gap-4">
                   <Switch 
                     id="user-status" 
                     checked={!user.disabled} 
                     onCheckedChange={() => handleToggleDisabled()}
                     disabled={savingStatus}
+                    aria-label="Toggle user account status"
                   />
-                  <Label htmlFor="user-status" className="font-medium">
+                  <Label htmlFor="user-status" className="font-medium text-sm sm:text-base">
                     {user.disabled ? "Enable Account" : "Account Active"}
                   </Label>
                 </div>
@@ -194,32 +195,32 @@ export function UserDetails({ userId, isOpen, onClose }: UserDetailsProps) {
             
             {/* Analytics Summary */}
             {analytics && (
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
                 <Card>
-                  <CardContent className="p-4">
+                  <CardContent className="p-3 sm:p-4">
                     <div className="text-muted-foreground text-xs uppercase font-semibold tracking-wide">Total Business</div>
-                    <div className="text-2xl font-bold mt-1">₹{analytics.totalBusiness.toLocaleString()}</div>
+                    <div className="text-xl sm:text-2xl font-bold mt-1">₹{analytics.totalBusiness.toLocaleString()}</div>
                   </CardContent>
                 </Card>
                 
                 <Card>
-                  <CardContent className="p-4">
+                  <CardContent className="p-3 sm:p-4">
                     <div className="text-muted-foreground text-xs uppercase font-semibold tracking-wide">Orders Placed</div>
-                    <div className="text-2xl font-bold mt-1">{analytics.orderCount}</div>
+                    <div className="text-xl sm:text-2xl font-bold mt-1">{analytics.orderCount}</div>
                   </CardContent>
                 </Card>
                 
                 <Card>
-                  <CardContent className="p-4">
+                  <CardContent className="p-3 sm:p-4">
                     <div className="text-muted-foreground text-xs uppercase font-semibold tracking-wide">Average Order</div>
-                    <div className="text-2xl font-bold mt-1">₹{analytics.averageOrderValue.toFixed(0)}</div>
+                    <div className="text-xl sm:text-2xl font-bold mt-1">₹{analytics.averageOrderValue.toFixed(0)}</div>
                   </CardContent>
                 </Card>
                 
                 <Card>
-                  <CardContent className="p-4">
+                  <CardContent className="p-3 sm:p-4">
                     <div className="text-muted-foreground text-xs uppercase font-semibold tracking-wide">Delivery Rate</div>
-                    <div className="text-2xl font-bold mt-1">
+                    <div className="text-xl sm:text-2xl font-bold mt-1">
                       {analytics.orderCount ? 
                         `${Math.round((analytics.orderStatusCounts.delivered / analytics.orderCount) * 100)}%` : 
                         "N/A"}
@@ -231,13 +232,13 @@ export function UserDetails({ userId, isOpen, onClose }: UserDetailsProps) {
             
             {/* Orders Tab */}
             <Tabs defaultValue="all" className="w-full">
-              <TabsList className="grid grid-cols-3 md:grid-cols-6">
-                <TabsTrigger value="all">All ({analytics?.orderStatusCounts.total || 0})</TabsTrigger>
-                <TabsTrigger value="placed">Placed ({analytics?.orderStatusCounts.placed || 0})</TabsTrigger>
-                <TabsTrigger value="processing">Processing ({analytics?.orderStatusCounts.processing || 0})</TabsTrigger>
-                <TabsTrigger value="shipped">Shipped ({analytics?.orderStatusCounts.shipped || 0})</TabsTrigger>
-                <TabsTrigger value="delivered">Delivered ({analytics?.orderStatusCounts.delivered || 0})</TabsTrigger>
-                <TabsTrigger value="cancelled">Cancelled ({analytics?.orderStatusCounts.cancelled || 0})</TabsTrigger>
+              <TabsList className="grid grid-cols-3 md:grid-cols-6 w-full overflow-x-auto">
+                <TabsTrigger value="all" className="text-xs sm:text-sm">All ({analytics?.orderStatusCounts.total || 0})</TabsTrigger>
+                <TabsTrigger value="placed" className="text-xs sm:text-sm">Placed ({analytics?.orderStatusCounts.placed || 0})</TabsTrigger>
+                <TabsTrigger value="processing" className="text-xs sm:text-sm">Processing ({analytics?.orderStatusCounts.processing || 0})</TabsTrigger>
+                <TabsTrigger value="shipped" className="text-xs sm:text-sm">Shipped ({analytics?.orderStatusCounts.shipped || 0})</TabsTrigger>
+                <TabsTrigger value="delivered" className="text-xs sm:text-sm">Delivered ({analytics?.orderStatusCounts.delivered || 0})</TabsTrigger>
+                <TabsTrigger value="cancelled" className="text-xs sm:text-sm">Cancelled ({analytics?.orderStatusCounts.cancelled || 0})</TabsTrigger>
               </TabsList>
               
               <TabsContent value="all" className="mt-4">
@@ -295,14 +296,14 @@ function OrdersTable({ orders }: { orders: Order[] }) {
   return (
     <div className="border rounded-md">
       <div className="overflow-x-auto">
-        <table className="w-full">
+        <table className="w-full" role="table" aria-label="User orders">
           <thead>
             <tr className="border-b bg-muted/50">
-              <th className="text-left p-3 font-medium">Order ID</th>
-              <th className="text-left p-3 font-medium">Date</th>
-              <th className="text-left p-3 font-medium">Items</th>
-              <th className="text-left p-3 font-medium">Status</th>
-              <th className="text-right p-3 font-medium">Total</th>
+              <th className="text-left p-2 sm:p-3 font-medium text-xs sm:text-sm">Order ID</th>
+              <th className="text-left p-2 sm:p-3 font-medium text-xs sm:text-sm hidden sm:table-cell">Date</th>
+              <th className="text-left p-2 sm:p-3 font-medium text-xs sm:text-sm">Items</th>
+              <th className="text-left p-2 sm:p-3 font-medium text-xs sm:text-sm">Status</th>
+              <th className="text-right p-2 sm:p-3 font-medium text-xs sm:text-sm">Total</th>
             </tr>
           </thead>
           <tbody>
@@ -319,21 +320,28 @@ function OrdersTable({ orders }: { orders: Order[] }) {
                 
               return (
                 <tr key={order._id} className="border-b last:border-0 hover:bg-muted/50">
-                  <td className="p-3 font-mono text-xs">
-                    <a href={`/admin/orders/${order._id}`} className="hover:underline text-primary">
+                  <td className="p-2 sm:p-3">
+                    <a 
+                      href={`/admin/orders/${order._id}`} 
+                      className="hover:underline text-primary font-mono text-xs block"
+                      aria-label={`View order ${order._id?.toString().slice(-8).toUpperCase()}`}
+                    >
                       #{order._id?.toString().slice(-8).toUpperCase()}
                     </a>
+                    <span className="text-xs text-muted-foreground sm:hidden block mt-1">
+                      {new Date(order.createdAt).toLocaleDateString()}
+                    </span>
                   </td>
-                  <td className="p-3 whitespace-nowrap">
+                  <td className="p-2 sm:p-3 whitespace-nowrap text-sm hidden sm:table-cell">
                     {new Date(order.createdAt).toLocaleDateString()}
                   </td>
-                  <td className="p-3">
+                  <td className="p-2 sm:p-3 text-xs sm:text-sm">
                     {order.items.length} {order.items.length === 1 ? "item" : "items"}
                   </td>
-                  <td className="p-3">
+                  <td className="p-2 sm:p-3">
                     <OrderStatusBadge status={order.status} />
                   </td>
-                  <td className="p-3 text-right font-medium">
+                  <td className="p-2 sm:p-3 text-right font-medium text-sm">
                     ₹{finalTotal.toFixed(2)}
                     {order.coupon && (
                       <span className="block text-xs text-muted-foreground">

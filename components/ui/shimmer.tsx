@@ -156,3 +156,110 @@ export function ShimmerOrderCard() {
     </div>
   )
 }
+
+// Profile Card Shimmer
+export function ShimmerProfileCard() {
+  return (
+    <div className="bg-card/50 rounded-2xl p-6 elegant-shadow border-0 space-y-6">
+      <div className="flex items-center gap-6">
+        <ShimmerAvatar size={80} />
+        <div className="space-y-3 flex-1">
+          <ShimmerHeading className="w-48" />
+          <ShimmerText className="w-32" />
+        </div>
+      </div>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-4 border-t">
+        {[1, 2, 3, 4].map((i) => (
+          <div key={i} className="space-y-2">
+            <ShimmerText className="w-20" />
+            <ShimmerTitle className="w-24" />
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// Address Card Shimmer
+export function ShimmerAddressCard() {
+  return (
+    <div className="bg-card/50 rounded-xl p-4 elegant-shadow border-0 space-y-3">
+      <div className="flex justify-between items-start">
+        <ShimmerTitle className="w-32" />
+        <div className="flex gap-2">
+          <Shimmer className="w-8 h-8" rounded="md" />
+          <Shimmer className="w-8 h-8" rounded="md" />
+        </div>
+      </div>
+      <ShimmerText className="w-full" />
+      <ShimmerText className="w-4/5" />
+      <ShimmerText className="w-3/5" />
+    </div>
+  )
+}
+
+// Order Details Shimmer
+export function ShimmerOrderDetails() {
+  return (
+    <div className="max-w-4xl mx-auto space-y-6">
+      {/* Header */}
+      <div className="bg-card/50 rounded-2xl p-6 elegant-shadow border-0">
+        <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-6">
+          <div className="space-y-2">
+            <ShimmerHeading className="w-48" />
+            <ShimmerText className="w-32" />
+          </div>
+          <Shimmer className="h-8 w-28" rounded="full" />
+        </div>
+        
+        {/* Order Items */}
+        <div className="space-y-4 mb-6">
+          <ShimmerTitle className="w-24" />
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="flex gap-4 pb-4 border-b border-border/20">
+              <Shimmer className="w-20 h-20 flex-shrink-0" rounded="lg" />
+              <div className="flex-1 space-y-2">
+                <ShimmerTitle className="w-48" />
+                <ShimmerText className="w-32" />
+                <ShimmerText className="w-24" />
+              </div>
+              <ShimmerTitle className="w-20" />
+            </div>
+          ))}
+        </div>
+        
+        {/* Shipping & Tracking */}
+        <div className="grid sm:grid-cols-2 gap-6 pt-6 border-t">
+          <div className="space-y-3">
+            <ShimmerTitle className="w-32" />
+            <ShimmerText className="w-full" />
+            <ShimmerText className="w-4/5" />
+            <ShimmerText className="w-3/5" />
+          </div>
+          <div className="space-y-3">
+            <ShimmerTitle className="w-32" />
+            <ShimmerText className="w-full" />
+            <ShimmerText className="w-3/4" />
+          </div>
+        </div>
+      </div>
+      
+      {/* Order Summary */}
+      <div className="bg-card/50 rounded-2xl p-6 elegant-shadow border-0 space-y-3">
+        <ShimmerTitle className="w-32 mb-4" />
+        <div className="flex justify-between">
+          <ShimmerText className="w-24" />
+          <ShimmerText className="w-20" />
+        </div>
+        <div className="flex justify-between">
+          <ShimmerText className="w-24" />
+          <ShimmerText className="w-20" />
+        </div>
+        <div className="flex justify-between pt-3 border-t">
+          <ShimmerTitle className="w-24" />
+          <ShimmerTitle className="w-24" />
+        </div>
+      </div>
+    </div>
+  )
+}

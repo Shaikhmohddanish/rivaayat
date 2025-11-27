@@ -93,15 +93,7 @@ export default function WishlistPage() {
     }
   }, [])
 
-  if (loading) {
-    return (
-      <div className="container mx-auto px-4 py-16">
-        <p className="text-center">Loading...</p>
-      </div>
-    )
-  }
-
-  if (products.length === 0) {
+  if (products.length === 0 && !loading) {
     return (
       <div className="container mx-auto px-4 py-16">
         <div className="text-center space-y-4">

@@ -223,32 +223,33 @@ export function ProductCard({ product, onQuickView, wishlistProductIds, onWishli
             className="object-cover group-hover:scale-110 transition-transform duration-500"
           />
 
-          <div className="absolute top-2 right-2 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+          {/* Desktop: Show on hover, Mobile: Always visible */}
+          <div className="absolute top-2 right-2 flex flex-col gap-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-300">
             <button
               onClick={(e) => {
                 e.preventDefault()
                 onQuickView?.(product)
               }}
-              className="w-8 h-8 rounded-full bg-white shadow-md flex items-center justify-center hover:bg-gray-50"
-              aria-label="Quick View"
+              className="w-10 h-10 sm:w-8 sm:h-8 rounded-full bg-white/95 backdrop-blur-sm shadow-md flex items-center justify-center hover:bg-white active:scale-95 touch-target transition-all"
+              aria-label={`Quick view ${product.name}`}
             >
-              <Eye className="h-4 w-4 text-gray-600" />
+              <Eye className="h-5 w-5 sm:h-4 sm:w-4 text-gray-600" />
             </button>
             <button
               onClick={handleAddToCart}
-              className="w-8 h-8 rounded-full bg-white shadow-md flex items-center justify-center hover:bg-gray-50"
-              aria-label="Add to Cart"
+              className="w-10 h-10 sm:w-8 sm:h-8 rounded-full bg-white/95 backdrop-blur-sm shadow-md flex items-center justify-center hover:bg-white active:scale-95 touch-target transition-all"
+              aria-label={`Add ${product.name} to cart`}
             >
-              <ShoppingCart className="h-4 w-4 text-gray-600" />
+              <ShoppingCart className="h-5 w-5 sm:h-4 sm:w-4 text-gray-600" />
             </button>
             <button
               onClick={handleAddToWishlist}
-              className={`w-8 h-8 rounded-full bg-white shadow-md flex items-center justify-center hover:bg-gray-50 ${
+              className={`w-10 h-10 sm:w-8 sm:h-8 rounded-full bg-white/95 backdrop-blur-sm shadow-md flex items-center justify-center hover:bg-white active:scale-95 touch-target transition-all ${
                 isWishlisted ? "text-rose-500" : "text-gray-600"
               }`}
-              aria-label="Add to Wishlist"
+              aria-label={isWishlisted ? `Remove ${product.name} from wishlist` : `Add ${product.name} to wishlist`}
             >
-              <Heart className={`h-4 w-4 ${isWishlisted ? "fill-current" : ""}`} />
+              <Heart className={`h-5 w-5 sm:h-4 sm:w-4 ${isWishlisted ? "fill-current" : ""}`} />
             </button>
           </div>
 

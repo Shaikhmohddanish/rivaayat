@@ -35,7 +35,6 @@ export default function AdminUsersPage() {
   const [editForm, setEditForm] = useState({ 
     name: "", 
     role: "user" as "user" | "admin", 
-    image: "", 
     disabled: false 
   })
   const [saving, setSaving] = useState(false)
@@ -91,7 +90,6 @@ export default function AdminUsersPage() {
     setEditForm({
       name: user.name,
       role: user.role,
-      image: user.image || "",
       disabled: user.disabled || false,
     })
   }
@@ -146,13 +144,13 @@ export default function AdminUsersPage() {
   }
 
   return (
-    <div className="container mx-auto py-8 px-4">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">User Management</h1>
-        <p className="text-muted-foreground">Manage user accounts and roles</p>
+    <div className="container mx-auto py-4 sm:py-8 px-4">
+      <div className="mb-6 sm:mb-8">
+        <h1 className="text-2xl sm:text-3xl font-bold mb-2">User Management</h1>
+        <p className="text-sm sm:text-base text-muted-foreground">Manage user accounts and roles</p>
       </div>
 
-      <div className="mb-6">
+      <div className="mb-4 sm:mb-6">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
@@ -161,44 +159,48 @@ export default function AdminUsersPage() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-10"
+            aria-label="Search users"
           />
         </div>
       </div>
 
       <div className="bg-card rounded-lg border">
         <div className="overflow-x-auto">
-          <table className="w-full">
+          <table className="w-full" role="table" aria-label="Users list">
             <thead>
               <tr className="border-b bg-muted/50">
-                <th className="text-left p-4 font-medium">User</th>
-                <th className="text-left p-4 font-medium">Email</th>
-                <th className="text-left p-4 font-medium">Role</th>
-                <th className="text-left p-4 font-medium">Provider</th>
-                <th className="text-left p-4 font-medium">Status</th>
-                <th className="text-left p-4 font-medium">Joined</th>
-                <th className="text-right p-4 font-medium">Actions</th>
+                <th className="text-left p-2 sm:p-4 font-medium text-xs sm:text-sm">User</th>
+                <th className="text-left p-2 sm:p-4 font-medium text-xs sm:text-sm hidden md:table-cell">Email</th>
+                <th className="text-left p-2 sm:p-4 font-medium text-xs sm:text-sm">Role</th>
+                <th className="text-left p-2 sm:p-4 font-medium text-xs sm:text-sm hidden lg:table-cell">Provider</th>
+                <th className="text-left p-2 sm:p-4 font-medium text-xs sm:text-sm">Status</th>
+                <th className="text-left p-2 sm:p-4 font-medium text-xs sm:text-sm hidden sm:table-cell">Joined</th>
+                <th className="text-right p-2 sm:p-4 font-medium text-xs sm:text-sm">Actions</th>
               </tr>
             </thead>
             <tbody>
               {filteredUsers.map((user) => (
                 <tr key={user._id} className={`border-b last:border-0 hover:bg-muted/50 ${user.disabled ? "bg-muted/30" : ""}`}>
-                  <td className="p-4">
-                    <div className="flex items-center gap-3">
-                      <Avatar>
-                        <AvatarImage src={user.image || "/placeholder.svg"} alt={user.name} />
+                  <td className="p-2 sm:p-4">
+                    <div className="flex items-center gap-2 sm:gap-3">
+                      <Avatar className="h-8 w-8 sm:h-10 sm:w-10">
+                        <AvatarImage src={user.image || "/placeholder.svg"} alt={`${user.name}'s profile picture`} />
                         <AvatarFallback>{user.name.charAt(0).toUpperCase()}</AvatarFallback>
                       </Avatar>
-                      <span className="font-medium">{user.name}</span>
+                      <div className="min-w-0">
+                        <span className="font-medium text-sm sm:text-base block truncate">{user.name}</span>
+                        <span className="text-xs text-muted-foreground md:hidden block truncate">{user.email}</span>
+                      </div>
                     </div>
                   </td>
-                  <td className="p-4 text-muted-foreground">{user.email}</td>
-                  <td className="p-4">
-                    <Badge variant={user.role === "admin" ? "default" : "secondary"} className="capitalize">
+                  <td className="p-2 sm:p-4 text-muted-foreground text-sm hidden md:table-cell">{user.email}</td>
+                  <td className="p-2 sm:p-4">
+                    <Badge variant={user.role === "admin" ? "default" : "secondary"} className="capitalize text-xs">
                       {user.role}
                     </Badge>
                   </td>
-                  <td className="p-4 text-muted-foreground capitalize">{user.provider || "credentials"}</td>
-                  <td className="p-4">
+                  <td className="p-2 sm:p-4 text-muted-foreground capitalize text-sm hidden lg:table-cell">{user.provider || "credentials"}</td>
+                  <td className="p-2 sm:p-4">
                     {user.disabled ? (
                       <Badge variant="destructive" className="flex items-center gap-1">
                         <Ban className="h-3 w-3" />
@@ -211,13 +213,27 @@ export default function AdminUsersPage() {
                       </Badge>
                     )}
                   </td>
-                  <td className="p-4 text-muted-foreground">{new Date(user.createdAt).toLocaleDateString()}</td>
-                  <td className="p-4 text-right">
+                  <td className="p-2 sm:p-4 text-muted-foreground text-sm hidden sm:table-cell">{new Date(user.createdAt).toLocaleDateString()}</td>
+                  <td className="p-2 sm:p-4 text-right">
                     <div className="flex justify-end gap-1">
-                      <Button variant="ghost" size="sm" onClick={() => user._id && setSelectedUserId(user._id)} title="View Details">
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => user._id && setSelectedUserId(user._id)} 
+                        title="View user details and order history"
+                        aria-label={`View details for ${user.name}`}
+                        className="touch-target"
+                      >
                         <Info className="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="sm" onClick={() => handleEdit(user)} title="Edit User">
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => handleEdit(user)} 
+                        title="Edit user information"
+                        aria-label={`Edit ${user.name}`}
+                        className="touch-target"
+                      >
                         <Pencil className="h-4 w-4" />
                       </Button>
                     </div>
@@ -236,10 +252,10 @@ export default function AdminUsersPage() {
       </div>
 
       <Dialog open={!!editingUser} onOpenChange={() => setEditingUser(null)}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Edit User</DialogTitle>
-            <DialogDescription>Update user information and role</DialogDescription>
+            <DialogTitle className="text-lg sm:text-xl">Edit User</DialogTitle>
+            <DialogDescription className="text-sm">Update user information and role</DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 py-4">
@@ -258,7 +274,7 @@ export default function AdminUsersPage() {
                 value={editForm.role}
                 onValueChange={(value: "user" | "admin") => setEditForm({ ...editForm, role: value })}
               >
-                <SelectTrigger>
+                <SelectTrigger id="role" aria-label="User role">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -268,15 +284,9 @@ export default function AdminUsersPage() {
               </Select>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="image">Image URL (optional)</Label>
-              <Input
-                id="image"
-                value={editForm.image}
-                onChange={(e) => setEditForm({ ...editForm, image: e.target.value })}
-                placeholder="https://example.com/avatar.jpg"
-              />
-            </div>
+            <p className="text-sm text-muted-foreground italic">
+              Note: Users manage their profile pictures from their profile page.
+            </p>
 
             <div className="flex items-center space-x-2 pt-2">
               <Checkbox 

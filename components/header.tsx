@@ -358,7 +358,7 @@ function MobileNav({ onNavigate }: { onNavigate: () => void }) {
 
       <Separator />
 
-      <nav className="p-2">
+      <nav role="navigation" aria-label="Main navigation" className="p-2">
         {session?.user && (
           <>
             <MobileGroup title="My Account">

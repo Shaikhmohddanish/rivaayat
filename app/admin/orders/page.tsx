@@ -154,15 +154,18 @@ export default function AdminOrdersPage() {
   }
 
   return (
-    <div className="container mx-auto py-8 px-4">
-      <div className="mb-8">
-        <div className="flex justify-between items-start">
+    <div className="container mx-auto py-4 sm:py-8 px-2 sm:px-4">
+      <div className="mb-6 sm:mb-8">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
           <div>
-            <h1 className="text-3xl font-bold mb-2">Order Management</h1>
-            <p className="text-muted-foreground">Manage customer orders and update tracking information</p>
+            <h1 className="text-2xl sm:text-3xl font-bold mb-1 sm:mb-2">Order Management</h1>
+            <p className="text-sm sm:text-base text-muted-foreground">Manage customer orders and update tracking information</p>
           </div>
           <Button 
-            variant="outline" 
+            variant="outline"
+            size="sm"
+            className="w-full sm:w-auto touch-target"
+            aria-label="Fix missing tracking information"
             onClick={async () => {
               try {
                 const response = await fetch('/api/admin/orders/fix-tracking', { method: 'POST' })
@@ -190,29 +193,30 @@ export default function AdminOrdersPage() {
               }
             }}
           >
-            Fix Missing Tracking
+            <span className="hidden sm:inline">Fix Missing Tracking</span>
+            <span className="sm:hidden">Fix Tracking</span>
           </Button>
         </div>
       </div>
 
       {orders.length === 0 ? (
         <Card>
-          <CardContent className="p-12 text-center">
-            <p className="text-muted-foreground">No orders found</p>
+          <CardContent className="p-8 sm:p-12 text-center">
+            <p className="text-sm sm:text-base text-muted-foreground">No orders found</p>
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-3 sm:space-y-4">
           {orders.map((order) => (
             <Card key={order._id}>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle className="text-lg">Order #{order._id.slice(-8)}</CardTitle>
-                    <p className="text-sm text-muted-foreground">{new Date(order.createdAt).toLocaleDateString()}</p>
+              <CardHeader className="p-3 sm:p-6">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                  <div className="flex-1">
+                    <CardTitle className="text-base sm:text-lg">Order #{order._id.slice(-8)}</CardTitle>
+                    <p className="text-xs sm:text-sm text-muted-foreground mt-1">{new Date(order.createdAt).toLocaleDateString()}</p>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Badge className={getStatusColor(order.status)}>{order.status}</Badge>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Badge className={`${getStatusColor(order.status)} text-xs`}>{order.status}</Badge>
                     <UpdateOrderTracking
                       orderId={order._id}
                       currentStatus={order.status === "placed" ? "order_confirmed" : order.status}
@@ -220,22 +224,29 @@ export default function AdminOrdersPage() {
                     />
                     <Dialog>
                       <DialogTrigger asChild>
-                        <Button size="sm" variant="outline" onClick={() => handleEdit(order)}>
-                          Update Order
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          onClick={() => handleEdit(order)}
+                          className="touch-target text-xs sm:text-sm"
+                          aria-label={`Update order ${order._id.slice(-8)}`}
+                        >
+                          <span className="hidden sm:inline">Update Order</span>
+                          <span className="sm:hidden">Update</span>
                         </Button>
                       </DialogTrigger>
-                      <DialogContent>
+                      <DialogContent className="w-[calc(100vw-2rem)] max-w-md mx-4 sm:mx-auto">
                         <DialogHeader>
-                          <DialogTitle>Update Order</DialogTitle>
+                          <DialogTitle className="text-lg sm:text-xl">Update Order</DialogTitle>
                         </DialogHeader>
                         <div className="space-y-4 py-4">
                           <div className="space-y-2">
-                            <Label>Status</Label>
+                            <Label htmlFor={`status-${order._id}`} className="text-sm">Status</Label>
                             <Select
                               value={editForm.status}
                               onValueChange={(value: Order["status"]) => setEditForm({ ...editForm, status: value })}
                             >
-                              <SelectTrigger>
+                              <SelectTrigger id={`status-${order._id}`} aria-label="Order status">
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
@@ -248,30 +259,40 @@ export default function AdminOrdersPage() {
                             </Select>
                           </div>
                           <div className="space-y-2">
-                            <Label>Carrier</Label>
+                            <Label htmlFor={`carrier-${order._id}`} className="text-sm">Carrier</Label>
                             <Input
+                              id={`carrier-${order._id}`}
                               value={editForm.carrier}
                               onChange={(e) => setEditForm({ ...editForm, carrier: e.target.value })}
                               placeholder="e.g., FedEx, UPS, USPS"
+                              aria-label="Shipping carrier"
                             />
                           </div>
                           <div className="space-y-2">
-                            <Label>Tracking ID</Label>
+                            <Label htmlFor={`tracking-${order._id}`} className="text-sm">Tracking ID</Label>
                             <Input
+                              id={`tracking-${order._id}`}
                               value={editForm.trackingId}
                               onChange={(e) => setEditForm({ ...editForm, trackingId: e.target.value })}
                               placeholder="Enter tracking number"
+                              aria-label="Tracking number"
                             />
                           </div>
                           <div className="space-y-2">
-                            <Label>Notes</Label>
+                            <Label htmlFor={`notes-${order._id}`} className="text-sm">Notes</Label>
                             <Input
+                              id={`notes-${order._id}`}
                               value={editForm.notes}
                               onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })}
                               placeholder="Additional notes"
+                              aria-label="Order notes"
                             />
                           </div>
-                          <Button onClick={handleUpdate} className="w-full">
+                          <Button 
+                            onClick={handleUpdate} 
+                            className="w-full touch-target"
+                            aria-label="Save order changes"
+                          >
                             Save Changes
                           </Button>
                         </div>
@@ -280,28 +301,29 @@ export default function AdminOrdersPage() {
                   </div>
                 </div>
               </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
+              <CardContent className="p-3 sm:p-6 pt-0">
+                <div className="space-y-3 sm:space-y-4">
                   <div>
-                    <h4 className="font-semibold mb-2">Items</h4>
+                    <h4 className="font-semibold mb-2 text-sm sm:text-base">Items</h4>
                     <div className="space-y-2">
                       {order.items.map((item, idx) => (
-                        <div key={idx} className="flex justify-between text-sm">
-                          <span>
-                            {item.name} ({item.variant.color}, {item.variant.size}) x {item.quantity}
+                        <div key={idx} className="flex flex-col sm:flex-row sm:justify-between gap-1 text-xs sm:text-sm">
+                          <span className="flex-1">
+                            <span className="font-medium">{item.name}</span>
+                            <span className="text-muted-foreground"> ({item.variant.color}, {item.variant.size}) × {item.quantity}</span>
                           </span>
-                          <span>₹{(item.price * item.quantity).toFixed(2)}</span>
+                          <span className="font-semibold">₹{(item.price * item.quantity).toFixed(2)}</span>
                         </div>
                       ))}
                     </div>
                   </div>
                   {order.tracking && (order.tracking.carrier || order.tracking.trackingId) && (
-                    <div className="border-t pt-4">
-                      <h4 className="font-semibold mb-2">Tracking Information</h4>
-                      <div className="text-sm space-y-1">
-                        {order.tracking.carrier && <p>Carrier: {order.tracking.carrier}</p>}
-                        {order.tracking.trackingId && <p>Tracking ID: {order.tracking.trackingId}</p>}
-                        {order.tracking.notes && <p>Notes: {order.tracking.notes}</p>}
+                    <div className="border-t pt-3 sm:pt-4">
+                      <h4 className="font-semibold mb-2 text-sm sm:text-base">Tracking Information</h4>
+                      <div className="text-xs sm:text-sm space-y-1">
+                        {order.tracking.carrier && <p><span className="font-medium">Carrier:</span> {order.tracking.carrier}</p>}
+                        {order.tracking.trackingId && <p><span className="font-medium">Tracking ID:</span> {order.tracking.trackingId}</p>}
+                        {order.tracking.notes && <p><span className="font-medium">Notes:</span> {order.tracking.notes}</p>}
                       </div>
                     </div>
                   )}
