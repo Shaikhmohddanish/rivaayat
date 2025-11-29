@@ -5,7 +5,7 @@ import { useState, useEffect } from "react"
 import { useSession } from "next-auth/react"
 import { useRouter, usePathname } from "next/navigation"
 import Link from "next/link"
-import { LayoutDashboard, Package, Users, Tag, ShoppingBag, LogOut, Truck, Menu, X, RefreshCw, Settings } from "lucide-react"
+import { LayoutDashboard, Package, Users, Tag, ShoppingBag, LogOut, Truck, Menu, X, RefreshCw, Settings, FolderOpen } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { signOut } from "next-auth/react"
 import { useIsMobile } from "@/hooks/use-mobile"
@@ -14,6 +14,7 @@ import { deleteLocalCachePattern } from "@/lib/local-storage"
 const navigation = [
   { name: "Dashboard", href: "/admin", icon: LayoutDashboard },
   { name: "Products", href: "/admin/products", icon: Package },
+  { name: "Categories", href: "/admin/categories", icon: FolderOpen },
   { name: "Orders", href: "/admin/orders", icon: ShoppingBag },
   { name: "Tracking", href: "/admin/tracking", icon: Truck },
   { name: "Users", href: "/admin/users", icon: Users },

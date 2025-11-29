@@ -28,6 +28,16 @@ export class DatabaseService {
     }
   }
 
+  static async getCategories(): Promise<Array<{ name: string; count: number; image?: string }>> {
+    try {
+      console.log('Fetching categories from database');
+      return await this.getMongoCategories();
+    } catch (error) {
+      console.error('Categories fetch failed:', error);
+      throw new Error('Failed to fetch categories from database');
+    }
+  }
+
   // No connection check needed since we're using only MongoDB
 
   private static async getMongoProducts(options: {
@@ -80,6 +90,32 @@ export class DatabaseService {
       ...product, 
       _id: product._id.toString() 
     } : null;
+  }
+
+  private static async getMongoCategories(): Promise<Array<{ name: string; count: number; image?: string }>> {
+    const db = await getDatabase();
+    if (!db) throw new Error('Database not available');
+    
+    // First, get categories from the categories collection
+    const categoriesCollection = db.collection<any>('categories');
+    const categoriesList = await categoriesCollection.find({}).toArray();
+    
+    // Then get product counts for each category
+    const productsCollection = db.collection<Product>('products');
+    
+    const result = await Promise.all(
+      categoriesList.map(async (cat) => {
+        const count = await productsCollection.countDocuments({ category: cat.name });
+        return {
+          name: cat.name,
+          count,
+          image: cat.image || undefined
+        };
+      })
+    );
+    
+    // Filter out categories with no products and sort by count
+    return result.filter(cat => cat.count > 0).sort((a, b) => b.count - a.count);
   }
 
   // Mock methods removed as we're using MongoDB exclusively

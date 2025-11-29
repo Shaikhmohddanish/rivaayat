@@ -31,6 +31,7 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [product, setProduct] = useState<Product | null>(null)
+  const [categories, setCategories] = useState<Array<{ _id: string; name: string }>>([])
   
   // Use our slug hook with product ID for edit mode
   const { 
@@ -47,6 +48,7 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
     name: "",
     description: "",
     price: "",
+    category: "",
     isFeatured: false,
   })
 
@@ -61,9 +63,22 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
     } else if (status === "authenticated" && session?.user?.role !== "admin") {
       router.push("/")
     } else if (status === "authenticated") {
+      fetchCategories()
       fetchProduct()
     }
   }, [status, session])
+
+  const fetchCategories = async () => {
+    try {
+      const response = await fetch("/api/categories")
+      if (response.ok) {
+        const data = await response.json()
+        setCategories(data)
+      }
+    } catch (error) {
+      console.error("Error fetching categories:", error)
+    }
+  }
 
   const fetchProduct = async () => {
     try {
@@ -75,6 +90,7 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
           name: data.name || "",
           description: data.description || "",
           price: data.price ? data.price.toString() : "",
+          category: data.category || "",
           isFeatured: data.isFeatured || false,
         })
         // Set the slug using our hook
@@ -209,7 +225,10 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
         method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          ...formData,
+          name: formData.name,
+          description: formData.description,
+          category: formData.category || undefined,
+          isFeatured: formData.isFeatured,
           slug, // Use our managed slug
           price: Number.parseFloat(formData.price),
           images,
@@ -296,7 +315,24 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="price">Price ($) *</Label>
+            <Label htmlFor="category">Category</Label>
+            <select
+              id="category"
+              value={formData.category}
+              onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <option value="">Select a category</option>
+              {categories.map((cat) => (
+                <option key={cat._id} value={cat.name}>
+                  {cat.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="price">Price (₹) *</Label>
             <Input
               id="price"
               type="number"

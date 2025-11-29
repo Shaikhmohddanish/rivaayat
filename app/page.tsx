@@ -19,23 +19,23 @@ async function getNewProducts() {
   }
 }
 
-async function getTrendingProducts() {
+async function getCategories() {
   try {
-    return await DatabaseService.getProducts({ sort: 'trending', limit: 8 })
+    return await DatabaseService.getCategories()
   } catch (error) {
-    console.error('Error loading trending products:', error)
+    console.error('Error loading categories:', error)
     return []
   }
 }
 
 export default async function HomePage() {
-  const [featuredProducts, newProducts, trendingProducts] = await Promise.all([
+  const [featuredProducts, newProducts, categories] = await Promise.all([
     getFeaturedProducts(),
     getNewProducts(),
-    getTrendingProducts(),
+    getCategories(),
   ])
 
   return (
-    <HomePageClient featuredProducts={featuredProducts} newProducts={newProducts} trendingProducts={trendingProducts} />
+    <HomePageClient featuredProducts={featuredProducts} newProducts={newProducts} categories={categories} />
   )
 }

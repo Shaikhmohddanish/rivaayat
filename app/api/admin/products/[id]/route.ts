@@ -75,13 +75,14 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     }
 
     const body = await request.json()
-    const { name, slug, description, images, price, isFeatured, variations } = body
+    const { name, slug, description, images, price, category, isFeatured, variations } = body
 
     const updateFields: Partial<Product> = {
       updatedAt: new Date(),
     }
 
     if (name !== undefined) updateFields.name = name
+    if (category !== undefined) updateFields.category = category || undefined
     if (slug !== undefined) {
       // Check if new slug already exists on a different product
       const { id } = await params

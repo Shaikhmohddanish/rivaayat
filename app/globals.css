@@ -339,3 +339,13 @@ html, body {
     scroll-behavior: auto !important;
   }
 }
+
+/* Hide scrollbar for categories slider */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
