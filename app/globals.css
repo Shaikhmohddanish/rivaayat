@@ -16,80 +16,80 @@ html, body {
 }
 
 :root {
-  /* Elegant feminine color palette */
-  --background: #fefcff; /* Soft cream white */
-  --foreground: #2d1b3d; /* Deep plum */
+  /* Minimalistic Red/Beige/Golden palette */
+  --background: #faf8f5; /* Soft beige */
+  --foreground: #2b2520; /* Dark brown */
   --card: #ffffff;
-  --card-foreground: #2d1b3d;
+  --card-foreground: #2b2520;
   --popover: #ffffff;
-  --popover-foreground: #2d1b3d;
-  --primary: #c7749a; /* Soft rose pink */
+  --popover-foreground: #2b2520;
+  --primary: #c41e3a; /* Deep red */
   --primary-foreground: #ffffff;
-  --secondary: #f8f2f7; /* Pale lavender */
-  --secondary-foreground: #2d1b3d;
-  --muted: #f3eef5; /* Light lavender mist */
-  --muted-foreground: #6b4c7a; /* Muted purple */
-  --accent: #e8d5e8; /* Soft lavender */
-  --accent-foreground: #2d1b3d;
-  --destructive: #d63384; /* Elegant red */
+  --secondary: #f5f0e8; /* Light beige */
+  --secondary-foreground: #2b2520;
+  --muted: #ebe7e0; /* Muted beige */
+  --muted-foreground: #6b635c; /* Muted brown */
+  --accent: #d4af37; /* Golden */
+  --accent-foreground: #2b2520;
+  --destructive: #c41e3a; /* Red */
   --destructive-foreground: #ffffff;
-  --border: #e8d5e8; /* Soft lavender border */
-  --input: #f8f2f7;
-  --ring: #c7749a; /* Soft rose focus ring */
-  --chart-1: #c7749a;
-  --chart-2: #a855a6;
-  --chart-3: #e879b9;
-  --chart-4: #f3c5d8;
-  --chart-5: #d8b4fe;
-  --radius: 0.75rem; /* More rounded for feminine feel */
+  --border: #e5ddd3; /* Subtle beige border */
+  --input: #f5f0e8;
+  --ring: #c41e3a; /* Red focus ring */
+  --chart-1: #c41e3a;
+  --chart-2: #d4af37;
+  --chart-3: #8b0000;
+  --chart-4: #f5deb3;
+  --chart-5: #b8860b;
+  --radius: 0.5rem;
   
   /* Sidebar colors */
-  --sidebar: #fefcff;
-  --sidebar-foreground: #2d1b3d;
-  --sidebar-primary: #c7749a;
+  --sidebar: #faf8f5;
+  --sidebar-foreground: #2b2520;
+  --sidebar-primary: #c41e3a;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #f8f2f7;
-  --sidebar-accent-foreground: #2d1b3d;
-  --sidebar-border: #e8d5e8;
-  --sidebar-ring: #c7749a;
+  --sidebar-accent: #f5f0e8;
+  --sidebar-accent-foreground: #2b2520;
+  --sidebar-border: #e5ddd3;
+  --sidebar-ring: #c41e3a;
 }
 
 .dark {
-  /* Dark mode with elegant purple theme */
-  --background: #1a0f1f; /* Deep purple black */
-  --foreground: #f8f2f7; /* Soft cream */
-  --card: #2d1b3d; /* Deep plum */
-  --card-foreground: #f8f2f7;
-  --popover: #2d1b3d;
-  --popover-foreground: #f8f2f7;
-  --primary: #e879b9; /* Bright rose */
-  --primary-foreground: #1a0f1f;
-  --secondary: #432a4d; /* Dark purple */
-  --secondary-foreground: #f8f2f7;
-  --muted: #432a4d;
-  --muted-foreground: #c7749a;
-  --accent: #432a4d;
-  --accent-foreground: #f8f2f7;
-  --destructive: #ff6b9d; /* Bright pink */
-  --destructive-foreground: #1a0f1f;
-  --border: #432a4d;
-  --input: #432a4d;
-  --ring: #e879b9;
-  --chart-1: #e879b9;
-  --chart-2: #c7749a;
-  --chart-3: #a855a6;
-  --chart-4: #f3c5d8;
-  --chart-5: #d8b4fe;
+  /* Dark mode with Red/Beige/Golden theme */
+  --background: #1a1410; /* Dark brown */
+  --foreground: #f5f0e8; /* Light beige */
+  --card: #2b2520; /* Dark card */
+  --card-foreground: #f5f0e8;
+  --popover: #2b2520;
+  --popover-foreground: #f5f0e8;
+  --primary: #e63946; /* Bright red */
+  --primary-foreground: #ffffff;
+  --secondary: #3a3127; /* Dark beige */
+  --secondary-foreground: #f5f0e8;
+  --muted: #3a3127;
+  --muted-foreground: #c4b5a0;
+  --accent: #d4af37;
+  --accent-foreground: #1a1410;
+  --destructive: #e63946;
+  --destructive-foreground: #ffffff;
+  --border: #3a3127;
+  --input: #3a3127;
+  --ring: #e63946;
+  --chart-1: #e63946;
+  --chart-2: #d4af37;
+  --chart-3: #8b0000;
+  --chart-4: #c4b5a0;
+  --chart-5: #b8860b;
   
   /* Dark sidebar */
-  --sidebar: #2d1b3d;
-  --sidebar-foreground: #f8f2f7;
-  --sidebar-primary: #e879b9;
-  --sidebar-primary-foreground: #1a0f1f;
-  --sidebar-accent: #432a4d;
-  --sidebar-accent-foreground: #f8f2f7;
-  --sidebar-border: #432a4d;
-  --sidebar-ring: #e879b9;
+  --sidebar: #2b2520;
+  --sidebar-foreground: #f5f0e8;
+  --sidebar-primary: #e63946;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #3a3127;
+  --sidebar-accent-foreground: #f5f0e8;
+  --sidebar-border: #3a3127;
+  --sidebar-ring: #e63946;
 }
 
 @theme inline {
@@ -147,46 +147,33 @@ html, body {
     @apply font-serif;
   }
   
+  /* Minimalistic gradient - subtle and clean */
   .elegant-gradient {
-    background: linear-gradient(135deg, #c7749a 0%, #a855a6 50%, #e879b9 100%);
+    background: linear-gradient(135deg, #c41e3a 0%, #d4af37 100%);
   }
   
   .elegant-text-gradient {
-    background: linear-gradient(135deg, #c7749a 0%, #a855a6 50%, #e879b9 100%);
+    background: linear-gradient(135deg, #c41e3a 0%, #d4af37 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
   }
   
-  .glass-effect {
-    backdrop-filter: blur(10px);
-    background: rgba(248, 242, 247, 0.8);
-    border: 1px solid rgba(199, 116, 154, 0.2);
-  }
-  
-  .dark .glass-effect {
-    background: rgba(45, 27, 61, 0.8);
-    border: 1px solid rgba(232, 121, 185, 0.2);
-  }
-  
+  /* Simplified shadow - no heavy effects */
   .elegant-shadow {
-    box-shadow: 0 10px 25px -5px rgba(199, 116, 154, 0.1), 0 8px 10px -6px rgba(199, 116, 154, 0.1);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   }
   
+  /* Simple hover - minimal animation */
   .elegant-hover {
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: opacity 0.2s ease;
   }
   
   .elegant-hover:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 20px 25px -5px rgba(199, 116, 154, 0.15), 0 10px 10px -5px rgba(199, 116, 154, 0.1);
+    opacity: 0.9;
   }
   
-  .elegant-text-shadow {
-    text-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-  }
-  
-  /* Shimmer Loading Effects */
+  /* Shimmer Loading Effects - optimized */
   @keyframes shimmer {
     0% {
       background-position: -468px 0;
@@ -199,9 +186,9 @@ html, body {
   .shimmer {
     background: linear-gradient(
       90deg,
-      rgba(199, 116, 154, 0.08) 0%,
-      rgba(199, 116, 154, 0.2) 50%,
-      rgba(199, 116, 154, 0.08) 100%
+      rgba(196, 30, 58, 0.05) 0%,
+      rgba(196, 30, 58, 0.1) 50%,
+      rgba(196, 30, 58, 0.05) 100%
     );
     background-size: 468px 100%;
     animation: shimmer 1.5s ease-in-out infinite;
@@ -210,9 +197,9 @@ html, body {
   .shimmer-card {
     background: linear-gradient(
       90deg,
-      rgba(248, 242, 247, 0.4) 0%,
-      rgba(199, 116, 154, 0.1) 50%,
-      rgba(248, 242, 247, 0.4) 100%
+      rgba(245, 240, 232, 0.4) 0%,
+      rgba(212, 175, 55, 0.1) 50%,
+      rgba(245, 240, 232, 0.4) 100%
     );
     background-size: 468px 100%;
     animation: shimmer 1.5s ease-in-out infinite;
@@ -221,31 +208,31 @@ html, body {
   .dark .shimmer {
     background: linear-gradient(
       90deg,
-      rgba(45, 27, 61, 0.4) 0%,
-      rgba(232, 121, 185, 0.2) 50%,
-      rgba(45, 27, 61, 0.4) 100%
+      rgba(43, 37, 32, 0.4) 0%,
+      rgba(230, 57, 70, 0.15) 50%,
+      rgba(43, 37, 32, 0.4) 100%
     );
   }
   
   .dark .shimmer-card {
     background: linear-gradient(
       90deg,
-      rgba(45, 27, 61, 0.6) 0%,
-      rgba(232, 121, 185, 0.3) 50%,
-      rgba(45, 27, 61, 0.6) 100%
+      rgba(43, 37, 32, 0.6) 0%,
+      rgba(212, 175, 55, 0.15) 50%,
+      rgba(43, 37, 32, 0.6) 100%
     );
   }
 }
 
-/* Shimmer Loading Effect */
+/* Shimmer Loading Effect - Minimalistic */
 .shimmer {
-  background: #f6f7f8;
+  background: #faf8f5;
   background-image: linear-gradient(
     to right,
-    #f6f7f8 0%,
-    #f0f1f5 20%,
-    #f6f7f8 40%,
-    #f6f7f8 100%
+    #faf8f5 0%,
+    #f5f0e8 20%,
+    #faf8f5 40%,
+    #faf8f5 100%
   );
   background-repeat: no-repeat;
   background-size: 800px 104px;
@@ -259,13 +246,13 @@ html, body {
 }
 
 .dark .shimmer {
-  background: #29263a;
+  background: #2b2520;
   background-image: linear-gradient(
     to right,
-    #29263a 0%,
-    #342f4a 20%,
-    #29263a 40%,
-    #29263a 100%
+    #2b2520 0%,
+    #3a3127 20%,
+    #2b2520 40%,
+    #2b2520 100%
   );
 }
 
@@ -279,11 +266,11 @@ html, body {
 }
 
 .elegant-shadow {
-  box-shadow: 0 4px 24px rgba(199, 116, 154, 0.05);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
 .dark .elegant-shadow {
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
 }
 
 /* Accessibility helpers */
