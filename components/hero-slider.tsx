@@ -5,23 +5,26 @@ import { HeroSliderPro } from "./hero-slider-pro"
 
 const slides: Slide[] = [
   {
-    image: "/elegant-ladies-dress-fashion-banner.jpg",
+    image: "/banners/desktop/hero-banner-1.png",
+    mobileImage: "/banners/mobile/hero-banner-1.png",
     title: "Discover Timeless Elegance",
     description: "Exquisite dresses crafted for the sophisticated woman",
     cta: "Shop Collection",
     href: "/shop",
   },
   {
-    image: "/summer-collection-ladies-dresses.jpg",
-    title: "Summer Collection 2024",
-    description: "Breathe in the beauty of fresh, feminine styles",
+    image: "/banners/desktop/hero-banner-2.png",
+    mobileImage: "/banners/mobile/hero-banner-2.png",
+    title: "Luxury Traditional Wear",
+    description: "Handcrafted designs with intricate golden embroidery",
     cta: "View Collection",
     href: "/shop",
   },
   {
-    image: "/exclusive-designer-dresses.jpg",
-    title: "Exclusive Designer Pieces",
-    description: "Limited edition dresses for special moments",
+    image: "/banners/desktop/hero-banner-3.png",
+    mobileImage: "/banners/mobile/hero-banner-3.png",
+    title: "Exclusive Designer Collection",
+    description: "Premium ethnic wear for special occasions",
     cta: "Explore Now",
     href: "/shop",
   },

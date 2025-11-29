@@ -25,6 +25,7 @@ function useMediaQuery(query: string) {
 
 export type Slide = {
   image: string
+  mobileImage?: string
   title: string
   description?: string
   cta?: string
@@ -125,7 +126,7 @@ export function HeroSliderPro({ slides, interval = 6000 }: HeroSliderProProps) {
   return (
     <section
       ref={containerRef}
-      className="relative w-full overflow-hidden min-h-[450px] max-h-[680px] h-[60vh] max-w-screen"
+      className="relative w-full overflow-hidden h-[500px] md:h-[600px] lg:h-[700px] max-w-screen"
       onMouseEnter={() => setPlaying(false)}
       onMouseLeave={() => setPlaying(true)}
       onFocus={() => setPlaying(false)}
@@ -138,23 +139,26 @@ export function HeroSliderPro({ slides, interval = 6000 }: HeroSliderProProps) {
       tabIndex={0}
     >
       <div className="relative h-full">
-        {slides.map((s, i) => (
-          <div
-            key={i}
-            className={`absolute inset-0 transition-[opacity,transform] duration-1000 will-change-transform ${
-              i === current ? "opacity-100 z-10 scale-100" : "opacity-0 z-0 scale-105"
-            }`}
-            aria-hidden={i !== current}
-          >
-            <Image
-              src={s.image || "/placeholder.svg"}
-              alt={s.title}
-              fill
-              priority={i === 0}
-              sizes="100vw"
-              className="object-cover"
-            />
-            <div className="absolute inset-0 bg-linear-to-r from-black/70 via-black/50 to-black/30" />
+        {slides.map((s, i) => {
+          const imageSource = isClient && isMobile && s.mobileImage ? s.mobileImage : s.image
+          return (
+            <div
+              key={i}
+              className={`absolute inset-0 transition-[opacity,transform] duration-1000 will-change-transform ${
+                i === current ? "opacity-100 z-10 scale-100" : "opacity-0 z-0 scale-105"
+              }`}
+              aria-hidden={i !== current}
+            >
+              <Image
+                src={imageSource || "/placeholder.svg"}
+                alt={s.title}
+                fill
+                priority={i === 0}
+                sizes="100vw"
+                className="object-cover object-center"
+                unoptimized
+              />
+              <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/40 to-transparent" />
             <div className="absolute inset-0 flex items-center justify-center p-4">
               <div className="text-center text-white max-w-3xl mx-auto">
                 {s.sublabel && (
@@ -183,7 +187,7 @@ export function HeroSliderPro({ slides, interval = 6000 }: HeroSliderProProps) {
               </div>
             </div>
           </div>
-        ))}
+        )})}
       </div>
 
       {isClient && (!isMobile || prefersReducedMotion) && (
