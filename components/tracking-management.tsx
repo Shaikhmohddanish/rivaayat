@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import React, { useState, useMemo, useCallback } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge"
 import { Textarea } from "@/components/ui/textarea"
 import { OrderStatusBadge } from "@/components/order-status-badge"
-import { Truck, Search, RefreshCw, Check } from "lucide-react"
+import { Truck, Search, RefreshCw, Check, ChevronLeft, ChevronRight } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import type { Order } from "@/lib/types"
 
@@ -46,23 +46,48 @@ export function TrackingManagement({ orders, onUpdateTracking }: TrackingManagem
   const [searchQuery, setSearchQuery] = useState("")
   const [filterStatus, setFilterStatus] = useState<string>("all")
   const [loadingOrderId, setLoadingOrderId] = useState<string | null>(null)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage] = useState(10)
   const { toast } = useToast()
 
   // Filter orders based on search query and status filter
-  const filteredOrders = orders.filter(order => {
-    const matchesSearch = 
-      order.orderNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (order.tracking?.trackingId || "").toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredOrders = useMemo(() => {
+    if (!searchQuery && filterStatus === "all") {
+      return orders // No filtering needed
+    }
     
-    const matchesStatus = filterStatus === "all" || 
-                         (filterStatus === "untracked" && !order.tracking?.trackingId) ||
-                         (filterStatus === "tracked" && order.tracking?.trackingId) ||
-                         order.status === filterStatus
+    return orders.filter(order => {
+      const matchesSearch = !searchQuery || 
+        order.orderNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (order.tracking?.trackingId || "").toLowerCase().includes(searchQuery.toLowerCase())
+      
+      const matchesStatus = filterStatus === "all" || 
+                           (filterStatus === "untracked" && !order.tracking?.trackingId) ||
+                           (filterStatus === "tracked" && order.tracking?.trackingId) ||
+                           order.status === filterStatus
 
-    return matchesSearch && matchesStatus
-  })
+      return matchesSearch && matchesStatus
+    })
+  }, [orders, searchQuery, filterStatus])
 
-  const handleTrackingUpdate = async (orderId: string, trackingInfo: TrackingInfo) => {
+  // Reset to first page when filters change
+  useMemo(() => {
+    setCurrentPage(1)
+  }, [searchQuery, filterStatus])
+
+  // Calculate pagination
+  const paginationData = useMemo(() => {
+    const totalPages = Math.ceil(filteredOrders.length / itemsPerPage)
+    const startIndex = (currentPage - 1) * itemsPerPage
+    const endIndex = startIndex + itemsPerPage
+    const currentOrders = filteredOrders.slice(startIndex, endIndex)
+    
+    return { totalPages, startIndex, endIndex, currentOrders }
+  }, [filteredOrders, currentPage, itemsPerPage])
+  
+  const { totalPages, startIndex, endIndex, currentOrders } = paginationData
+
+  const handleTrackingUpdate = useCallback(async (orderId: string, trackingInfo: TrackingInfo) => {
     setLoadingOrderId(orderId)
     try {
       const success = await onUpdateTracking(orderId, trackingInfo)
@@ -87,7 +112,7 @@ export function TrackingManagement({ orders, onUpdateTracking }: TrackingManagem
     } finally {
       setLoadingOrderId(null)
     }
-  }
+  }, [onUpdateTracking, toast])
 
   return (
     <div className="space-y-6">
@@ -139,16 +164,72 @@ export function TrackingManagement({ orders, onUpdateTracking }: TrackingManagem
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-4">
-          {filteredOrders.map((order) => (
-            <TrackingCard
-              key={order._id}
-              order={order}
-              isLoading={loadingOrderId === order._id}
-              onUpdateTracking={(trackingInfo) => handleTrackingUpdate(order._id, trackingInfo)}
-            />
-          ))}
-        </div>
+        <>
+          <div className="space-y-4">
+            {currentOrders.map((order) => (
+              <TrackingCard
+                key={order._id}
+                order={order}
+                isLoading={loadingOrderId === order._id}
+                onUpdateTracking={(trackingInfo) => handleTrackingUpdate(order._id, trackingInfo)}
+              />
+            ))}
+          </div>
+
+          {/* Pagination Controls */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between mt-6 pt-6 border-t">
+              <div className="text-sm text-muted-foreground">
+                Showing {startIndex + 1} to {Math.min(endIndex, filteredOrders.length)} of {filteredOrders.length} orders
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                  disabled={currentPage === 1}
+                >
+                  <ChevronLeft className="h-4 w-4 mr-1" />
+                  Previous
+                </Button>
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
+                    // Show first page, last page, current page, and pages around current
+                    if (
+                      page === 1 ||
+                      page === totalPages ||
+                      (page >= currentPage - 1 && page <= currentPage + 1)
+                    ) {
+                      return (
+                        <Button
+                          key={page}
+                          variant={currentPage === page ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setCurrentPage(page)}
+                          className="w-9"
+                        >
+                          {page}
+                        </Button>
+                      )
+                    } else if (page === currentPage - 2 || page === currentPage + 2) {
+                      return <span key={page} className="px-1">...</span>
+                    }
+                    return null
+                  })}
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                  disabled={currentPage === totalPages}
+                >
+                  Next
+                  <ChevronRight className="h-4 w-4 ml-1" />
+                </Button>
+              </div>
+            </div>
+          )}
+        </>
       )}
     </div>
   )
@@ -160,7 +241,7 @@ interface TrackingCardProps {
   onUpdateTracking: (trackingInfo: { carrier?: string, trackingId?: string, notes?: string }) => void
 }
 
-function TrackingCard({ order, isLoading, onUpdateTracking }: TrackingCardProps) {
+const TrackingCard = React.memo(function TrackingCard({ order, isLoading, onUpdateTracking }: TrackingCardProps) {
   const [isEditing, setIsEditing] = useState(false)
   const [trackingInfo, setTrackingInfo] = useState<TrackingInfo>({
     carrier: order.tracking?.carrier ?? "",
@@ -294,4 +375,4 @@ function TrackingCard({ order, isLoading, onUpdateTracking }: TrackingCardProps)
       </CardContent>
     </Card>
   )
-}
+})

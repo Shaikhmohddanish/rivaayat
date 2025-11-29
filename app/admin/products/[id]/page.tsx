@@ -51,8 +51,8 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
   })
 
   const [images, setImages] = useState<ProductImage[]>([])
-  const [colors, setColors] = useState<string[]>([""])
-  const [sizes, setSizes] = useState<string[]>([""])
+  const [colors, setColors] = useState<string[]>([])
+  const [sizes, setSizes] = useState<string[]>([])
   const [variants, setVariants] = useState<ProductVariant[]>([])
 
   useEffect(() => {
@@ -72,17 +72,17 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
         const data = await response.json()
         setProduct(data)
         setFormData({
-          name: data.name,
-          description: data.description,
-          price: data.price.toString(),
-          isFeatured: data.isFeatured,
+          name: data.name || "",
+          description: data.description || "",
+          price: data.price ? data.price.toString() : "",
+          isFeatured: data.isFeatured || false,
         })
         // Set the slug using our hook
-        setSlug(data.slug)
-        setImages(data.images)
-        setColors(data.variations.colors)
-        setSizes(data.variations.sizes)
-        setVariants(data.variations.variants)
+        setSlug(data.slug || "")
+        setImages(data.images || [])
+        setColors(data.variations?.colors || [])
+        setSizes(data.variations?.sizes || [])
+        setVariants(data.variations?.variants || [])
       } else {
         toast({
           title: "Error",
@@ -201,8 +201,12 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
     setSaving(true)
 
     try {
-      const response = await fetch(`/api/admin/products/${productId}`, {
-        method: "PATCH",
+      const isNewProduct = productId === "new"
+      const url = isNewProduct ? "/api/admin/products" : `/api/admin/products/${productId}`
+      const method = isNewProduct ? "POST" : "PATCH"
+      
+      const response = await fetch(url, {
+        method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...formData,
@@ -220,7 +224,7 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
       if (response.ok) {
         toast({
           title: "Success",
-          description: "Product updated successfully",
+          description: isNewProduct ? "Product created successfully" : "Product updated successfully",
           variant: "default"
         })
         router.push("/admin/products")
@@ -228,15 +232,15 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
         const error = await response.json()
         toast({
           title: "Error",
-          description: error.error || "Failed to update product",
+          description: error.error || (isNewProduct ? "Failed to create product" : "Failed to update product"),
           variant: "destructive"
         })
       }
     } catch (error) {
-      console.error("Error updating product:", error)
+      console.error("Error saving product:", error)
       toast({
         title: "Error",
-        description: "Failed to update product",
+        description: "Failed to save product",
         variant: "destructive"
       })
     } finally {
@@ -253,7 +257,7 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
             Back to Products
           </Link>
         </Button>
-        <h1 className="text-3xl font-bold">Edit Product</h1>
+        <h1 className="text-3xl font-bold">{productId === "new" ? "Add New Product" : "Edit Product"}</h1>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-8">
@@ -354,7 +358,7 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
 
         <div className="flex gap-4">
           <Button type="submit" disabled={saving} className="flex-1">
-            {saving ? "Saving..." : "Save Changes"}
+            {saving ? "Saving..." : (productId === "new" ? "Create Product" : "Save Changes")}
           </Button>
           <Button type="button" variant="outline" asChild>
             <Link href="/admin/products">Cancel</Link>

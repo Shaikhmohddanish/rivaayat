@@ -1,13 +1,13 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { User, MapPin, Phone, Mail, Calendar, Settings, Lock } from "lucide-react"
-import { useSession } from "next-auth/react"
 import { useUserProfile, useUserAddresses } from "@/hooks/use-user-data"
+import { useUserSession, updateUserSessionData } from "@/hooks/use-user-session"
 import { ProfileForm } from "@/components/profile-form"
 import { AddressManager } from "@/components/address-manager"
 import { PasswordUpdate } from "@/components/password-update"
@@ -16,19 +16,23 @@ import { LS_KEYS } from "@/lib/local-storage"
 import type { User as UserType, Address } from "@/lib/types"
 
 export default function ProfilePage() {
-  const { data: session, status, update } = useSession()
+  const { userData: sessionUser, status, session, update } = useUserSession()
   const router = useRouter()
+  
+  // Memoize email to prevent unnecessary re-renders in child hooks
+  const userEmail = useMemo(() => sessionUser?.email || null, [sessionUser?.email])
+  
   const { 
     profile: userData, 
     loading: profileLoading,
     refreshProfile 
-  } = useUserProfile()
+  } = useUserProfile(userEmail)
   const { 
     addresses: userAddresses, 
     loading: addressesLoading, 
     updateAddresses, 
     deleteAddress 
-  } = useUserAddresses()
+  } = useUserAddresses(userEmail)
   
   const [error, setError] = useState("")
   
@@ -83,6 +87,13 @@ export default function ProfilePage() {
       if (!response.ok) {
         throw new Error(data.error || "Failed to update profile")
       }
+      
+      // Update localStorage session data for instant header update
+      updateUserSessionData({
+        name: data.user?.name || profileData.name,
+        email: data.user?.email || profileData.email,
+        image: data.user?.image || profileData.image,
+      });
       
       // Update session if name or image changed
       if ((profileData.name || profileData.image) && update) {

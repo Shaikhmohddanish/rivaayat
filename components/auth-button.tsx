@@ -1,10 +1,11 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useSession, signOut } from "next-auth/react"
+import { signOut } from "next-auth/react"
 import Link from "next/link"
 import { User, LogOut, Package, Settings } from "lucide-react"
 import { deleteLocalCachePattern } from "@/lib/local-storage"
+import { useUserSession, clearUserSessionData } from "@/hooks/use-user-session"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -17,7 +18,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 
 export function AuthButton() {
-  const { data: session, status } = useSession()
+  const { userData, status, session } = useUserSession()
   const [mounted, setMounted] = useState(false)
 
   // Prevent hydration mismatch by only rendering after mount
@@ -42,22 +43,22 @@ export function AuthButton() {
     )
   }
 
-  if (session?.user) {
+  if (userData && status === "authenticated") {
     return (
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" size="icon" className="relative">
             <Avatar className="h-8 w-8">
-              <AvatarImage src={session.user.image || undefined} alt={session.user.name || "User"} />
-              <AvatarFallback>{session.user.name?.charAt(0).toUpperCase() || "U"}</AvatarFallback>
+              <AvatarImage src={userData.image || undefined} alt={userData.name || "User"} />
+              <AvatarFallback>{userData.name?.charAt(0).toUpperCase() || "U"}</AvatarFallback>
             </Avatar>
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-56">
           <DropdownMenuLabel>
             <div className="flex flex-col space-y-1">
-              <p className="text-sm font-medium leading-none">{session.user.name}</p>
-              <p className="text-xs leading-none text-muted-foreground">{session.user.email}</p>
+              <p className="text-sm font-medium leading-none">{userData.name}</p>
+              <p className="text-xs leading-none text-muted-foreground">{userData.email}</p>
             </div>
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
@@ -73,7 +74,7 @@ export function AuthButton() {
               My Orders
             </Link>
           </DropdownMenuItem>
-          {session.user.role === "admin" && (
+          {userData.role === "admin" && (
             <DropdownMenuItem asChild>
               <Link href="/admin" className="cursor-pointer">
                 <User className="mr-2 h-4 w-4" />
@@ -85,7 +86,8 @@ export function AuthButton() {
           <DropdownMenuItem
             className="cursor-pointer text-red-600"
             onClick={() => {
-              deleteLocalCachePattern('user:*'); // Clear user cache before signing out
+              clearUserSessionData(); // Clear session data
+              deleteLocalCachePattern('user:*'); // Clear all user cache
               signOut({ callbackUrl: "/" });
             }}
           >

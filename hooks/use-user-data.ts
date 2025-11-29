@@ -1,88 +1,106 @@
-import { useEffect, useState } from 'react';
-import { useSession } from 'next-auth/react';
+import { useEffect, useState, useRef } from 'react';
 import { getLocalCache, setLocalCache, LS_KEYS } from '@/lib/local-storage';
 import { getCachedUserProfile, updateUserProfileCache, clearUserProfileCache } from '@/lib/user-profile-cache';
 import type { User, Address } from '@/lib/types';
 
 /**
  * Custom hook to fetch and cache user profile data
- * 🚀 OPTIMIZATION Item 13: Uses sessionStorage for profile caching
+ * 🚀 OPTIMIZATION: Removed useSession to prevent multiple session API calls
  */
-export function useUserProfile() {
-  const { data: session, status } = useSession();
+export function useUserProfile(userEmail?: string | null) {
   const [profile, setProfile] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const initializedEmailRef = useRef<string | null>(null);
+  const fetchInProgressRef = useRef(false);
 
   useEffect(() => {
-    const fetchProfile = async () => {
-      if (!session?.user?.email) {
-        setLoading(false);
-        return;
-      }
+    const email = userEmail || null;
+    if (!email) {
+      initializedEmailRef.current = null;
+      setProfile(null);
+      setLoading(false);
+      return;
+    }
 
+    if (initializedEmailRef.current === email || fetchInProgressRef.current) {
+      return;
+    }
+
+    initializedEmailRef.current = email;
+    fetchInProgressRef.current = true;
+
+    let cancelled = false;
+
+    const fetchProfile = async () => {
       try {
         setLoading(true);
-        
-        // 🚀 OPTIMIZATION Item 13: Check sessionStorage cache first
-        const cachedProfile = getCachedUserProfile();
-        
+        const cacheKey = `${LS_KEYS.USER_PROFILE}${email}`;
+        const cachedProfile = getLocalCache<User>(cacheKey);
+
         if (cachedProfile) {
-          console.log('Using cached profile data from sessionStorage');
           setProfile(cachedProfile);
           setLoading(false);
-          
-          // Still fetch fresh data in background
-          const response = await fetch('/api/user/profile');
-          if (response.ok) {
-            const data = await response.json();
-            setProfile(data);
-            updateUserProfileCache(data);
-          }
+          fetchInProgressRef.current = false;
           return;
         }
 
-        // Fetch from server if no cache
-        const response = await fetch('/api/user/profile');
+        const response = await fetch('/api/user/profile', {
+          headers: {
+            'Cache-Control': 'no-cache',
+          },
+        });
         
         if (!response.ok) {
           throw new Error('Failed to fetch profile');
         }
-        
+
         const data = await response.json();
-        setProfile(data);
-        
-        // Cache the profile data
-        updateUserProfileCache(data);
-        
-        // Also keep localStorage cache for backward compatibility
-        const cacheKey = `${LS_KEYS.USER_PROFILE}${session.user.email}`;
-        setLocalCache(cacheKey, data);
+        if (!cancelled) {
+          setProfile(data);
+          updateUserProfileCache(data);
+          setLocalCache(cacheKey, data, 300); // 5 minutes cache
+        }
       } catch (err: any) {
-        console.error('Error fetching profile:', err);
-        setError(err.message || 'Failed to fetch profile data');
+        if (!cancelled) {
+          console.error('Error fetching profile:', err);
+          setError(err.message || 'Failed to fetch profile data');
+        }
       } finally {
-        setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+          fetchInProgressRef.current = false;
+        }
       }
     };
 
     fetchProfile();
-  }, [session]);
+
+    return () => {
+      cancelled = true;
+      fetchInProgressRef.current = false;
+    };
+  }, [userEmail]);
 
   // Function to force refresh profile data
   const refreshProfile = async () => {
-    if (!session?.user?.email) return;
+    if (!userEmail) return;
     
     try {
       setLoading(true);
+      fetchInProgressRef.current = true;
       
       // Clear existing caches first
       clearUserProfileCache();
-      const cacheKey = `${LS_KEYS.USER_PROFILE}${session.user.email}`;
+      const cacheKey = `${LS_KEYS.USER_PROFILE}${userEmail}`;
       localStorage.removeItem(cacheKey);
       
       // Fetch fresh data from server
-      const response = await fetch('/api/user/profile');
+      const response = await fetch('/api/user/profile', {
+        headers: {
+          'Cache-Control': 'no-cache',
+        },
+      });
       
       if (!response.ok) {
         throw new Error('Failed to fetch profile');
@@ -94,7 +112,7 @@ export function useUserProfile() {
       setProfile(data);
       
       // Create new cache entry with fresh data
-      setLocalCache(cacheKey, data);
+      setLocalCache(cacheKey, data, 300);
       
       return data;
     } catch (err: any) {
@@ -103,6 +121,7 @@ export function useUserProfile() {
       throw err;
     } finally {
       setLoading(false);
+      fetchInProgressRef.current = false;
     }
   };
 
@@ -111,61 +130,72 @@ export function useUserProfile() {
 
 /**
  * Custom hook to fetch and cache user addresses
- * Uses localStorage for caching to avoid Redis usage for individual user data
+ * 🚀 OPTIMIZATION: Removed useSession to prevent multiple session API calls
  */
-export function useUserAddresses() {
-  const { data: session, status } = useSession();
+export function useUserAddresses(userEmail?: string | null) {
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const initializedEmailRef = useRef<string | null>(null);
+  const fetchInProgressRef = useRef(false);
 
   useEffect(() => {
-    const fetchAddresses = async () => {
-      if (!session?.user?.email) {
-        setLoading(false);
-        return;
-      }
+    const email = userEmail || null;
+    if (!email) {
+      initializedEmailRef.current = null;
+      setAddresses([]);
+      setLoading(false);
+      return;
+    }
 
+    if (initializedEmailRef.current === email || fetchInProgressRef.current) {
+      return;
+    }
+
+    initializedEmailRef.current = email;
+    fetchInProgressRef.current = true;
+
+    const fetchAddresses = async () => {
       try {
         setLoading(true);
-        
-        // Check localStorage cache first
-        const cacheKey = `${LS_KEYS.USER_ADDRESSES}${session.user.email}`;
+        const cacheKey = `${LS_KEYS.USER_ADDRESSES}${email}`;
         const cachedAddresses = getLocalCache<Address[]>(cacheKey);
-        
+
         if (cachedAddresses) {
-          console.log('Using cached address data');
           setAddresses(cachedAddresses);
           setLoading(false);
+          fetchInProgressRef.current = false;
           return;
         }
 
-        // Fetch from server if no cache
-        const response = await fetch('/api/user/addresses');
+        const response = await fetch('/api/user/addresses', {
+          headers: {
+            'Cache-Control': 'no-cache',
+          },
+        });
         
         if (!response.ok) {
           throw new Error('Failed to fetch addresses');
         }
-        
+
         const data = await response.json();
         setAddresses(data.addresses || []);
-        
-        // Cache the address data
-        setLocalCache(cacheKey, data.addresses || []);
+        setLocalCache(cacheKey, data.addresses || [], 300); // 5 minutes cache
       } catch (err: any) {
         console.error('Error fetching addresses:', err);
         setError(err.message || 'Failed to fetch address data');
       } finally {
         setLoading(false);
+        fetchInProgressRef.current = false;
       }
     };
 
     fetchAddresses();
-  }, [session]);
+  }, [userEmail]);
 
   // Function to update addresses (both state and cache)
   const updateAddresses = async (newAddresses: Partial<Address>[]) => {
-    if (!session?.user?.email) return;
+    if (!userEmail) return;
     
     try {
       setLoading(true);
@@ -187,8 +217,8 @@ export function useUserAddresses() {
       setAddresses(data.addresses || []);
       
       // Update cache
-      const cacheKey = `${LS_KEYS.USER_ADDRESSES}${session.user.email}`;
-      setLocalCache(cacheKey, data.addresses || []);
+      const cacheKey = `${LS_KEYS.USER_ADDRESSES}${userEmail}`;
+      setLocalCache(cacheKey, data.addresses || [], 300);
       
       return data.addresses;
     } catch (err: any) {
@@ -202,7 +232,7 @@ export function useUserAddresses() {
 
   // Function to delete an address
   const deleteAddress = async (addressId: string) => {
-    if (!session?.user?.email) return;
+    if (!userEmail) return;
     
     try {
       setLoading(true);
@@ -220,8 +250,8 @@ export function useUserAddresses() {
       setAddresses(data.addresses || []);
       
       // Update cache
-      const cacheKey = `${LS_KEYS.USER_ADDRESSES}${session.user.email}`;
-      setLocalCache(cacheKey, data.addresses || []);
+      const cacheKey = `${LS_KEYS.USER_ADDRESSES}${userEmail}`;
+      setLocalCache(cacheKey, data.addresses || [], 300);
       
       return data.addresses;
     } catch (err: any) {

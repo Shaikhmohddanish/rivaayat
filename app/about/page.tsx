@@ -5,35 +5,25 @@ export default function AboutPage() {
 
       <div className="prose prose-lg max-w-none space-y-6">
         <p className="text-lg leading-relaxed">
-          Welcome to Rivaayat, your premier destination for elegant and sophisticated ladies dresses. We are passionate
-          about bringing you the finest collection of fashion that celebrates femininity, style, and grace.
+          Rivaayat is a movement reimagining Indian crafts with minimal elegance, empowering and honoring the artisans
+          behind every weave. Each piece is a dialogue between past and present, carrying the stories of skilled hands
+          and resilient spirits. We honor authenticity in every detail&mdash;from the weave of fabric to the words we
+          speak&mdash;and our language flows between Hindi, Roman Urdu, and English, echoing the diversity of the land we
+          represent.
         </p>
 
         <h2 className="text-2xl font-semibold mt-8 mb-4">Our Story</h2>
         <p className="leading-relaxed">
-          Founded with a vision to make high-quality fashion accessible to every woman, Rivaayat has grown from a small
-          boutique to a trusted online destination for ladies fashion. Our name, Rivaayat, reflects our commitment to
-          creating timeless stories through fashion.
+          We stand with artisans whose hands preserve centuries of skill and with women whose voices inspire change.
+          Together, they shape Rivaayat into a story of continuity&mdash;where the past is respected, the present is
+          celebrated, and the future is imagined with courage. Rivaayat is not just fashion; it is memory, movement, and
+          meaning&mdash;a story that belongs to all of us.
         </p>
 
-        <h2 className="text-2xl font-semibold mt-8 mb-4">Our Mission</h2>
+        <h2 className="text-2xl font-semibold mt-8 mb-4">Mission Statement</h2>
         <p className="leading-relaxed">
-          We believe that every woman deserves to feel confident and beautiful. Our mission is to provide carefully
-          curated collections that combine contemporary trends with classic elegance, ensuring you find the perfect
-          dress for every occasion.
-        </p>
-
-        <h2 className="text-2xl font-semibold mt-8 mb-4">Quality & Craftsmanship</h2>
-        <p className="leading-relaxed">
-          Each piece in our collection is selected with meticulous attention to detail. We work with skilled artisans
-          and trusted manufacturers to ensure that every dress meets our high standards of quality, comfort, and style.
-        </p>
-
-        <h2 className="text-2xl font-semibold mt-8 mb-4">Customer Commitment</h2>
-        <p className="leading-relaxed">
-          Your satisfaction is our priority. We are committed to providing exceptional customer service, from helping
-          you find the perfect fit to ensuring a smooth shopping experience. Our team is always here to assist you with
-          any questions or concerns.
+          Rivaayat&rsquo;s mission is simple yet profound: to carry the past forward, to dress the present with pride, and to
+          imagine a future where tradition and modernity walk hand in hand.
         </p>
       </div>
     </div>

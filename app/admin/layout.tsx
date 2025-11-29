@@ -5,7 +5,7 @@ import { useState, useEffect } from "react"
 import { useSession } from "next-auth/react"
 import { useRouter, usePathname } from "next/navigation"
 import Link from "next/link"
-import { LayoutDashboard, Package, Users, Tag, ShoppingBag, LogOut, Truck, Menu, X, RefreshCw } from "lucide-react"
+import { LayoutDashboard, Package, Users, Tag, ShoppingBag, LogOut, Truck, Menu, X, RefreshCw, Settings } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { signOut } from "next-auth/react"
 import { useIsMobile } from "@/hooks/use-mobile"
@@ -18,6 +18,7 @@ const navigation = [
   { name: "Tracking", href: "/admin/tracking", icon: Truck },
   { name: "Users", href: "/admin/users", icon: Users },
   { name: "Coupons", href: "/admin/coupons", icon: Tag },
+  { name: "Site Settings", href: "/admin/settings", icon: Settings },
 ]
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {

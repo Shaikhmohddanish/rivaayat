@@ -2,14 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
 import { getCurrentDateIST } from "@/lib/date-utils"
-import { MongoClient, ObjectId } from "mongodb"
-
-const uri = process.env.MONGODB_URI
-if (!uri) {
-  throw new Error('Please add your MongoDB URI to .env.local')
-}
-
-const client = new MongoClient(uri)
+import { getDatabase } from "@/lib/mongodb"
 
 export async function GET(request: NextRequest) {
   try {
@@ -22,13 +15,10 @@ export async function GET(request: NextRequest) {
       )
     }
     
-    // NOTE: User profile data is now cached in localStorage instead of server-side caching
-    // to reduce server memory usage for individual user data
-    await client.connect()
-    const db = client.db("rivaayat")
+    const db = await getDatabase()
     const users = db.collection("users")
 
-    const user = await users.findOne(
+    let user = await users.findOne(
       { email: session.user.email },
       { 
         projection: { 
@@ -44,24 +34,51 @@ export async function GET(request: NextRequest) {
       }
     )
 
+    // If user doesn't exist, create a basic profile from session data
     if (!user) {
-      return NextResponse.json(
-        { error: "User not found" },
-        { status: 404 }
+      const newUser = {
+        email: session.user.email,
+        name: session.user.name || "",
+        image: session.user.image || "",
+        phone: "",
+        dateOfBirth: "",
+        addresses: [],
+        provider: "credentials",
+        createdAt: getCurrentDateIST(),
+        updatedAt: getCurrentDateIST()
+      }
+      
+      const insertResult = await users.insertOne(newUser as any)
+      
+      // Fetch the newly created user to get the complete document with _id
+      user = await users.findOne(
+        { _id: insertResult.insertedId },
+        { 
+          projection: { 
+            name: 1, 
+            email: 1, 
+            image: 1, 
+            phone: 1, 
+            dateOfBirth: 1, 
+            addresses: 1,
+            provider: 1,
+            password: 1
+          } 
+        }
       )
     }
 
     // Format user response
     const userResponse = {
-      _id: user._id,
-      name: user.name,
-      email: user.email,
-      image: user.image,
-      phone: user.phone || "",
-      dateOfBirth: user.dateOfBirth || "",
-      addresses: user.addresses || [],
-      provider: user.provider || "credentials",
-      password: !!user.password // Return boolean indicating if password exists
+      _id: user?._id,
+      name: user?.name,
+      email: user?.email,
+      image: user?.image,
+      phone: user?.phone || "",
+      dateOfBirth: user?.dateOfBirth || "",
+      addresses: user?.addresses || [],
+      provider: user?.provider || "credentials",
+      password: !!user?.password // Return boolean indicating if password exists
     };
     
     return NextResponse.json(userResponse)
@@ -72,8 +89,6 @@ export async function GET(request: NextRequest) {
       { error: "Internal server error" },
       { status: 500 }
     )
-  } finally {
-    await client.close()
   }
 }
 
@@ -115,8 +130,7 @@ export async function PUT(request: NextRequest) {
       )
     }
 
-    await client.connect()
-    const db = client.db("rivaayat")
+    const db = await getDatabase()
     const users = db.collection("users")
 
     const updateData: any = {
@@ -181,7 +195,5 @@ export async function PUT(request: NextRequest) {
       { error: "Internal server error" },
       { status: 500 }
     )
-  } finally {
-    await client.close()
   }
 }

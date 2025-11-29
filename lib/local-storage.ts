@@ -14,6 +14,7 @@ export const LS_KEYS = {
   USER_WISHLIST: 'user:wishlist:',
   USER_CART: 'user:cart:',
   USER_ORDERS: 'user:orders:',
+  USER_SESSION: 'user:session:data', // For current user session sync
 };
 
 // Cache item structure
@@ -163,4 +164,15 @@ export function useLocalCacheCleanup(): (() => void) | undefined {
     return () => clearInterval(interval);
   }
   return undefined;
+}
+
+/**
+ * Trigger a storage event to notify other components of data changes
+ * @param key The key that was updated
+ */
+export function triggerStorageEvent(key: string): void {
+  if (typeof window !== 'undefined') {
+    // Dispatch a custom event for same-tab updates
+    window.dispatchEvent(new CustomEvent('localStorageChange', { detail: { key } }));
+  }
 }

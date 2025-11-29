@@ -17,17 +17,26 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 })
     }
 
+    const searchParams = request.nextUrl.searchParams
+    const limit = parseInt(searchParams.get("limit") || "10")
+    const skip = parseInt(searchParams.get("skip") || "0")
+
     const db = await getDatabase()
+    
+    // Get total count for pagination
+    const total = await db.collection<User>("users").countDocuments({})
 
     const users = await db
       .collection<User>("users")
       .find({})
       .project({ password: 0 }) // Exclude password field
       .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
       .toArray()
 
-    return NextResponse.json(
-      users.map((user: any) => ({
+    return NextResponse.json({
+      users: users.map((user: any) => ({
         _id: user._id?.toString(),
         name: user.name,
         email: user.email,
@@ -38,7 +47,10 @@ export async function GET(request: NextRequest) {
         createdAt: user.createdAt,
         updatedAt: user.updatedAt,
       })),
-    )
+      total,
+      limit,
+      skip,
+    })
   } catch (error) {
     console.error("Error fetching users:", error)
     return NextResponse.json({ error: "Failed to fetch users" }, { status: 500 })

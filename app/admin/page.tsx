@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import Link from "next/link"
 import { Package, Users, ShoppingBag, Tag, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useAdminCache } from "@/hooks/use-admin-cache"
@@ -132,7 +133,7 @@ export default function AdminDashboard() {
         <div className="bg-card rounded-lg border p-4 sm:p-6">
           <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4">Quick Actions</h2>
           <div className="space-y-2 sm:space-y-3">
-            <a href="/admin/products/new" className="block p-3 sm:p-4 rounded-lg border hover:bg-muted transition-colors">
+            <Link href="/admin/products/new" className="block p-3 sm:p-4 rounded-lg border hover:bg-muted transition-colors">
               <div className="flex items-center gap-3">
                 <Package className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
                 <div>
@@ -140,8 +141,8 @@ export default function AdminDashboard() {
                   <p className="text-xs sm:text-sm text-muted-foreground">Create a new product listing</p>
                 </div>
               </div>
-            </a>
-            <a href="/admin/users" className="block p-3 sm:p-4 rounded-lg border hover:bg-muted transition-colors">
+            </Link>
+            <Link href="/admin/users" className="block p-3 sm:p-4 rounded-lg border hover:bg-muted transition-colors">
               <div className="flex items-center gap-3">
                 <Users className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
                 <div>
@@ -149,7 +150,7 @@ export default function AdminDashboard() {
                   <p className="text-xs sm:text-sm text-muted-foreground">View and edit user accounts</p>
                 </div>
               </div>
-            </a>
+            </Link>
           </div>
         </div>
 

@@ -21,6 +21,25 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
     const { id } = await params
     
+    // Handle "new" case - return empty product template
+    if (id === "new") {
+      return NextResponse.json({
+        _id: null,
+        name: "",
+        slug: "",
+        description: "",
+        images: [],
+        price: 0,
+        isFeatured: false,
+        variations: []
+      })
+    }
+
+    // Validate ObjectId format
+    if (!ObjectId.isValid(id)) {
+      return NextResponse.json({ error: "Invalid product ID" }, { status: 400 })
+    }
+    
     const client = await clientPromise
     if (!client) throw new Error("Failed to connect to database")
     const db = client.db("rivaayat")

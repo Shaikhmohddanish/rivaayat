@@ -165,3 +165,31 @@ export interface Coupon {
   createdAt: Date
   updatedAt: Date
 }
+
+export interface SiteSettings {
+  _id: string
+  contactPhone: string
+  contactEmail: string
+  freeShippingThreshold: number // Free shipping threshold (e.g., 1499)
+  activePromoCouponCode?: string // Reference to active coupon code
+  announcementBar: {
+    isEnabled: boolean
+    headline: string
+    highlight: string
+    subtext?: string
+    badgeText?: string
+    shippingText?: string
+  }
+  promoBanner: {
+    isEnabled: boolean
+    message: string
+  }
+  whatsapp: {
+    isEnabled: boolean
+    helperText: string
+    defaultMessage: string
+    number: string
+  }
+  createdAt?: Date | string
+  updatedAt?: Date | string
+}

@@ -27,6 +27,7 @@ export default function AdminCouponsPage() {
     discountPercent: 0,
     isActive: true,
   })
+  const [activeEditDialogId, setActiveEditDialogId] = useState<string | null>(null)
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -122,6 +123,7 @@ export default function AdminCouponsPage() {
       if (response.ok) {
         await fetchCoupons()
         setEditingCoupon(null)
+        setActiveEditDialogId(null)
         setFormData({ code: "", discountPercent: 0, isActive: true })
         toast({
           title: "Success",
@@ -266,13 +268,25 @@ export default function AdminCouponsPage() {
                     </p>
                   </div>
                   <div className="flex gap-2">
-                    <Dialog>
+                    <Dialog
+                      open={activeEditDialogId === coupon._id}
+                      onOpenChange={(open) => {
+                        if (!open) {
+                          setActiveEditDialogId(null)
+                          setEditingCoupon(null)
+                          setFormData({ code: "", discountPercent: 0, isActive: true })
+                        }
+                      }}
+                    >
                       <DialogTrigger asChild>
                         <Button
                           size="sm"
                           variant="outline"
                           className="flex-1 bg-transparent"
-                          onClick={() => handleEdit(coupon)}
+                          onClick={() => {
+                            setActiveEditDialogId(coupon._id)
+                            handleEdit(coupon)
+                          }}
                         >
                           <Edit className="mr-2 h-4 w-4" />
                           Edit

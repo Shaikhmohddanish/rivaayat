@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { AdminPagination } from "@/components/admin-pagination"
 import {
   Dialog,
   DialogContent,
@@ -29,8 +30,12 @@ export default function AdminUsersPage() {
   const { toast } = useToast()
   const [users, setUsers] = useState<User[]>([])
   const [filteredUsers, setFilteredUsers] = useState<User[]>([])
+  const [paginatedUsers, setPaginatedUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage, setItemsPerPage] = useState(10)
+  const [totalUsers, setTotalUsers] = useState(0)
   const [editingUser, setEditingUser] = useState<User | null>(null)
   const [editForm, setEditForm] = useState({ 
     name: "", 
@@ -52,31 +57,34 @@ export default function AdminUsersPage() {
     if (session?.user?.role === "admin") {
       fetchUsers()
     }
-  }, [session])
+  }, [session, currentPage, itemsPerPage])
 
   useEffect(() => {
     if (searchQuery.trim() === "") {
-      setFilteredUsers(users)
+      setPaginatedUsers(users)
     } else {
       const query = searchQuery.toLowerCase()
-      setFilteredUsers(
-        users.filter(
-          (user) =>
-            user.name.toLowerCase().includes(query) ||
-            user.email.toLowerCase().includes(query) ||
-            user.role.toLowerCase().includes(query),
-        ),
+      const filtered = users.filter(
+        (user) =>
+          user.name.toLowerCase().includes(query) ||
+          user.email.toLowerCase().includes(query) ||
+          user.role.toLowerCase().includes(query),
       )
+      setPaginatedUsers(filtered)
     }
   }, [searchQuery, users])
 
   const fetchUsers = async () => {
     try {
-      const response = await fetch("/api/admin/users")
+      const skip = (currentPage - 1) * itemsPerPage
+      const response = await fetch(`/api/admin/users?limit=${itemsPerPage}&skip=${skip}`)
       if (response.ok) {
         const data = await response.json()
-        setUsers(data)
-        setFilteredUsers(data)
+        const usersList = Array.isArray(data) ? data : data.users || []
+        setUsers(usersList)
+        setFilteredUsers(usersList)
+        setPaginatedUsers(usersList)
+        setTotalUsers(data.total || usersList.length)
       }
     } catch (error) {
       console.error("Error fetching users:", error)
@@ -179,7 +187,7 @@ export default function AdminUsersPage() {
               </tr>
             </thead>
             <tbody>
-              {filteredUsers.map((user) => (
+              {paginatedUsers.map((user) => (
                 <tr key={user._id} className={`border-b last:border-0 hover:bg-muted/50 ${user.disabled ? "bg-muted/30" : ""}`}>
                   <td className="p-2 sm:p-4">
                     <div className="flex items-center gap-2 sm:gap-3">
@@ -244,10 +252,27 @@ export default function AdminUsersPage() {
           </table>
         </div>
 
-        {filteredUsers.length === 0 && (
+        {paginatedUsers.length === 0 && (
           <div className="text-center py-12">
             <p className="text-muted-foreground">No users found</p>
           </div>
+        )}
+        
+        {paginatedUsers.length > 0 && (
+          <AdminPagination
+            currentPage={currentPage}
+            totalPages={Math.ceil(totalUsers / itemsPerPage)}
+            totalItems={totalUsers}
+            itemsPerPage={itemsPerPage}
+            onPageChange={(page) => {
+              setCurrentPage(page)
+              window.scrollTo({ top: 0, behavior: 'smooth' })
+            }}
+            onItemsPerPageChange={(items) => {
+              setItemsPerPage(items)
+              setCurrentPage(1)
+            }}
+          />
         )}
       </div>
 

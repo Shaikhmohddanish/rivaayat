@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -11,8 +11,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Badge } from "@/components/ui/badge"
 import { UpdateOrderTracking } from "@/components/update-order-tracking"
+import { AdminPagination } from "@/components/admin-pagination"
 import type { Order } from "@/lib/types"
 import { useToast } from "@/hooks/use-toast"
+import OrdersLoading from "./loading"
 
 export default function AdminOrdersPage() {
   const { data: session, status } = useSession()
@@ -27,6 +29,12 @@ export default function AdminOrdersPage() {
     trackingId: "",
     notes: "",
   })
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage, setItemsPerPage] = useState(10)
+  const [totalOrders, setTotalOrders] = useState(0)
+  const isAdmin = session?.user?.role === "admin"
+  const hasFetchedRef = useRef(false)
+  const inFlightRef = useRef(false)
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -36,41 +44,51 @@ export default function AdminOrdersPage() {
     }
   }, [status, session, router])
 
-  useEffect(() => {
-    if (session?.user?.role === "admin") {
-      fetchOrders()
-    }
-  }, [session])
+  const fetchOrders = useCallback(async (force = false) => {
+    if (!isAdmin) return
+    if (inFlightRef.current && !force) return
 
-  // Listen for admin stats updates and refresh orders list
-  useEffect(() => {
-    const handleAdminStatsUpdate = () => {
-      console.log('Admin stats updated, refreshing orders list...')
-      if (session?.user?.role === "admin") {
-        fetchOrders()
-      }
-    }
-
-    window.addEventListener('adminStatsUpdated', handleAdminStatsUpdate)
-    
-    return () => {
-      window.removeEventListener('adminStatsUpdated', handleAdminStatsUpdate)
-    }
-  }, [session])
-
-  const fetchOrders = async () => {
+    inFlightRef.current = true
+    setLoading(true)
     try {
-      const response = await fetch("/api/admin/orders")
+      const skip = (currentPage - 1) * itemsPerPage
+      const response = await fetch(`/api/admin/orders?limit=${itemsPerPage}&skip=${skip}`)
       if (response.ok) {
         const data = await response.json()
-        setOrders(data)
+        setOrders(Array.isArray(data) ? data : data.orders || [])
+        setTotalOrders(data.total || 0)
+        hasFetchedRef.current = true
       }
     } catch (error) {
       console.error("Failed to fetch orders:", error)
     } finally {
+      inFlightRef.current = false
       setLoading(false)
     }
-  }
+  }, [isAdmin, currentPage, itemsPerPage])
+
+  useEffect(() => {
+    if (!isAdmin) {
+      setOrders([])
+      setLoading(false)
+      hasFetchedRef.current = false
+      return
+    }
+
+    hasFetchedRef.current = false
+    fetchOrders()
+  }, [isAdmin, fetchOrders])
+
+  useEffect(() => {
+    if (!isAdmin) return
+
+    const handleAdminStatsUpdate = () => {
+      fetchOrders(true)
+    }
+
+    window.addEventListener('adminStatsUpdated', handleAdminStatsUpdate)
+    return () => window.removeEventListener('adminStatsUpdated', handleAdminStatsUpdate)
+  }, [isAdmin, fetchOrders])
 
   const handleEdit = (order: Order & { _id: string }) => {
     setEditingOrder(order)
@@ -142,11 +160,7 @@ export default function AdminOrdersPage() {
   }
 
   if (loading || status === "loading") {
-    return (
-      <div className="container mx-auto py-8 px-4">
-        <p>Loading...</p>
-      </div>
-    )
+    return <OrdersLoading />
   }
 
   if (session?.user?.role !== "admin") {
@@ -199,15 +213,15 @@ export default function AdminOrdersPage() {
         </div>
       </div>
 
-      {orders.length === 0 ? (
-        <Card>
+      <div className="rounded-lg border bg-card">
+        {orders.length === 0 ? (
           <CardContent className="p-8 sm:p-12 text-center">
             <p className="text-sm sm:text-base text-muted-foreground">No orders found</p>
           </CardContent>
-        </Card>
-      ) : (
-        <div className="space-y-3 sm:space-y-4">
-          {orders.map((order) => (
+        ) : (
+          <>
+            <div className="space-y-3 sm:space-y-4 p-3 sm:p-4">
+              {orders.map((order) => (
             <Card key={order._id}>
               <CardHeader className="p-3 sm:p-6">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -331,8 +345,25 @@ export default function AdminOrdersPage() {
               </CardContent>
             </Card>
           ))}
-        </div>
-      )}
+            </div>
+
+            <AdminPagination
+              currentPage={currentPage}
+              totalPages={Math.ceil(totalOrders / itemsPerPage)}
+              totalItems={totalOrders}
+              itemsPerPage={itemsPerPage}
+              onPageChange={(page) => {
+                setCurrentPage(page)
+                window.scrollTo({ top: 0, behavior: 'smooth' })
+              }}
+              onItemsPerPageChange={(items) => {
+                setItemsPerPage(items)
+                setCurrentPage(1)
+              }}
+            />
+          </>
+        )}
+      </div>
     </div>
   )
 }

@@ -1,6 +1,6 @@
 "use client"
 
-import React, { createContext, useContext, useState, useEffect, useCallback } from "react"
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from "react"
 import { useSession } from "next-auth/react"
 import { getCachedCart, updateCartCache } from "@/lib/cart-cache"
 import { getCachedWishlist, updateWishlistCache } from "@/lib/wishlist-cache"
@@ -8,8 +8,8 @@ import { getCachedWishlist, updateWishlistCache } from "@/lib/wishlist-cache"
 interface CartWishlistContextType {
   cartCount: number
   wishlistCount: number
-  refreshCart: () => Promise<void>
-  refreshWishlist: () => Promise<void>
+  refreshCart: (options?: { force?: boolean }) => Promise<void>
+  refreshWishlist: (options?: { force?: boolean }) => Promise<void>
   isLoading: boolean
 }
 
@@ -30,13 +30,17 @@ export function CartWishlistProvider({ children }: { children: React.ReactNode }
   const [cartCount, setCartCount] = useState(0)
   const [wishlistCount, setWishlistCount] = useState(0)
   const [isLoading, setIsLoading] = useState(true)
-  const [lastFetch, setLastFetch] = useState<number>(0)
+  const lastCartFetchRef = useRef(0)
+  const lastWishlistFetchRef = useRef(0)
+  const cartInFlightRef = useRef(false)
+  const wishlistInFlightRef = useRef(false)
+  const initializedRef = useRef(false)
 
-  // Minimum time between API calls (5 seconds)
   const MIN_FETCH_INTERVAL = 5000
+  const isAuthenticatedUser = status === "authenticated" && !!session
 
-  const refreshCart = useCallback(async () => {
-    if (status !== "authenticated" || !session) {
+  const refreshCart = useCallback(async (options: { force?: boolean } = {}) => {
+    if (!isAuthenticatedUser) {
       setCartCount(0)
       return
     }
@@ -50,9 +54,12 @@ export function CartWishlistProvider({ children }: { children: React.ReactNode }
 
     // Only fetch if enough time has passed
     const now = Date.now()
-    if (now - lastFetch < MIN_FETCH_INTERVAL && cached) {
+    if (!options.force && now - lastCartFetchRef.current < MIN_FETCH_INTERVAL && cached) {
       return
     }
+
+    if (cartInFlightRef.current && !options.force) return
+    cartInFlightRef.current = true
 
     try {
       const res = await fetch("/api/cart", { cache: "no-store" })
@@ -62,15 +69,17 @@ export function CartWishlistProvider({ children }: { children: React.ReactNode }
         const count = items.reduce((sum: number, item: any) => sum + item.quantity, 0)
         setCartCount(count)
         updateCartCache(items)
-        setLastFetch(now)
+        lastCartFetchRef.current = now
       }
     } catch (error) {
       console.debug("Failed to fetch cart:", error)
+    } finally {
+      cartInFlightRef.current = false
     }
-  }, [session, status, lastFetch])
+  }, [isAuthenticatedUser])
 
-  const refreshWishlist = useCallback(async () => {
-    if (status !== "authenticated" || !session) {
+  const refreshWishlist = useCallback(async (options: { force?: boolean } = {}) => {
+    if (!isAuthenticatedUser) {
       setWishlistCount(0)
       return
     }
@@ -83,9 +92,12 @@ export function CartWishlistProvider({ children }: { children: React.ReactNode }
 
     // Only fetch if enough time has passed
     const now = Date.now()
-    if (now - lastFetch < MIN_FETCH_INTERVAL && cached) {
+    if (!options.force && now - lastWishlistFetchRef.current < MIN_FETCH_INTERVAL && cached) {
       return
     }
+
+    if (wishlistInFlightRef.current && !options.force) return
+    wishlistInFlightRef.current = true
 
     try {
       const res = await fetch("/api/wishlist", { cache: "no-store" })
@@ -94,34 +106,47 @@ export function CartWishlistProvider({ children }: { children: React.ReactNode }
         const productIds = data.productIds || []
         setWishlistCount(productIds.length)
         updateWishlistCache(productIds)
-        setLastFetch(now)
+        lastWishlistFetchRef.current = now
       }
     } catch (error) {
       console.debug("Failed to fetch wishlist:", error)
+    } finally {
+      wishlistInFlightRef.current = false
     }
-  }, [session, status, lastFetch])
+  }, [isAuthenticatedUser])
 
   // Initial load
   useEffect(() => {
     if (status === "loading") return
 
+    if (!isAuthenticatedUser) {
+      initializedRef.current = false
+      setCartCount(0)
+      setWishlistCount(0)
+      setIsLoading(false)
+      return
+    }
+
+    if (initializedRef.current) return
+    initializedRef.current = true
+
     const loadCounts = async () => {
       setIsLoading(true)
-      await Promise.all([refreshCart(), refreshWishlist()])
+      await Promise.all([refreshCart({ force: true }), refreshWishlist({ force: true })])
       setIsLoading(false)
     }
 
     loadCounts()
-  }, [status, session])
+  }, [status, isAuthenticatedUser, refreshCart, refreshWishlist])
 
   // Listen for update events
   useEffect(() => {
     const handleCartUpdate = () => {
-      refreshCart()
+      refreshCart({ force: true })
     }
 
     const handleWishlistUpdate = () => {
-      refreshWishlist()
+      refreshWishlist({ force: true })
     }
 
     window.addEventListener("cartUpdated", handleCartUpdate)

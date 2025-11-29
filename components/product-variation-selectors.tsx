@@ -52,7 +52,7 @@ export function ColorSelector({ selectedColors, onChange, className }: ColorSele
   return (
     <div className={cn("space-y-4", className)}>
       <div className="flex flex-wrap gap-2">
-        {selectedColorObjects.map((color) => (
+        {selectedColorObjects.filter(color => color.value.trim() !== "").map((color) => (
           <Badge 
             key={color.value} 
             variant="outline"
@@ -174,7 +174,7 @@ export function SizeSelector({ selectedSizes, onChange, className }: SizeSelecto
   return (
     <div className={cn("space-y-4", className)}>
       <div className="flex flex-wrap gap-2">
-        {selectedSizes.map((size) => (
+        {selectedSizes.filter(size => size.trim() !== "").map((size) => (
           <Badge 
             key={size} 
             variant="outline"

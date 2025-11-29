@@ -1,8 +1,16 @@
 import Link from "next/link"
 import { Facebook, Instagram, Twitter } from "lucide-react"
 import { ISTClock } from "@/components/ist-clock"
+import type { SiteSettings } from "@/lib/types"
 
-export function Footer() {
+interface FooterProps {
+  siteSettings?: Pick<SiteSettings, "contactEmail" | "contactPhone" | "freeShippingThreshold">
+}
+
+export function Footer({ siteSettings }: FooterProps) {
+  const contactEmail = siteSettings?.contactEmail || "sales@rivaayatposhak.co.in"
+  const contactPhone = siteSettings?.contactPhone || "+918097787110"
+  const shippingThreshold = siteSettings?.freeShippingThreshold || 1499
   return (
     <footer className="bg-gradient-to-b from-muted/50 to-muted mt-auto border-t border-border/20">
       <div className="container mx-auto px-4 py-12">
@@ -13,6 +21,16 @@ export function Footer() {
             <p className="text-sm text-muted-foreground leading-relaxed">
               Your destination for elegant ladies dresses. Timeless fashion crafted for the modern woman.
             </p>
+            <div className="mt-4 space-y-2 text-sm text-muted-foreground">
+              <p className="font-medium text-foreground">Shipping</p>
+              <p>Free shipping on orders above ₹{shippingThreshold}.</p>
+              <p className="font-medium text-foreground">Office Address</p>
+              <p>C/310 Crystal Plaza, Lower Oshiwara, Andheri West, Mumbai 400056</p>
+              <p className="font-medium text-foreground">Write to us</p>
+              <a href={`mailto:${contactEmail}`} className="hover:text-primary transition-colors">
+                {contactEmail}
+              </a>
+            </div>
           </div>
 
           {/* Quick Links */}
@@ -70,7 +88,7 @@ export function Footer() {
                 <Facebook className="h-5 w-5" />
                 <span className="sr-only">Facebook</span>
               </a>
-              <a href="#" className="text-muted-foreground hover:text-primary transition-all duration-300 transform hover:scale-110 elegant-hover">
+              <a href="https://www.instagram.com/rivaayat.poshak/" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-all duration-300 transform hover:scale-110 elegant-hover">
                 <Instagram className="h-5 w-5" />
                 <span className="sr-only">Instagram</span>
               </a>

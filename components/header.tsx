@@ -28,6 +28,7 @@ import { clearCartCache } from "@/lib/cart-cache"
 import { clearWishlistCache } from "@/lib/wishlist-cache"
 import { clearUserProfileCache } from "@/lib/user-profile-cache"
 import { clearProductListCache } from "@/lib/product-list-cache"
+import { useUserSession, clearUserSessionData } from "@/hooks/use-user-session"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -43,6 +44,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 
 import { AuthButton } from "@/components/auth-button"
 import { CartWishlistButtons } from "@/components/cart-wishlist-buttons"
+import type { SiteSettings } from "@/lib/types"
 
 // CONFIG
 const NAV_LINKS = [
@@ -93,8 +95,21 @@ const QUICK_LINKS = [
   { label: "Wedding Store", href: "/collections/wedding" },
 ]
 
+const DEFAULT_ANNOUNCEMENT = {
+  isEnabled: true,
+  headline: "Festive Offer:",
+  highlight: "Flat 10% off",
+  subtext: "with code",
+  badgeText: "RIVAA10",
+  shippingText: "Free shipping over ₹1499",
+}
+
+interface HeaderProps {
+  siteSettings?: Pick<SiteSettings, "announcementBar" | "contactPhone" | "freeShippingThreshold">
+}
+
 // HEADER
-export function Header() {
+export function Header({ siteSettings }: HeaderProps) {
   const router = useRouter()
   const { theme, setTheme } = useTheme()
 
@@ -125,25 +140,46 @@ export function Header() {
     setMobileOpen(false)
   }
 
+  const shippingThreshold = siteSettings?.freeShippingThreshold || 1499
+
+  const announcement = {
+    ...DEFAULT_ANNOUNCEMENT,
+    ...(siteSettings?.announcementBar ?? {}),
+    shippingText: siteSettings?.announcementBar?.shippingText || `Free shipping over ₹${shippingThreshold}`,
+  }
+
+  const phoneDisplay = siteSettings?.contactPhone || "+918097787110"
+  const telHref = `tel:${phoneDisplay.replace(/[^+\d]/g, "")}`
+
+  const showAnnouncement = announcement.isEnabled !== false
+
   return (
     <div className="sticky top-0 z-50">
       {/* Announcement Bar */}
-      <div className="w-full bg-primary text-primary-foreground text-xs sm:text-sm">
-        <div className="container mx-auto flex items-center justify-between px-4 py-1.5 gap-3">
-          <div className="flex items-center gap-2 whitespace-nowrap">
-            <Sparkles className="h-4 w-4" />
-            <span className="hidden sm:inline">Festive Offer:</span>
-            <b>Flat 10% off</b>
-            <span className="hidden sm:inline">with code</span>
-            <Badge variant="secondary" className="ml-1">RIVAA10</Badge>
-          </div>
-          <div className="flex items-center gap-4 text-white/90">
-            <span className="hidden md:flex items-center gap-1"><Truck className="h-4 w-4"/>Free shipping over ₹1499</span>
-            <Separator orientation="vertical" className="hidden md:block h-4 bg-white/40" />
-            <a href="tel:+911234567890" className="flex items-center gap-1 hover:underline"><Phone className="h-4 w-4"/>+91 12345 67890</a>
+      {showAnnouncement && (
+        <div className="w-full bg-primary text-primary-foreground text-xs sm:text-sm">
+          <div className="container mx-auto flex items-center justify-between px-4 py-1.5 gap-3">
+            <div className="flex items-center gap-2 whitespace-nowrap">
+              <Sparkles className="h-4 w-4" />
+              {announcement.headline && <span className="hidden sm:inline">{announcement.headline}</span>}
+              {announcement.highlight && <b>{announcement.highlight}</b>}
+              {announcement.subtext && <span className="hidden sm:inline">{announcement.subtext}</span>}
+              {announcement.badgeText && (
+                <Badge variant="secondary" className="ml-1">{announcement.badgeText}</Badge>
+              )}
+            </div>
+            <div className="flex items-center gap-4 text-white/90">
+              {announcement.shippingText && (
+                <span className="hidden md:flex items-center gap-1"><Truck className="h-4 w-4"/>{announcement.shippingText}</span>
+              )}
+              {announcement.shippingText && (
+                <Separator orientation="vertical" className="hidden md:block h-4 bg-white/40" />
+              )}
+              <a href={telHref} className="flex items-center gap-1 hover:underline"><Phone className="h-4 w-4"/>{phoneDisplay}</a>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Main Header */}
       <header className={`backdrop-blur supports-[backdrop-filter]:bg-background/60 transition-all border-b ${isScrolled ? "bg-background/95" : "bg-background/40"}`}>
@@ -301,7 +337,7 @@ export function Header() {
 // MOBILE NAV
 function MobileNav({ onNavigate }: { onNavigate: () => void }) {
   const router = useRouter()
-  const { data: session } = useSession()
+  const { userData, status, session } = useUserSession()
   const { theme, setTheme } = useTheme()
   const [mounted, setMounted] = React.useState(false)
   
@@ -313,6 +349,9 @@ function MobileNav({ onNavigate }: { onNavigate: () => void }) {
   const handleSignOut = () => { 
     // 🚀 OPTIMIZATION: Clear all caches on logout
     if (typeof window !== 'undefined') {
+      // Clear session data
+      clearUserSessionData();
+      
       // Clear all user-related cache when logged out manually
       deleteLocalCachePattern('user:*');
       
@@ -341,11 +380,11 @@ function MobileNav({ onNavigate }: { onNavigate: () => void }) {
             </div>
           </Link>
 
-          {session?.user ? (
+          {userData && status === "authenticated" ? (
             <div className="flex items-center">
               <Avatar className="h-8 w-8">
-                <AvatarImage src={session.user.image || ""} />
-                <AvatarFallback>{session.user.name?.charAt(0) || session.user.email?.charAt(0) || "U"}</AvatarFallback>
+                <AvatarImage src={userData.image || ""} />
+                <AvatarFallback>{userData.name?.charAt(0) || userData.email?.charAt(0) || "U"}</AvatarFallback>
               </Avatar>
             </div>
           ) : (
@@ -359,16 +398,16 @@ function MobileNav({ onNavigate }: { onNavigate: () => void }) {
       <Separator />
 
       <nav role="navigation" aria-label="Main navigation" className="p-2">
-        {session?.user && (
+        {userData && status === "authenticated" && (
           <>
             <MobileGroup title="My Account">
-              {session.user.name && (
+              {userData.name && (
                 <div className="px-4 py-2 mb-1 bg-accent/50 rounded-md flex items-center gap-2">
                   <Avatar className="h-6 w-6">
-                    <AvatarImage src={session.user.image || ""} />
-                    <AvatarFallback>{session.user.name?.charAt(0) || session.user.email?.charAt(0) || "U"}</AvatarFallback>
+                    <AvatarImage src={userData.image || ""} />
+                    <AvatarFallback>{userData.name?.charAt(0) || userData.email?.charAt(0) || "U"}</AvatarFallback>
                   </Avatar>
-                  <div className="text-sm font-medium">{session.user.name}</div>
+                  <div className="text-sm font-medium">{userData.name}</div>
                 </div>
               )}
               <Button variant="ghost" className="w-full justify-start" onClick={() => go("/profile")}>
@@ -380,7 +419,7 @@ function MobileNav({ onNavigate }: { onNavigate: () => void }) {
               <Button variant="ghost" className="w-full justify-start" onClick={() => go("/wishlist")}>
                 <Heart className="h-4 w-4 mr-2" /> My Wishlist
               </Button>
-              {session.user.role === "admin" && (
+              {userData.role === "admin" && (
                 <Button variant="ghost" className="w-full justify-start" onClick={() => go("/admin")}>
                   <Settings className="h-4 w-4 mr-2" /> Admin Dashboard
                 </Button>

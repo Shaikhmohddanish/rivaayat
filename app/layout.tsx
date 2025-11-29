@@ -7,6 +7,8 @@ import { Suspense } from "react"
 import { SiteLayout } from "@/components/site-layout"
 import { Providers } from "@/components/providers"
 import { Toaster } from "@/components/ui/toaster"
+import { WhatsAppFloatingButton } from "@/components/whatsapp-float"
+import { getSiteSettings } from "@/lib/site-settings"
 import "./globals.css"
 
 export const metadata: Metadata = {
@@ -22,7 +24,9 @@ export const viewport: Viewport = {
   userScalable: true,
 }
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const siteSettings = await getSiteSettings()
+
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`font-sans overflow-x-hidden ${GeistSans.variable} ${GeistMono.variable}`}>
@@ -30,11 +34,17 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <a href="#main-content" className="skip-link">Skip to main content</a>
         <Providers>
           <Suspense fallback={null}>
-            <SiteLayout>{children}</SiteLayout>
+            <SiteLayout siteSettings={siteSettings}>{children}</SiteLayout>
           </Suspense>
           <Toaster />
         </Providers>
         <Analytics />
+        <WhatsAppFloatingButton
+          enabled={siteSettings.whatsapp?.isEnabled}
+          helperText={siteSettings.whatsapp?.helperText}
+          defaultMessage={siteSettings.whatsapp?.defaultMessage}
+          phoneNumber={siteSettings.whatsapp?.number || siteSettings.contactPhone}
+        />
       </body>
     </html>
   )
