@@ -12,7 +12,7 @@ export function Footer({ siteSettings }: FooterProps) {
   const contactPhone = siteSettings?.contactPhone || "+918097787110"
   const shippingThreshold = siteSettings?.freeShippingThreshold || 1499
   return (
-    <footer className="bg-gradient-to-b from-muted/50 to-muted mt-auto border-t border-border/20">
+    <footer className="bg-linear-to-b from-muted/50 to-muted mt-auto border-t border-border/20">
       <div className="container mx-auto px-4 py-12">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* Brand & Social */}

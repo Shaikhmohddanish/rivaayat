@@ -179,7 +179,7 @@ export function HomePageClient({ featuredProducts, newProducts, categories }: Ho
                     className="group flex-none w-64 sm:w-72 snap-start"
                   >
                     <div className="relative overflow-hidden rounded-xl bg-muted hover:shadow-xl transition-all duration-300">
-                      <div className="aspect-[4/3] relative">
+                      <div className="aspect-4/3 relative">
                         {category.image ? (
                           <img
                             src={category.image}
@@ -187,11 +187,11 @@ export function HomePageClient({ featuredProducts, newProducts, categories }: Ho
                             className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                           />
                         ) : (
-                          <div className="w-full h-full bg-gradient-to-br from-primary/30 to-primary/10 flex items-center justify-center">
+                          <div className="w-full h-full bg-linear-to-br from-primary/30 to-primary/10 flex items-center justify-center">
                             <ShoppingBag className="w-20 h-20 text-primary/50" />
                           </div>
                         )}
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
+                        <div className="absolute inset-0 bg-linear-to-t from-black/70 via-black/30 to-transparent" />
                         <div className="absolute bottom-0 left-0 right-0 p-6">
                           <h3 className="text-2xl font-bold text-white mb-2">{category.name}</h3>
                           <p className="text-white/90 text-sm mb-3">{category.count} {category.count === 1 ? 'Product' : 'Products'}</p>
