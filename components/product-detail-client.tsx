@@ -327,9 +327,9 @@ export default function ProductDetailClient({ product }: Props) {
                     <button
                       key={s}
                       onClick={() => !disabled && setSelectedSize(s)}
-                      disabled={disabled}
-                      className={`min-w-[2.5rem] h-8 rounded border text-xs font-medium ${
-                        selectedSize === s
+                        disabled={disabled}
+                        className={`min-w-10 h-8 rounded border text-xs font-medium ${
+                          selectedSize === s
                           ? "bg-primary text-white border-primary"
                           : "border-gray-200 text-white hover:border-primary"
                       } ${disabled ? "opacity-40 cursor-not-allowed" : ""}`}

@@ -61,6 +61,13 @@ export function QuickViewModal({ product, open, onClose }: QuickViewModalProps) 
 
   if (!product) return null
 
+  // Calculate current stock for selected variant
+  const currentStock = selectedColor && selectedSize 
+    ? product.variations.variants.find(
+        v => v.color === selectedColor && v.size === selectedSize
+      )?.stock || 0
+    : 0
+
   const handleAddToCart = async () => {
     if (!session) {
       router.push("/auth/login")
@@ -211,7 +218,7 @@ export function QuickViewModal({ product, open, onClose }: QuickViewModalProps) 
         <div className="grid md:grid-cols-2 gap-8">
           {/* Image Gallery */}
           <div className="space-y-4">
-            <div className="relative aspect-[3/4] rounded-lg overflow-hidden bg-muted">
+            <div className="relative aspect-3/4 rounded-lg overflow-hidden bg-muted">
               <Image
                 src={product.images[currentImageIndex]?.url || "/placeholder.svg?height=600&width=450&query=dress"}
                 alt={product.name}
@@ -344,7 +351,7 @@ export function QuickViewModal({ product, open, onClose }: QuickViewModalProps) 
                             type="button"
                             disabled={isOutOfStock}
                             onClick={() => setSelectedSize(size)}
-                            className={`min-w-[3rem] h-10 rounded-full border flex items-center justify-center px-3 transition-all ${
+                            className={`min-w-12 h-10 rounded-full border flex items-center justify-center px-3 transition-all ${
                               size === selectedSize
                                 ? "bg-primary text-white border-primary"
                                 : isOutOfStock
@@ -365,11 +372,12 @@ export function QuickViewModal({ product, open, onClose }: QuickViewModalProps) 
             {/* Quantity */}
             <div>
               <label className="block text-sm font-semibold mb-2">Quantity</label>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-3">
                 <Button
                   variant="outline"
                   size="icon"
                   onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                  disabled={quantity <= 1}
                   aria-label="Decrease quantity"
                 >
                   -
@@ -378,11 +386,17 @@ export function QuickViewModal({ product, open, onClose }: QuickViewModalProps) 
                 <Button
                   variant="outline"
                   size="icon"
-                  onClick={() => setQuantity(quantity + 1)}
+                  onClick={() => setQuantity(prev => Math.min(prev + 1, currentStock))}
+                  disabled={currentStock > 0 && quantity >= currentStock}
                   aria-label="Increase quantity"
                 >
                   +
                 </Button>
+                {currentStock > 0 && (
+                  <span className="text-xs text-muted-foreground">
+                    {currentStock} available
+                  </span>
+                )}
               </div>
             </div>
             
@@ -404,13 +418,22 @@ export function QuickViewModal({ product, open, onClose }: QuickViewModalProps) 
 
             {/* Actions */}
             <div className="space-y-3 pt-4">
-              <Button 
-                onClick={handleAddToCart} 
-                className="w-full bg-primary hover:bg-primary/90 text-white h-12 text-base font-medium"
-              >
-                <ShoppingCart className="mr-2 h-5 w-5" />
-                ADD TO BAG
-              </Button>
+              <div className="grid grid-cols-2 gap-3">
+                <Button 
+                  onClick={handleAddToCart} 
+                  variant="outline"
+                  className="w-full border-2 border-primary text-primary hover:bg-primary/10 h-12 text-base font-medium"
+                >
+                  <ShoppingCart className="mr-2 h-5 w-5" />
+                  ADD TO BAG
+                </Button>
+                <Button 
+                  onClick={handleBuyNow} 
+                  className="w-full bg-primary hover:bg-primary/90 text-white h-12 text-base font-medium"
+                >
+                  BUY NOW
+                </Button>
+              </div>
               <Button 
                 onClick={handleWishlist} 
                 variant={isInWishlist ? "secondary" : "outline"}

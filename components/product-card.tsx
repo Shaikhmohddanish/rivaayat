@@ -164,22 +164,25 @@ export function ProductCard({ product, onQuickView, wishlistProductIds, onWishli
     const hasOptions =
       (product.variations?.colors?.length ?? 0) > 0 || (product.variations?.sizes?.length ?? 0) > 0
 
-    if (hasOptions && (!selectedColor || !selectedSize)) {
+    // For products with variations, open quick view modal instead of inline selection
+    if (hasOptions) {
+      if (onQuickView) {
+        onQuickView(product)
+        return
+      }
+      // Fallback to showing variations if quick view is not available
       setShowVariations(true)
-      return toast({ title: "Select options", description: "Choose color and size" })
+      return toast({ title: "Select options", description: "Choose color and size before buying" })
     }
 
-    if (hasOptions && checkStock(selectedColor, selectedSize) <= 0) {
-      return toast({ title: "Out of stock", description: "Selected variant is unavailable", variant: "destructive" })
-    }
-
+    // For products without variations, proceed with purchase
     const cartItem = {
       productId: product._id,
       name: product.name,
       price: product.price,
       image: product.images?.[0]?.url || "",
       quantity: 1,
-      variant: { color: selectedColor || "", size: selectedSize || "" },
+      variant: { color: "", size: "" },
     }
 
     try {

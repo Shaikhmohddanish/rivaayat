@@ -182,7 +182,7 @@ export function Header({ siteSettings }: HeaderProps) {
       )}
 
       {/* Main Header */}
-      <header className={`backdrop-blur supports-[backdrop-filter]:bg-background/60 transition-all border-b ${isScrolled ? "bg-background/95" : "bg-background/40"}`}>
+      <header className={`backdrop-blur supports-backdrop-filter:bg-background/60 transition-all border-b ${isScrolled ? "bg-background/95" : "bg-background/40"}`}>
         <div className="container mx-auto px-4">
           <div className="flex h-16 items-center justify-between gap-3">
             {/* Left: Logo + Mobile Menu */}
