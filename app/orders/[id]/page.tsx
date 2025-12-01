@@ -51,6 +51,28 @@ const getTrackingStatusLabel = (status: string) => {
   }
 }
 
+const paymentStatusStyles = (status: NonNullable<Order["payment"]>["status"]) => {
+  switch (status) {
+    case "paid":
+      return "bg-green-100 text-green-800 border border-green-200"
+    case "failed":
+      return "bg-red-100 text-red-800 border border-red-200"
+    default:
+      return "bg-yellow-100 text-yellow-800 border border-yellow-200"
+  }
+}
+
+const paymentStatusLabel = (status: NonNullable<Order["payment"]>["status"]) => {
+  switch (status) {
+    case "paid":
+      return "Paid"
+    case "failed":
+      return "Failed"
+    default:
+      return "Pending"
+  }
+}
+
 export default function OrderDetailsPage({ params }: { params: Promise<{ id: string }> }) {
   const { data: session, status } = useSession()
   const router = useRouter()
@@ -199,7 +221,7 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                     <div className="space-y-4">
                       {[1, 2, 3, 4].map((i) => (
                         <div key={i} className="flex items-center gap-3 sm:gap-4">
-                          <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full shimmer-card flex-shrink-0"></div>
+                          <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full shimmer-card shrink-0"></div>
                           <div className="flex-1 space-y-2">
                             <div className="h-4 sm:h-5 w-24 sm:w-32 rounded shimmer"></div>
                             <div className="h-3 w-16 sm:w-24 rounded shimmer"></div>
@@ -219,7 +241,7 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                     <div className="space-y-6">
                       {[1, 2].map((i) => (
                         <div key={i} className="flex gap-3 sm:gap-4">
-                          <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl shimmer-card flex-shrink-0"></div>
+                          <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl shimmer-card shrink-0"></div>
                           <div className="flex-1 space-y-3 min-w-0">
                             <div className="h-4 sm:h-6 w-full sm:w-64 rounded-lg shimmer"></div>
                             <div className="flex gap-2">
@@ -232,7 +254,7 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                               <div className="h-3 w-24 rounded shimmer"></div>
                             </div>
                           </div>
-                          <div className="hidden sm:block text-right space-y-2 flex-shrink-0">
+                          <div className="hidden sm:block text-right space-y-2 shrink-0">
                             <div className="h-5 sm:h-6 w-20 rounded-lg shimmer"></div>
                             <div className="h-4 w-16 rounded shimmer"></div>
                           </div>
@@ -368,7 +390,7 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
               </div>
               <Badge
                 variant="outline"
-                className={`${getStatusColor(order.status)} capitalize text-sm sm:text-base px-3 sm:px-4 py-1.5 sm:py-2 self-start flex-shrink-0`}
+                className={`${getStatusColor(order.status)} capitalize text-sm sm:text-base px-3 sm:px-4 py-1.5 sm:py-2 self-start shrink-0`}
               >
                 {getStatusIcon(order.status)}
                 <span className="ml-2">{order.status === "out_for_delivery" ? "Out for Delivery" : order.status}</span>
@@ -392,26 +414,26 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                     <div className="space-y-4">
                       {[...order.trackingHistory].reverse().map((tracking: any, index: number) => (
                         <div key={index} className="flex gap-3 sm:gap-4">
-                          <div className="flex flex-col items-center flex-shrink-0">
+                          <div className="flex flex-col items-center shrink-0">
                             <div className="rounded-full bg-background border-2 p-1">
                               {getTrackingStatusIcon(tracking.status)}
                             </div>
                             {index < order.trackingHistory!.length - 1 && (
-                              <div className="w-0.5 flex-1 bg-border mt-2 min-h-[40px]" />
+                              <div className="w-0.5 flex-1 bg-border mt-2 min-h-10" />
                             )}
                           </div>
                           <div className="flex-1 pb-4 min-w-0">
                             <p className="font-semibold text-sm sm:text-base">
                               {getTrackingStatusLabel(tracking.status)}
                             </p>
-                            <p className="text-xs text-muted-foreground mt-1 break-words">
+                            <p className="text-xs text-muted-foreground mt-1 wrap-break-word">
                               {new Date(tracking.timestamp).toLocaleString('en-IN', {
                                 dateStyle: 'medium',
                                 timeStyle: 'short'
                               })}
                             </p>
                             {tracking.message && (
-                              <p className="text-xs sm:text-sm mt-2 text-muted-foreground break-words">
+                              <p className="text-xs sm:text-sm mt-2 text-muted-foreground wrap-break-word">
                                 {tracking.message}
                               </p>
                             )}
@@ -479,8 +501,8 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                   <div className="space-y-6">
                     {order.items.map((item, index) => (
                       <div key={index} className="flex gap-3 sm:gap-4">
-                        <div className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-lg overflow-hidden bg-muted flex-shrink-0">
-                          <div className="w-full h-full bg-gradient-to-br from-primary/20 to-primary/40 flex items-center justify-center">
+                        <div className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-lg overflow-hidden bg-muted shrink-0">
+                          <div className="w-full h-full bg-linear-to-br from-primary/20 to-primary/40 flex items-center justify-center">
                             <Package className="h-6 w-6 sm:h-8 sm:w-8 text-primary" />
                           </div>
                         </div>
@@ -488,7 +510,7 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                           <h4 className="font-semibold text-sm sm:text-lg line-clamp-2">{item.name}</h4>
                           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs sm:text-sm text-muted-foreground">
                             <span className="flex items-center gap-1 whitespace-nowrap">
-                              <div className="w-3 h-3 rounded-full border flex-shrink-0" style={{ backgroundColor: item.variant.color.toLowerCase() }}></div>
+                              <div className="w-3 h-3 rounded-full border shrink-0" style={{ backgroundColor: item.variant.color.toLowerCase() }}></div>
                               {item.variant.color}
                             </span>
                             <span className="whitespace-nowrap">Size: {item.variant.size}</span>
@@ -503,7 +525,7 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                             )}
                           </div>
                         </div>
-                        <div className="hidden sm:block text-right flex-shrink-0">
+                        <div className="hidden sm:block text-right shrink-0">
                           <p className="font-semibold text-lg">₹{item.price.toFixed(2)}</p>
                           {item.quantity > 1 && (
                             <p className="text-sm text-muted-foreground">
@@ -624,6 +646,53 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                   </div>
                 </CardContent>
               </Card>
+
+              {order.payment && (
+                <Card className="elegant-shadow">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <CreditCard className="h-5 w-5" />
+                      Payment Details
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4 text-sm">
+                      <div className="flex items-center justify-between">
+                        <span className="text-muted-foreground">Status:</span>
+                        <span className={`text-xs px-2 py-0.5 rounded-full ${paymentStatusStyles(order.payment.status)}`}>
+                          {paymentStatusLabel(order.payment.status)}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Amount:</span>
+                        <span className="font-semibold">
+                          ₹{(order.payment.amount ?? calculateTotal()).toFixed(2)} {order.payment.currency}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Method:</span>
+                        <span className="capitalize">{order.payment.method || "online"}</span>
+                      </div>
+                      {order.payment.razorpayOrderId && (
+                        <div className="space-y-1 text-xs">
+                          <p className="text-muted-foreground">Razorpay Order ID</p>
+                          <p className="font-mono break-all bg-muted px-2 py-1 rounded">
+                            {order.payment.razorpayOrderId}
+                          </p>
+                        </div>
+                      )}
+                      {order.payment.razorpayPaymentId && (
+                        <div className="space-y-1 text-xs">
+                          <p className="text-muted-foreground">Payment ID</p>
+                          <p className="font-mono break-all bg-muted px-2 py-1 rounded">
+                            {order.payment.razorpayPaymentId}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
 
               <Card className="elegant-shadow">
                 <CardHeader>

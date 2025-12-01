@@ -11,6 +11,12 @@ import { QuickViewModal } from "@/components/quick-view-modal"
 import { ShoppingBag, ArrowRight } from "lucide-react"
 import { getCachedWishlist, updateWishlistCache } from "@/lib/wishlist-cache"
 
+declare global {
+  interface Window {
+    Razorpay?: any
+  }
+}
+
 interface HomePageClientProps {
   featuredProducts: (Product & { _id: string })[]
   newProducts: (Product & { _id: string })[]
@@ -21,6 +27,7 @@ export function HomePageClient({ featuredProducts, newProducts, categories }: Ho
   const { data: session, status } = useSession()
   const [quickViewProduct, setQuickViewProduct] = useState<(Product & { _id: string }) | null>(null)
   const [wishlistProductIds, setWishlistProductIds] = useState<string[]>([])
+  const [isRazorpayReady, setIsRazorpayReady] = useState(false)
 
   // 🚀 OPTIMIZATION Item 7 & 11: Fetch wishlist once with cache support
   useEffect(() => {
@@ -55,6 +62,38 @@ export function HomePageClient({ featuredProducts, newProducts, categories }: Ho
 
     fetchWishlist()
   }, [session, status])
+
+  useEffect(() => {
+    const scriptSrc = "https://checkout.razorpay.com/v1/checkout.js"
+    if (typeof window === "undefined") return
+
+    if (window.Razorpay) {
+      setIsRazorpayReady(true)
+      return
+    }
+
+    const existingScript = document.querySelector(`script[src="${scriptSrc}"]`) as HTMLScriptElement | null
+    if (existingScript) {
+      existingScript.addEventListener("load", () => setIsRazorpayReady(true))
+      existingScript.addEventListener("error", () => setIsRazorpayReady(false))
+      return
+    }
+
+    const script = document.createElement("script")
+    script.src = scriptSrc
+    script.async = true
+    script.onload = () => setIsRazorpayReady(true)
+    script.onerror = () => {
+      setIsRazorpayReady(false)
+      console.error("Failed to load Razorpay SDK")
+    }
+    document.body.appendChild(script)
+
+    return () => {
+      script.onload = null
+      script.onerror = null
+    }
+  }, [])
 
   const slides: Slide[] = [
     {

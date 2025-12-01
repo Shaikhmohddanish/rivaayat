@@ -1,4 +1,5 @@
 import { getDatabase } from "@/lib/mongodb"
+import { clampOnlinePaymentLimit, DEFAULT_MAX_ONLINE_PAYMENT_AMOUNT } from "@/lib/payment-limits"
 import type { SiteSettings } from "@/lib/types"
 
 const COLLECTION_NAME = "site_settings"
@@ -9,6 +10,8 @@ const DEFAULT_SITE_SETTINGS: SiteSettings = {
   contactPhone: "+918097787110",
   contactEmail: "sales@rivaayatposhak.co.in",
   freeShippingThreshold: 1499,
+  flatShippingFee: 200,
+  maxOnlinePaymentAmount: DEFAULT_MAX_ONLINE_PAYMENT_AMOUNT,
   activePromoCouponCode: "",
   announcementBar: {
     isEnabled: true,
@@ -35,6 +38,8 @@ function normalizeSiteSettings(doc?: Partial<SiteSettings> | null): SiteSettings
     ...DEFAULT_SITE_SETTINGS,
     ...doc,
     freeShippingThreshold: doc?.freeShippingThreshold ?? DEFAULT_SITE_SETTINGS.freeShippingThreshold,
+    flatShippingFee: doc?.flatShippingFee ?? DEFAULT_SITE_SETTINGS.flatShippingFee,
+    maxOnlinePaymentAmount: clampOnlinePaymentLimit(doc?.maxOnlinePaymentAmount ?? DEFAULT_SITE_SETTINGS.maxOnlinePaymentAmount),
     announcementBar: {
       ...DEFAULT_SITE_SETTINGS.announcementBar,
       ...(doc?.announcementBar ?? {}),
@@ -61,6 +66,8 @@ function mergeSettings(base: SiteSettings, updates: Partial<SiteSettings>): Site
     ...base,
     ...updates,
     freeShippingThreshold: updates.freeShippingThreshold ?? base.freeShippingThreshold,
+    flatShippingFee: updates.flatShippingFee ?? base.flatShippingFee,
+    maxOnlinePaymentAmount: clampOnlinePaymentLimit(updates.maxOnlinePaymentAmount ?? base.maxOnlinePaymentAmount),
     announcementBar: {
       ...base.announcementBar,
       ...(updates.announcementBar ?? {}),

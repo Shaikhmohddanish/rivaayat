@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
+import { clampOnlinePaymentLimit } from "@/lib/payment-limits"
 import { getSiteSettings, updateSiteSettings } from "@/lib/site-settings"
 import type { SiteSettings } from "@/lib/types"
 
@@ -47,6 +48,16 @@ export async function PUT(request: NextRequest) {
 
     if (typeof payload.freeShippingThreshold === "number") {
       sanitized.freeShippingThreshold = Number(payload.freeShippingThreshold) || 1499
+    }
+
+    if (typeof payload.flatShippingFee === "number") {
+      const fee = Number(payload.flatShippingFee)
+      sanitized.flatShippingFee = Number.isFinite(fee) && fee >= 0 ? fee : 200
+    }
+
+    if (typeof payload.maxOnlinePaymentAmount === "number") {
+      const maxAmount = Number(payload.maxOnlinePaymentAmount)
+      sanitized.maxOnlinePaymentAmount = clampOnlinePaymentLimit(maxAmount)
     }
 
     if (typeof payload.activePromoCouponCode === "string") {

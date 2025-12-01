@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -13,7 +13,18 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { indianStates } from "@/lib/indian-states"
 import type { CartItem } from "@/lib/types"
+import { DEFAULT_MAX_ONLINE_PAYMENT_AMOUNT } from "@/lib/payment-limits"
 import { useToast } from "@/hooks/use-toast"
+
+declare global {
+  interface Window {
+    Razorpay?: new (options: any) => {
+      open: () => void
+      on: (event: string, handler: (response: any) => void) => void
+      close?: () => void
+    }
+  }
+}
 
 export default function CheckoutPage() {
   const router = useRouter()
@@ -25,6 +36,12 @@ export default function CheckoutPage() {
   const [couponCode, setCouponCode] = useState("")
   const [couponError, setCouponError] = useState("")
   const [applyingCoupon, setApplyingCoupon] = useState(false)
+  const [isRazorpayReady, setIsRazorpayReady] = useState(false)
+  const [siteConfig, setSiteConfig] = useState({
+    freeShippingThreshold: 1500,
+    flatShippingFee: 200,
+    maxOnlinePaymentAmount: DEFAULT_MAX_ONLINE_PAYMENT_AMOUNT,
+  })
   const [formData, setFormData] = useState({
     fullName: "",
     email: "",
@@ -96,6 +113,174 @@ export default function CheckoutPage() {
       }
     }
   }, [router])
+
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const response = await fetch("/api/site-settings", { cache: "no-store" })
+        if (!response.ok) return
+        const data = await response.json()
+        setSiteConfig({
+          freeShippingThreshold: Number(data.freeShippingThreshold) || 1500,
+          flatShippingFee: Number(data.flatShippingFee) || 200,
+          maxOnlinePaymentAmount: Number(data.maxOnlinePaymentAmount) || DEFAULT_MAX_ONLINE_PAYMENT_AMOUNT,
+        })
+      } catch (error) {
+        console.error("Error loading site settings:", error)
+      }
+    }
+
+    fetchSettings()
+  }, [])
+
+  useEffect(() => {
+    const scriptSrc = "https://checkout.razorpay.com/v1/checkout.js"
+
+    if (typeof window === "undefined") return
+
+    if (window.Razorpay) {
+      setIsRazorpayReady(true)
+      return
+    }
+
+    const existingScript = document.querySelector(`script[src="${scriptSrc}"]`) as HTMLScriptElement | null
+    if (existingScript) {
+      existingScript.addEventListener("load", () => setIsRazorpayReady(true))
+      existingScript.addEventListener("error", () => setIsRazorpayReady(false))
+      return
+    }
+
+    const script = document.createElement("script")
+    script.src = scriptSrc
+    script.async = true
+    script.onload = () => setIsRazorpayReady(true)
+    script.onerror = () => {
+      setIsRazorpayReady(false)
+      toast({
+        title: "Payment Error",
+        description: "Unable to load Razorpay. Please refresh the page and try again.",
+        variant: "destructive",
+      })
+    }
+    document.body.appendChild(script)
+
+    return () => {
+      script.onload = null
+      script.onerror = null
+    }
+  }, [toast])
+
+  const buildShippingPayload = () => {
+    if (showAddressForm) {
+      return {
+        fullName: formData.fullName,
+        email: formData.email,
+        phone: formData.phone,
+        addressLine1: formData.addressLine1,
+        addressLine2: formData.addressLine2,
+        city: formData.city,
+        state: formData.state,
+        postalCode: formData.postalCode,
+        country: formData.country,
+      }
+    }
+
+    return {
+      fullName: formData.fullName,
+      email: formData.email,
+      phone: formData.phone,
+      country: "India",
+    }
+  }
+
+  const clearCachesAfterOrder = useCallback(async () => {
+    localStorage.removeItem("cart")
+    localStorage.removeItem("appliedCoupon")
+
+    try {
+      const { updateCartCache } = await import("@/lib/cart-cache")
+      updateCartCache([])
+    } catch (e) {
+      console.debug("Cart cache clear skipped:", e)
+    }
+
+    try {
+      const { clearProductCache } = await import("@/lib/product-cache")
+      await clearProductCache()
+      console.log("Product cache cleared after order placement")
+    } catch (e) {
+      console.debug("Product cache clear skipped:", e)
+    }
+
+    try {
+      const { clearProductListCache } = await import("@/lib/product-list-cache")
+      clearProductListCache()
+      console.log("SessionStorage product cache cleared after order placement")
+    } catch (e) {
+      console.debug("SessionStorage product cache clear skipped:", e)
+    }
+
+    try {
+      const { deleteAdminCache, ADMIN_CACHE_KEYS } = await import("@/lib/admin-cache")
+      deleteAdminCache(ADMIN_CACHE_KEYS.DASHBOARD_STATS)
+      console.log("Admin dashboard cache cleared after order placement")
+    } catch (e) {
+      console.debug("Admin cache clear skipped:", e)
+    }
+
+    window.dispatchEvent(new Event("cartUpdated"))
+    window.dispatchEvent(new Event("productStockUpdated"))
+    window.dispatchEvent(new Event("adminStatsUpdated"))
+  }, [])
+
+  const verifyPaymentAndFinalizeOrder = useCallback(
+    async (
+      paymentResponse: { razorpay_payment_id: string; razorpay_order_id: string; razorpay_signature: string },
+      shippingPayload: ReturnType<typeof buildShippingPayload>
+    ) => {
+      try {
+        const verifyResponse = await fetch("/api/payments/verify", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            items: cart,
+            coupon: appliedCoupon,
+            shippingAddress: shippingPayload,
+            razorpayOrderId: paymentResponse.razorpay_order_id,
+            razorpayPaymentId: paymentResponse.razorpay_payment_id,
+            razorpaySignature: paymentResponse.razorpay_signature,
+            paymentMethod: "online",
+          }),
+        })
+
+        const data = await verifyResponse.json()
+
+        if (!verifyResponse.ok) {
+          toast({
+            title: "Payment Verification Failed",
+            description: data.error || "Unable to verify the payment. Please contact support.",
+            variant: "destructive",
+          })
+          return
+        }
+
+        await clearCachesAfterOrder()
+
+        const tracking = data.trackingNumber || data.orderId
+        router.push(`/order-success?trackingNumber=${tracking}`)
+      } catch (error) {
+        console.error("Payment verification error:", error)
+        toast({
+          title: "Payment Error",
+          description: "Something went wrong while verifying your payment.",
+          variant: "destructive",
+        })
+      } finally {
+        setLoading(false)
+      }
+    },
+    [appliedCoupon, cart, clearCachesAfterOrder, router, toast]
+  )
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value })
@@ -179,102 +364,115 @@ export default function CheckoutPage() {
       return
     }
 
+    if (exceedsPaymentLimit) {
+      toast({
+        title: "Payment Limit Exceeded",
+        description: `Online payments are limited to ₹${siteConfig.maxOnlinePaymentAmount.toLocaleString()}. Please reduce cart value or contact support for a manual payment link.`,
+        variant: "destructive",
+      })
+      setLoading(false)
+      return
+    }
+
+    if (!window.Razorpay || !isRazorpayReady) {
+      toast({
+        title: "Payment Unavailable",
+        description: "Payment service not ready. Please refresh and try again.",
+        variant: "destructive",
+      })
+      setLoading(false)
+      return
+    }
+
+    const shippingPayload = buildShippingPayload()
+
     try {
-      // 🚀 OPTIMIZATION: Order API now handles validation, no need for pre-validation
-      // Removed duplicate stock validation call - order API does it all
-      const response = await fetch("/api/orders", {
+      const response = await fetch("/api/payments/create-order", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           items: cart,
           coupon: appliedCoupon,
-          shippingAddress: showAddressForm ? formData : {
-            fullName: formData.fullName,
-            email: formData.email,
-            phone: formData.phone,
-            country: "India"
-          },
+          shippingAddress: shippingPayload,
         }),
       })
 
       const data = await response.json()
 
       if (!response.ok) {
-        // Handle specific error cases
         if (data.error === "Insufficient stock" && data.details) {
           toast({
             title: "Stock Issues",
-            description: `${data.details.join(", ")}. Please refresh the page and update your cart.`,
-            variant: "destructive"
+            description: `${data.details.join(", ")}. Please refresh and update your cart.`,
+            variant: "destructive",
           })
         } else {
           toast({
-            title: "Order Failed",
-            description: data.error || "Failed to create order",
-            variant: "destructive"
+            title: "Payment Error",
+            description: data.error || "Unable to initiate payment.",
+            variant: "destructive",
           })
         }
         setLoading(false)
         return
       }
 
-      // 🚀 Cart is already cleared on the server, now clear all local caches
-      localStorage.removeItem("cart")
-      localStorage.removeItem("appliedCoupon")
-      
-      // Clear cart cache
-      try {
-        const { updateCartCache } = await import("@/lib/cart-cache")
-        updateCartCache([]) // Clear cart cache
-      } catch (e) {
-        console.debug("Cart cache clear skipped:", e)
+      if (!data.key || !data.razorpayOrderId) {
+        toast({
+          title: "Payment Configuration Error",
+          description: "Missing payment configuration. Please contact support.",
+          variant: "destructive",
+        })
+        setLoading(false)
+        return
       }
 
-      // Clear product cache to reflect updated stock levels
-      try {
-        const { clearProductCache } = await import("@/lib/product-cache")
-        await clearProductCache()
-        console.log("Product cache cleared after order placement")
-      } catch (e) {
-        console.debug("Product cache clear skipped:", e)
+      const razorpayOptions = {
+        key: data.key,
+        amount: data.amount,
+        currency: data.currency,
+        name: "Rivaayat",
+        description: "Order Payment",
+        order_id: data.razorpayOrderId,
+        prefill: {
+          name: formData.fullName,
+          email: formData.email,
+          contact: formData.phone,
+        },
+        notes: {
+          shippingAddress: JSON.stringify(shippingPayload),
+        },
+        handler: (paymentResponse: any) => {
+          verifyPaymentAndFinalizeOrder(paymentResponse, shippingPayload)
+        },
+        theme: {
+          color: "#0f172a",
+        },
+        modal: {
+          ondismiss: () => {
+            setLoading(false)
+          },
+        },
       }
 
-      // Clear sessionStorage product cache as well
-      try {
-        const { clearProductListCache } = await import("@/lib/product-list-cache")
-        clearProductListCache()
-        console.log("SessionStorage product cache cleared after order placement")
-      } catch (e) {
-        console.debug("SessionStorage product cache clear skipped:", e)
-      }
+      const razorpay = new window.Razorpay(razorpayOptions)
+      razorpay.on("payment.failed", (response: any) => {
+        console.error("Payment failed:", response.error)
+        toast({
+          title: "Payment Failed",
+          description: response.error?.description || "Your payment did not go through.",
+          variant: "destructive",
+        })
+        setLoading(false)
+      })
 
-      // Clear admin cache to reflect new order count
-      try {
-        const { deleteAdminCache, ADMIN_CACHE_KEYS } = await import("@/lib/admin-cache")
-        deleteAdminCache(ADMIN_CACHE_KEYS.DASHBOARD_STATS)
-        console.log("Admin dashboard cache cleared after order placement")
-      } catch (e) {
-        console.debug("Admin cache clear skipped:", e)
-      }
-      
-      // Dispatch events to update UI (header cart count, product stock, etc.)
-      window.dispatchEvent(new Event("cartUpdated"))
-      window.dispatchEvent(new Event("productStockUpdated"))
-      window.dispatchEvent(new Event("adminStatsUpdated"))
-
-      // Redirect to success page with tracking number
-      if (data.trackingNumber) {
-        router.push(`/order-success?trackingNumber=${data.trackingNumber}`)
-      } else {
-        // Fallback to orderId if trackingNumber is not available
-        router.push(`/order-success?trackingNumber=${data.orderId}`)
-      }
+      razorpay.open()
     } catch (error) {
-      console.error("Order submission error:", error)
+      console.error("Payment initialization error:", error)
       toast({
-        title: "Error",
-        description: "An error occurred. Please try again.",
-        variant: "destructive"
+        title: "Payment Error",
+        description: "Unable to start the payment. Please try again.",
+        variant: "destructive",
       })
       setLoading(false)
     }
@@ -283,8 +481,9 @@ export default function CheckoutPage() {
   const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0)
   const discountAmount = appliedCoupon ? (subtotal * appliedCoupon.discountPercent / 100) : 0
   const discountedSubtotal = subtotal - discountAmount
-  const shipping = discountedSubtotal > 1500 ? 0 : 200
+  const shipping = discountedSubtotal > siteConfig.freeShippingThreshold ? 0 : siteConfig.flatShippingFee
   const total = discountedSubtotal + shipping
+  const exceedsPaymentLimit = total > siteConfig.maxOnlinePaymentAmount
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -546,9 +745,25 @@ export default function CheckoutPage() {
                   </div>
                 </div>
 
-                <Button type="submit" className="w-full" size="lg" disabled={loading}>
+                {exceedsPaymentLimit && (
+                  <p className="text-sm text-destructive mb-2">
+                    Online payments support up to ₹{siteConfig.maxOnlinePaymentAmount.toLocaleString()}. Please adjust your cart or contact us for offline payment assistance.
+                  </p>
+                )}
+                <Button
+                  type="submit"
+                  className="w-full"
+                  size="lg"
+                  disabled={loading || !isRazorpayReady || exceedsPaymentLimit}
+                >
                   {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  {loading ? "Processing..." : "Place Order"}
+                  {loading
+                    ? "Processing..."
+                    : !isRazorpayReady
+                      ? "Preparing Payment"
+                      : exceedsPaymentLimit
+                        ? "Payment Limit Reached"
+                        : "Pay with Razorpay"}
                 </Button>
               </CardContent>
             </Card>

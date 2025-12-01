@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useToast } from "@/hooks/use-toast"
+import { DEFAULT_MAX_ONLINE_PAYMENT_AMOUNT, RAZORPAY_ORDER_AMOUNT_HARD_LIMIT } from "@/lib/payment-limits"
 
 interface FormState {
   promoMessage: string
@@ -23,6 +24,8 @@ interface FormState {
   contactPhone: string
   contactEmail: string
   freeShippingThreshold: number
+  flatShippingFee: number
+  maxOnlinePaymentAmount: number
   activePromoCouponCode: string
   whatsappHelper: string
   whatsappMessage: string
@@ -42,6 +45,8 @@ const defaultFormState: FormState = {
   contactPhone: "+918097787110",
   contactEmail: "sales@rivaayatposhak.co.in",
   freeShippingThreshold: 1499,
+  flatShippingFee: 200,
+  maxOnlinePaymentAmount: DEFAULT_MAX_ONLINE_PAYMENT_AMOUNT,
   activePromoCouponCode: "",
   whatsappHelper: "Need help styling your look?",
   whatsappMessage: "Hi Rivaayat team, I'd love to chat!",
@@ -56,6 +61,7 @@ export default function SiteSettingsPage() {
   const [coupons, setCoupons] = useState<Array<{ _id: string; code: string; isActive: boolean }>>([])
   const { toast } = useToast()
   const formId = "site-settings-form"
+  const razorpayCapDisplay = new Intl.NumberFormat("en-IN").format(RAZORPAY_ORDER_AMOUNT_HARD_LIMIT)
 
   useEffect(() => {
     const fetchSettings = async () => {
@@ -86,6 +92,8 @@ export default function SiteSettingsPage() {
           contactPhone: data?.contactPhone ?? defaultFormState.contactPhone,
           contactEmail: data?.contactEmail ?? defaultFormState.contactEmail,
           freeShippingThreshold: data?.freeShippingThreshold ?? defaultFormState.freeShippingThreshold,
+          flatShippingFee: data?.flatShippingFee ?? defaultFormState.flatShippingFee,
+          maxOnlinePaymentAmount: data?.maxOnlinePaymentAmount ?? defaultFormState.maxOnlinePaymentAmount,
           activePromoCouponCode: data?.activePromoCouponCode ?? defaultFormState.activePromoCouponCode,
           whatsappHelper: data?.whatsapp?.helperText ?? defaultFormState.whatsappHelper,
           whatsappMessage: data?.whatsapp?.defaultMessage ?? defaultFormState.whatsappMessage,
@@ -125,6 +133,8 @@ export default function SiteSettingsPage() {
         contactPhone: form.contactPhone,
         contactEmail: form.contactEmail,
         freeShippingThreshold: form.freeShippingThreshold,
+        flatShippingFee: form.flatShippingFee,
+        maxOnlinePaymentAmount: form.maxOnlinePaymentAmount,
         activePromoCouponCode: form.activePromoCouponCode,
         promoBanner: {
           message: form.promoMessage,
@@ -169,6 +179,8 @@ export default function SiteSettingsPage() {
         contactPhone: updated?.contactPhone ?? form.contactPhone,
         contactEmail: updated?.contactEmail ?? form.contactEmail,
         freeShippingThreshold: updated?.freeShippingThreshold ?? form.freeShippingThreshold,
+        flatShippingFee: updated?.flatShippingFee ?? form.flatShippingFee,
+        maxOnlinePaymentAmount: updated?.maxOnlinePaymentAmount ?? form.maxOnlinePaymentAmount,
         activePromoCouponCode: updated?.activePromoCouponCode ?? form.activePromoCouponCode,
         whatsappHelper: updated?.whatsapp?.helperText ?? form.whatsappHelper,
         whatsappMessage: updated?.whatsapp?.defaultMessage ?? form.whatsappMessage,
@@ -315,6 +327,33 @@ export default function SiteSettingsPage() {
                   placeholder="1499" 
                 />
                 <p className="text-xs text-muted-foreground">Minimum order value for free shipping</p>
+              </div>
+              <div className="space-y-2">
+                <Label>Flat shipping fee (₹)</Label>
+                <Input
+                  type="number"
+                  value={form.flatShippingFee}
+                  onChange={(e) => setForm((prev) => ({ ...prev, flatShippingFee: Number(e.target.value) }))}
+                  placeholder="200"
+                />
+                <p className="text-xs text-muted-foreground">Fee applied when order is below the free-shipping threshold</p>
+              </div>
+              <div className="space-y-2">
+                <Label>Max online payment amount (₹)</Label>
+                <Input
+                  type="number"
+                  value={form.maxOnlinePaymentAmount}
+                  onChange={(e) => {
+                    const entered = Number(e.target.value)
+                    const safeValue = Number.isFinite(entered) ? entered : 0
+                    const clamped = Math.min(Math.max(safeValue, 0), RAZORPAY_ORDER_AMOUNT_HARD_LIMIT)
+                    setForm((prev) => ({ ...prev, maxOnlinePaymentAmount: clamped }))
+                  }}
+                  placeholder={DEFAULT_MAX_ONLINE_PAYMENT_AMOUNT.toString()}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Orders above this amount require offline handling. Razorpay caps a single online payment at ₹{razorpayCapDisplay}.
+                </p>
               </div>
               <div className="space-y-2">
                 <Label>Active promo coupon code</Label>

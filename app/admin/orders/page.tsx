@@ -11,6 +11,7 @@ import { AdminPagination } from "@/components/admin-pagination"
 import type { Order } from "@/lib/types"
 import { useToast } from "@/hooks/use-toast"
 import OrdersLoading from "./loading"
+import { CreditCard } from "lucide-react"
 
 export default function AdminOrdersPage() {
   const { data: session, status } = useSession()
@@ -95,6 +96,17 @@ export default function AdminOrdersPage() {
         return "bg-red-500"
       default:
         return "bg-gray-500"
+    }
+  }
+
+  const getPaymentStatusStyles = (payment?: Order["payment"]) => {
+    switch (payment?.status) {
+      case "paid":
+        return "bg-green-100 text-green-800"
+      case "failed":
+        return "bg-red-100 text-red-800"
+      default:
+        return "bg-yellow-100 text-yellow-800"
     }
   }
 
@@ -194,6 +206,29 @@ export default function AdminOrdersPage() {
                       ))}
                     </div>
                   </div>
+                  {order.payment && (
+                    <div className="border-t pt-3 sm:pt-4">
+                      <h4 className="font-semibold mb-2 text-sm sm:text-base flex items-center gap-2">
+                        <CreditCard className="h-4 w-4" /> Payment
+                      </h4>
+                      <div className="text-xs sm:text-sm space-y-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className={`px-2 py-0.5 rounded-full ${getPaymentStatusStyles(order.payment)}`}>
+                            {order.payment.status === "paid" ? "Paid" : order.payment.status}
+                          </span>
+                          <span className="font-semibold">
+                            ₹{(order.payment.amount ?? 0).toFixed(2)} {order.payment.currency}
+                          </span>
+                          <span className="text-muted-foreground capitalize">{order.payment.method || "online"}</span>
+                        </div>
+                        {order.payment.razorpayPaymentId && (
+                          <p className="text-muted-foreground break-all">
+                            Payment ID: {order.payment.razorpayPaymentId}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  )}
                   {order.tracking && (order.tracking.carrier || order.tracking.trackingId) && (
                     <div className="border-t pt-3 sm:pt-4">
                       <h4 className="font-semibold mb-2 text-sm sm:text-base">Tracking Information</h4>

@@ -84,6 +84,17 @@ export interface OrderTrackingStatus {
   updatedBy?: string // Admin user ID who updated the status
 }
 
+export interface PaymentInfo {
+  provider: "razorpay"
+  status: "pending" | "paid" | "failed"
+  amount: number
+  currency: string
+  razorpayOrderId?: string
+  razorpayPaymentId?: string
+  razorpaySignature?: string
+  method?: string
+}
+
 // Separate collection for order tracking events
 export interface OrderTracking {
   _id?: string
@@ -108,6 +119,7 @@ export interface Order {
     trackingId?: string
     notes?: string
   }
+  payment?: PaymentInfo
   shippingAddress?: {
     fullName: string
     email: string
@@ -171,6 +183,8 @@ export interface SiteSettings {
   contactPhone: string
   contactEmail: string
   freeShippingThreshold: number // Free shipping threshold (e.g., 1499)
+  flatShippingFee: number // Flat shipping fee when threshold not met
+  maxOnlinePaymentAmount?: number // Maximum amount allowed per online transaction
   activePromoCouponCode?: string // Reference to active coupon code
   announcementBar: {
     isEnabled: boolean
@@ -192,4 +206,23 @@ export interface SiteSettings {
   }
   createdAt?: Date | string
   updatedAt?: Date | string
+}
+
+export interface PaymentRecord {
+  _id?: string
+  userId: string
+  orderId: string
+  provider: "razorpay"
+  status: "created" | "paid" | "failed"
+  amount: number
+  currency: string
+  razorpayOrderId?: string
+  razorpayPaymentId?: string
+  razorpaySignature?: string
+  method?: string
+  metadata?: Record<string, unknown>
+  errorCode?: string
+  errorDescription?: string
+  createdAt: Date
+  updatedAt: Date
 }

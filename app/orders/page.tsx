@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { ShimmerHeading, ShimmerText, ShimmerOrderCard } from "@/components/ui/shimmer"
-import { Package, Truck, CheckCircle, XCircle, Clock, Eye } from "lucide-react"
+import { Package, Truck, CheckCircle, XCircle, Clock, Eye, CreditCard } from "lucide-react"
 import { formatDateTimeIST } from "@/lib/date-utils"
 import type { Order } from "@/lib/types"
 
@@ -103,6 +103,20 @@ export default function OrdersPage() {
     return itemsTotal
   }
 
+  type PaymentStatus = NonNullable<Order["payment"]>["status"]
+
+  const getPaymentBadgeColor = (status?: PaymentStatus) => {
+    switch (status) {
+      case "paid":
+        return "bg-green-100 text-green-800 border border-green-200"
+      case "failed":
+        return "bg-red-100 text-red-800 border border-red-200"
+      case "pending":
+      default:
+        return "bg-yellow-100 text-yellow-800 border border-yellow-200"
+    }
+  }
+
   if (status === "loading" || loading) {
     return (
       <div className="min-h-screen bg-background">
@@ -125,7 +139,7 @@ export default function OrdersPage() {
                           <div className="h-5 sm:h-6 w-32 sm:w-40 rounded shimmer" />
                           <div className="h-4 w-24 sm:w-32 rounded shimmer" />
                         </div>
-                        <div className="h-6 w-20 rounded-full shimmer flex-shrink-0" />
+                        <div className="h-6 w-20 rounded-full shimmer shrink-0" />
                       </div>
                       <div className="h-9 w-full rounded shimmer" />
                     </div>
@@ -136,7 +150,7 @@ export default function OrdersPage() {
                       <div className="space-y-3">
                         {[1, 2].map((j) => (
                           <div key={j} className="flex items-start gap-3">
-                            <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-lg shimmer-card flex-shrink-0" />
+                            <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-lg shimmer-card shrink-0" />
                             <div className="flex-1 space-y-2">
                               <div className="h-4 sm:h-5 w-full sm:w-3/4 rounded shimmer" />
                               <div className="flex gap-2">
@@ -149,7 +163,7 @@ export default function OrdersPage() {
                                 <div className="h-3 w-24 rounded shimmer" />
                               </div>
                             </div>
-                            <div className="hidden sm:block space-y-1 flex-shrink-0">
+                            <div className="hidden sm:block space-y-1 shrink-0">
                               <div className="h-5 w-20 rounded shimmer" />
                               <div className="h-4 w-24 rounded shimmer" />
                             </div>
@@ -267,8 +281,8 @@ export default function OrdersPage() {
                       <div className="space-y-3">
                         {order.items.map((item, index) => (
                           <div key={index} className="flex items-start gap-3">
-                            <div className="relative w-12 h-12 sm:w-16 sm:h-16 rounded-lg overflow-hidden bg-muted flex-shrink-0">
-                              <div className="w-full h-full bg-gradient-to-br from-primary/20 to-primary/40 flex items-center justify-center">
+                            <div className="relative w-12 h-12 sm:w-16 sm:h-16 rounded-lg overflow-hidden bg-muted shrink-0">
+                              <div className="w-full h-full bg-linear-to-br from-primary/20 to-primary/40 flex items-center justify-center">
                                 <Package className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
                               </div>
                             </div>
@@ -288,7 +302,7 @@ export default function OrdersPage() {
                                 )}
                               </div>
                             </div>
-                            <div className="hidden sm:block text-right flex-shrink-0">
+                            <div className="hidden sm:block text-right shrink-0">
                               <p className="font-semibold">₹{item.price.toFixed(2)}</p>
                               {item.quantity > 1 && (
                                 <p className="text-xs text-muted-foreground">
@@ -314,7 +328,7 @@ export default function OrdersPage() {
                             </p>
                           )}
                         </div>
-                        <div className="text-right flex-shrink-0">
+                        <div className="text-right shrink-0">
                           <p className="text-base sm:text-lg font-bold">
                             ₹{calculateTotal(order).toFixed(2)}
                           </p>
@@ -322,19 +336,43 @@ export default function OrdersPage() {
                         </div>
                       </div>
 
+                      {order.payment && (
+                        <div className="bg-muted/40 rounded-lg p-3 sm:p-4 space-y-2">
+                          <div className="flex items-center justify-between text-xs sm:text-sm">
+                            <span className="flex items-center gap-2 font-medium">
+                              <CreditCard className="h-4 w-4" /> Payment
+                            </span>
+                            <span className={`px-2 py-0.5 rounded-full ${getPaymentBadgeColor(order.payment.status)}`}>
+                              {order.payment.status === "paid" ? "Paid" : order.payment.status === "failed" ? "Failed" : "Pending"}
+                            </span>
+                          </div>
+                          <div className="text-xs sm:text-sm text-muted-foreground flex flex-col gap-1">
+                            <span>
+                              Amount: <span className="font-semibold text-foreground">₹{(order.payment.amount ?? calculateTotal(order)).toFixed(2)}</span>
+                            </span>
+                            <span>
+                              Method: {order.payment.method ? order.payment.method.replace(/_/g, " ") : "Online"}
+                            </span>
+                            {order.payment.razorpayPaymentId && (
+                              <span className="break-all">Payment ID: {order.payment.razorpayPaymentId}</span>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
                       {/* Tracking Info */}
                       {order.tracking && (
                         <div className="bg-muted/50 rounded-lg p-3 sm:p-4">
                           <h5 className="font-medium mb-2 text-sm sm:text-base">Tracking Information</h5>
                           <div className="space-y-1 text-xs sm:text-sm">
                             {order.tracking.carrier && (
-                              <p className="break-words"><span className="font-medium">Carrier:</span> {order.tracking.carrier}</p>
+                              <p className="wrap-break-word"><span className="font-medium">Carrier:</span> {order.tracking.carrier}</p>
                             )}
                             {order.tracking.trackingId && (
                               <p className="break-all font-mono text-xs sm:text-sm"><span className="font-sans font-medium">Tracking:</span> {order.tracking.trackingId}</p>
                             )}
                             {order.tracking.notes && (
-                              <p className="text-muted-foreground break-words">{order.tracking.notes}</p>
+                              <p className="text-muted-foreground wrap-break-word">{order.tracking.notes}</p>
                             )}
                           </div>
                         </div>

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
@@ -41,12 +41,23 @@ export function UserDetails({ userId, isOpen, onClose }: UserDetailsProps) {
   const [orders, setOrders] = useState<Order[]>([])
   const [analytics, setAnalytics] = useState<UserAnalytics | null>(null)
   const [savingStatus, setSavingStatus] = useState(false)
+  const lastFetchedUserId = useRef<string | null>(null)
 
   useEffect(() => {
     if (isOpen && userId) {
+      if (lastFetchedUserId.current === userId) {
+        return
+      }
+      lastFetchedUserId.current = userId
       fetchUserDetails()
     }
   }, [isOpen, userId])
+
+  useEffect(() => {
+    if (!isOpen) {
+      lastFetchedUserId.current = null
+    }
+  }, [isOpen])
 
   const fetchUserDetails = async () => {
     try {

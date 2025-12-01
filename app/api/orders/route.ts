@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
 import { requireAuth } from "@/lib/auth"
-import { getDatabase } from "@/lib/mongodb-safe"
-import { ObjectId } from "mongodb"
+import { getDatabase } from "@/lib/mongodb"
+import { OrderValidationError, finalizeOrder, prepareOrderPricing } from "@/lib/order-service"
 
 export async function GET() {
   try {
@@ -34,172 +34,32 @@ export async function POST(request: Request) {
   try {
     const user = await requireAuth()
     const { items, coupon, shippingAddress } = await request.json()
-
-    if (!items || items.length === 0) {
-      return NextResponse.json({ error: "Cart is empty" }, { status: 400 })
-    }
-
-    // Validate items structure
-    for (const item of items) {
-      if (
-        !item.productId ||
-        !item.name ||
-        !item.price ||
-        !item.quantity ||
-        !item.variant?.color ||
-        !item.variant?.size
-      ) {
-        return NextResponse.json({ error: "Invalid item structure" }, { status: 400 })
-      }
-    }
-
-    // Get MongoDB connection
-    const db = await getDatabase();
-    if (!db) {
-      return NextResponse.json({ error: "Database connection error" }, { status: 500 });
-    }
-
-    // 🚀 OPTIMIZATION: Batch fetch all products in single query
-    const productIds = items.map((item: any) => new ObjectId(item.productId))
-    const products = await db.collection('products').find({ 
-      _id: { $in: productIds } 
-    }).toArray()
-
-    // Create a map for quick product lookup
-    const productMap = new Map(products.map(p => [p._id.toString(), p]))
-
-    // Validate stock availability and prepare update operations
-    const stockUpdates: any[] = []
-    const insufficientStock: string[] = []
-    const bulkOps: any[] = []
-
-    for (const item of items) {
-      // Get product from map (no DB query)
-      const product = productMap.get(item.productId)
-
-      if (!product) {
-        return NextResponse.json({ 
-          error: `Product "${item.name}" not found` 
-        }, { status: 400 })
-      }
-
-      // Find the specific variant
-      const variant = product.variations?.variants?.find(
-        (v: any) => v.color === item.variant.color && v.size === item.variant.size
-      )
-
-      if (!variant) {
-        return NextResponse.json({ 
-          error: `Variant ${item.variant.color}/${item.variant.size} not found for "${item.name}"` 
-        }, { status: 400 })
-      }
-
-      // Check if sufficient stock is available
-      if (variant.stock < item.quantity) {
-        insufficientStock.push(
-          `${item.name} (${item.variant.color}/${item.variant.size}): Only ${variant.stock} available, but ${item.quantity} requested`
-        )
-      } else {
-        // Prepare the stock update for bulkWrite
-        bulkOps.push({
-          updateOne: {
-            filter: {
-              _id: new ObjectId(item.productId),
-              'variations.variants': {
-                $elemMatch: {
-                  color: item.variant.color,
-                  size: item.variant.size
-                }
-              }
-            },
-            update: {
-              $inc: {
-                'variations.variants.$.stock': -item.quantity
-              }
-            }
-          }
-        })
-      }
-    }
-
-    // If any item has insufficient stock, return error
-    if (insufficientStock.length > 0) {
-      return NextResponse.json({ 
-        error: "Insufficient stock",
-        details: insufficientStock
-      }, { status: 400 })
-    }
-
-    // Generate a tracking number (format: RIV-YYYYMMDD-XXXX)
-    const date = new Date();
-    const dateStr = `${date.getFullYear()}${String(date.getMonth() + 1).padStart(2, '0')}${String(date.getDate()).padStart(2, '0')}`;
-    const randomPart = Math.floor(1000 + Math.random() * 9000); // 4-digit random number
-    const trackingNumber = `RIV-${dateStr}-${randomPart}`;
-    
-    // Create the order object (without tracking history - that's in separate collection now)
-    const orderData = {
+    const { bulkOps, db, validatedCoupon } = await prepareOrderPricing(items, coupon)
+    const { orderId, trackingNumber, order } = await finalizeOrder({
       userId: user.id,
       items,
-      status: "placed" as const,
-      trackingNumber,
       shippingAddress,
-      ...(coupon && { coupon }),
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-    
-    // Save order to MongoDB
-    const result = await db.collection('orders').insertOne(orderData);
-    
-    if (!result.acknowledged) {
-      return NextResponse.json({ error: "Failed to create order" }, { status: 500 });
-    }
-
-    const orderId = result.insertedId.toString();
-
-    // 🚀 Create initial tracking entry in separate collection
-    const initialTrackingEvent = {
-      status: "order_confirmed" as const,
-      timestamp: new Date(),
-      message: "Your order has been confirmed and is being prepared for processing."
-    };
-
-    await db.collection('order_tracking').insertOne({
-      orderId,
-      trackingNumber,
-      userId: user.id,
-      events: [initialTrackingEvent],
-      currentStatus: "order_confirmed" as const,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
-
-    // 🚀 OPTIMIZATION: Batch update all product stocks in single operation
-    if (bulkOps.length > 0) {
-      await db.collection('products').bulkWrite(bulkOps)
-    }
-
-    // 🚀 Clear user's cart from database
-    await db.collection('carts').deleteOne({ userId: user.id })
-    
-    // Get the created order with its ID
-    const order = {
-      _id: orderId,
-      ...orderData
-    };
-    
-    console.log("✅ Order created, tracking initialized, stock updated, cart cleared");
+      coupon: validatedCoupon,
+      bulkOps,
+      db,
+    })
 
     return NextResponse.json(
       {
         message: "Order created successfully",
-        orderId: result.insertedId.toString(),
+        orderId,
         trackingNumber,
         order,
       },
-      { status: 201 },
+      { status: 201 }
     )
   } catch (error) {
+    if (error instanceof OrderValidationError) {
+      return NextResponse.json(
+        { error: error.message, details: error.details },
+        { status: error.status }
+      )
+    }
     if (error instanceof Error && error.message === "Unauthorized") {
       return NextResponse.json({ error: "Authentication required" }, { status: 401 })
     }
