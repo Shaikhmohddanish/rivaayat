@@ -9,8 +9,10 @@ import { Input } from "@/components/ui/input"
 import { Trash2, Plus, Minus } from "lucide-react"
 import type { CartItem } from "@/lib/types"
 import { getCachedCart, updateCartCache } from "@/lib/cart-cache"
+import { useToast } from "@/hooks/use-toast"
 
 export default function CartPage() {
+  const { toast } = useToast()
   const [cart, setCart] = useState<CartItem[]>([])
   const [couponCode, setCouponCode] = useState("")
   const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discountPercent: number; minOrderValue?: number } | null>(null)
@@ -18,6 +20,7 @@ export default function CartPage() {
   const [isApplyingCoupon, setIsApplyingCoupon] = useState(false)
   const [updatingItems, setUpdatingItems] = useState<Set<number>>(new Set())
   const [removingItems, setRemovingItems] = useState<Set<number>>(new Set())
+  const [productStocks, setProductStocks] = useState<Record<string, number>>({})
 
   useEffect(() => {
     // 🚀 OPTIMIZATION Item 10: Try cache first for instant display
@@ -44,6 +47,9 @@ export default function CartPage() {
           // Update cache
           updateCartCache(freshItems)
           console.log("Cart updated from API:", freshItems.length, "items")
+          
+          // Fetch stock information for all cart items
+          await fetchStockInfo(freshItems)
         } else {
           console.error('Failed to fetch cart')
           if (!cached) setCart([])
@@ -69,6 +75,36 @@ export default function CartPage() {
     }
   }, [])
 
+  // Fetch stock information for cart items
+  const fetchStockInfo = async (items: CartItem[]) => {
+    const stockInfo: Record<string, number> = {}
+    
+    for (const item of items) {
+      try {
+        const response = await fetch(`/api/products/${item.productId}`)
+        if (response.ok) {
+          const product = await response.json()
+          const variant = product.variations?.variants?.find(
+            (v: any) => v.color === item.variant?.color && v.size === item.variant?.size
+          )
+          if (variant) {
+            const key = `${item.productId}-${item.variant?.color}-${item.variant?.size}`
+            stockInfo[key] = variant.stock || 0
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching stock info:', error)
+      }
+    }
+    
+    setProductStocks(stockInfo)
+  }
+
+  const getStockForItem = (item: CartItem): number => {
+    const key = `${item.productId}-${item.variant?.color}-${item.variant?.size}`
+    return productStocks[key] || 0
+  }
+
   const updateCart = async (newCart: CartItem[]) => {
     setCart(newCart)
     
@@ -84,7 +120,18 @@ export default function CartPage() {
     if (updatingItems.has(index)) return
     
     const item = cart[index]
+    const availableStock = getStockForItem(item)
     const newQuantity = Math.max(1, item.quantity + delta)
+    
+    // Check if trying to exceed available stock
+    if (delta > 0 && availableStock > 0 && newQuantity > availableStock) {
+      toast({
+        title: "Stock limit reached",
+        description: `Only ${availableStock} ${availableStock === 1 ? 'item' : 'items'} available in stock`,
+        variant: "destructive"
+      })
+      return
+    }
     
     // Mark item as updating
     setUpdatingItems(prev => new Set(prev).add(index))
@@ -117,6 +164,22 @@ export default function CartPage() {
         // Revert on failure
         const errorData = await response.json()
         console.error('Failed to update cart item:', errorData)
+        
+        // Show specific error message
+        if (errorData.availableStock !== undefined) {
+          toast({
+            title: "Insufficient stock",
+            description: `Only ${errorData.availableStock} ${errorData.availableStock === 1 ? 'item' : 'items'} available`,
+            variant: "destructive"
+          })
+        } else {
+          toast({
+            title: "Error",
+            description: errorData.error || "Failed to update quantity",
+            variant: "destructive"
+          })
+        }
+        
         setCart(previousCart)
         updateCartCache(previousCart)
       }
@@ -297,24 +360,31 @@ export default function CartPage() {
                     </div>
 
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Button 
-                          variant="outline" 
-                          size="icon" 
-                          onClick={() => updateQuantity(index, -1)}
-                          disabled={updatingItems.has(index) || item.quantity <= 1}
-                        >
-                          <Minus className="h-4 w-4" />
-                        </Button>
-                        <span className="w-12 text-center font-semibold">{item.quantity}</span>
-                        <Button 
-                          variant="outline" 
-                          size="icon" 
-                          onClick={() => updateQuantity(index, 1)}
-                          disabled={updatingItems.has(index)}
-                        >
-                          <Plus className="h-4 w-4" />
-                        </Button>
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <Button 
+                            variant="outline" 
+                            size="icon" 
+                            onClick={() => updateQuantity(index, -1)}
+                            disabled={updatingItems.has(index) || item.quantity <= 1}
+                          >
+                            <Minus className="h-4 w-4" />
+                          </Button>
+                          <span className="w-12 text-center font-semibold">{item.quantity}</span>
+                          <Button 
+                            variant="outline" 
+                            size="icon" 
+                            onClick={() => updateQuantity(index, 1)}
+                            disabled={updatingItems.has(index) || (getStockForItem(item) > 0 && item.quantity >= getStockForItem(item))}
+                          >
+                            <Plus className="h-4 w-4" />
+                          </Button>
+                        </div>
+                        {getStockForItem(item) > 0 && (
+                          <p className="text-xs text-muted-foreground">
+                            {getStockForItem(item)} available
+                          </p>
+                        )}
                       </div>
                       <p className="font-bold">₹{(item.price * item.quantity).toFixed(2)}</p>
                     </div>
