@@ -15,7 +15,7 @@ export function OfferBar({ message, isEnabled = true }: OfferBarProps) {
 
   return (
     <div className="elegant-gradient text-white py-2 px-4 text-center text-sm relative">
-      <p className="font-medium">{message}</p>
+      <p className="font-medium underline decoration-white/60 underline-offset-2">{message}</p>
       <button
         onClick={() => setIsVisible(false)}
         className="absolute right-4 top-1/2 -translate-y-1/2 hover:opacity-70 transition-opacity"

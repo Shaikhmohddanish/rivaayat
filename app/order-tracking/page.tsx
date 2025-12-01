@@ -13,7 +13,7 @@ import { Package, Truck, CheckCircle, Clock, MapPin, XCircle } from "lucide-reac
 
 const getTrackingStatusIcon = (status: string) => {
   switch (status) {
-    case "order_confirmed":
+    case "placed":
       return <CheckCircle className="h-5 w-5 text-green-500" />
     case "processing":
       return <Package className="h-5 w-5 text-blue-500" />
@@ -32,8 +32,8 @@ const getTrackingStatusIcon = (status: string) => {
 
 const getTrackingStatusLabel = (status: string) => {
   switch (status) {
-    case "order_confirmed":
-      return "Order Confirmed"
+    case "placed":
+      return "Order Placed"
     case "processing":
       return "Processing"
     case "shipped":

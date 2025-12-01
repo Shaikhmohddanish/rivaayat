@@ -78,7 +78,7 @@ export interface SearchableProduct extends Product {
 }
 
 export interface OrderTrackingStatus {
-  status: "order_confirmed" | "processing" | "shipped" | "out_for_delivery" | "delivered" | "cancelled"
+  status: "placed" | "processing" | "shipped" | "out_for_delivery" | "delivered" | "cancelled"
   timestamp: Date
   message: string
   updatedBy?: string // Admin user ID who updated the status
@@ -100,9 +100,9 @@ export interface Order {
   _id?: string
   userId: string
   items: OrderItem[]
-  status: "placed" | "processing" | "shipped" | "delivered" | "cancelled"
+  status: "placed" | "processing" | "shipped" | "out_for_delivery" | "delivered" | "cancelled"
   trackingNumber?: string
-  // Removed trackingHistory - now in separate OrderTracking collection
+  trackingHistory?: OrderTrackingStatus[] // Array of tracking events for backward compatibility
   tracking?: {
     carrier?: string
     trackingId?: string

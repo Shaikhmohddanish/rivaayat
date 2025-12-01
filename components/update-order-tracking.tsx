@@ -30,7 +30,7 @@ interface UpdateOrderTrackingProps {
 }
 
 const trackingStatuses = [
-  { value: "order_confirmed", label: "Order Confirmed", description: "Order has been confirmed" },
+  { value: "placed", label: "Order Placed", description: "Order has been confirmed and placed" },
   { value: "processing", label: "Processing", description: "Order is being prepared" },
   { value: "shipped", label: "Shipped", description: "Order has been shipped" },
   { value: "out_for_delivery", label: "Out for Delivery", description: "Order is out for delivery" },
@@ -138,7 +138,7 @@ export function UpdateOrderTracking({ orderId, currentStatus, onStatusUpdated }:
                   <SelectItem key={s.value} value={s.value}>
                     <div className="flex flex-col">
                       <span className="font-medium">{s.label}</span>
-                      <span className="text-xs text-muted-foreground">{s.description}</span>
+                      <span className="text-xs">{s.description}</span>
                     </div>
                   </SelectItem>
                 ))}

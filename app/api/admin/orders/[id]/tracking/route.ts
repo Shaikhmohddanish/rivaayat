@@ -23,7 +23,7 @@ export async function PATCH(
     }
     
     // Validate status
-    const validStatuses = ["order_confirmed", "processing", "shipped", "out_for_delivery", "delivered", "cancelled"]
+    const validStatuses = ["placed", "processing", "shipped", "out_for_delivery", "delivered", "cancelled"]
     if (!validStatuses.includes(status)) {
       return NextResponse.json({ 
         error: "Invalid status",
@@ -53,7 +53,19 @@ export async function PATCH(
       updatedBy: user.id
     }
     
-    // 🚀 Update tracking in separate collection (better performance and scalability)
+    // Update order with tracking history
+    const orderResult = await db.collection('orders').updateOne(
+      { _id: new ObjectId(orderId) },
+      {
+        $push: { trackingHistory: trackingEvent } as any,
+        $set: { 
+          status: status,
+          updatedAt: new Date() 
+        }
+      }
+    )
+    
+    // Also update separate tracking collection for better performance (optional)
     const trackingResult = await db.collection('order_tracking').updateOne(
       { orderId },
       {
@@ -63,18 +75,7 @@ export async function PATCH(
           updatedAt: new Date() 
         }
       },
-      { upsert: true } // Create if doesn't exist
-    )
-    
-    // Update order status (denormalized for queries)
-    const orderResult = await db.collection('orders').updateOne(
-      { _id: new ObjectId(orderId) },
-      {
-        $set: { 
-          status: mapTrackingStatusToOrderStatus(status),
-          updatedAt: new Date() 
-        }
-      }
+      { upsert: true }
     )
     
     if (orderResult.modifiedCount === 0 && trackingResult.modifiedCount === 0) {
@@ -101,7 +102,7 @@ export async function PATCH(
 // Helper function to get default message for each status
 function getDefaultMessage(status: string): string {
   const messages: Record<string, string> = {
-    order_confirmed: "Your order has been confirmed and is being prepared for processing.",
+    placed: "Your order has been confirmed and is being prepared for processing.",
     processing: "Your order is being processed and will be shipped soon.",
     shipped: "Your order has been shipped and is on the way.",
     out_for_delivery: "Your order is out for delivery and will reach you soon.",
@@ -109,17 +110,4 @@ function getDefaultMessage(status: string): string {
     cancelled: "Your order has been cancelled."
   }
   return messages[status] || "Order status updated."
-}
-
-// Helper function to map tracking status to order status
-function mapTrackingStatusToOrderStatus(trackingStatus: string): string {
-  const statusMap: Record<string, string> = {
-    order_confirmed: "placed",
-    processing: "processing",
-    shipped: "shipped",
-    out_for_delivery: "shipped",
-    delivered: "delivered",
-    cancelled: "cancelled"
-  }
-  return statusMap[trackingStatus] || "placed"
 }

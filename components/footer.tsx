@@ -15,24 +15,28 @@ export function Footer({ siteSettings }: FooterProps) {
     <footer className="bg-gradient-to-b from-muted/50 to-muted mt-auto border-t border-border/20">
       <div className="container mx-auto px-4 py-12">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-          {/* Brand */}
+          {/* Brand & Social */}
           <div>
             <h3 className="text-xl font-bold mb-4 elegant-gradient bg-clip-text text-transparent">Rivaayat</h3>
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              Your destination for elegant ladies dresses. Timeless fashion crafted for the modern woman.
+            <p className="text-sm text-muted-foreground leading-relaxed mb-6">
+              Riwayaat is not only worn, it is lived. A movement where women are the creators of tradition's future, not just its keepers.
             </p>
-            <div className="mt-4 space-y-2 text-sm text-muted-foreground">
-              <p className="font-medium text-foreground">Shipping</p>
-              <p>Free shipping on orders above ₹{shippingThreshold}.</p>
-              <p className="font-medium text-foreground">Office Address</p>
-              <p>C/310 Crystal Plaza, Lower Oshiwara, Andheri West, Mumbai 400056</p>
-              <p className="font-medium text-foreground">Write to us</p>
-              <a href={`mailto:${contactEmail}`} className="hover:text-primary transition-colors">
-                {contactEmail}
+            <h4 className="font-semibold mb-4 text-foreground">Follow Us</h4>
+            <div className="flex gap-4">
+              <a href="#" className="text-muted-foreground hover:text-primary transition-all duration-300 transform hover:scale-110 elegant-hover">
+                <Facebook className="h-5 w-5" />
+                <span className="sr-only">Facebook</span>
+              </a>
+              <a href="https://www.instagram.com/rivaayat.poshak/" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-all duration-300 transform hover:scale-110 elegant-hover">
+                <Instagram className="h-5 w-5" />
+                <span className="sr-only">Instagram</span>
+              </a>
+              <a href="#" className="text-muted-foreground hover:text-primary transition-all duration-300 transform hover:scale-110 elegant-hover">
+                <Twitter className="h-5 w-5" />
+                <span className="sr-only">Twitter</span>
               </a>
             </div>
           </div>
-
           {/* Quick Links */}
           <div>
             <h4 className="font-semibold mb-4 text-foreground">Quick Links</h4>
@@ -80,24 +84,22 @@ export function Footer({ siteSettings }: FooterProps) {
             </ul>
           </div>
 
-          {/* Social */}
+          {/* Contact */}
           <div>
-            <h4 className="font-semibold mb-4 text-foreground">Follow Us</h4>
-            <div className="flex gap-4">
-              <a href="#" className="text-muted-foreground hover:text-primary transition-all duration-300 transform hover:scale-110 elegant-hover">
-                <Facebook className="h-5 w-5" />
-                <span className="sr-only">Facebook</span>
-              </a>
-              <a href="https://www.instagram.com/rivaayat.poshak/" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-all duration-300 transform hover:scale-110 elegant-hover">
-                <Instagram className="h-5 w-5" />
-                <span className="sr-only">Instagram</span>
-              </a>
-              <a href="#" className="text-muted-foreground hover:text-primary transition-all duration-300 transform hover:scale-110 elegant-hover">
-                <Twitter className="h-5 w-5" />
-                <span className="sr-only">Twitter</span>
+            <h4 className="font-semibold mb-4 text-foreground">Contact</h4>
+            <div className="space-y-2 text-sm text-muted-foreground">
+              <p className="font-medium text-foreground">Shipping</p>
+              <p>Free shipping on orders above ₹{shippingThreshold}.</p>
+              <p className="font-medium text-foreground">Office Address</p>
+              <p>C/310 Crystal Plaza, Lower Oshiwara, Andheri West, Mumbai 400056</p>
+              <p className="font-medium text-foreground">Write to us</p>
+              <a href={`mailto:${contactEmail}`} className="hover:text-primary transition-colors">
+                {contactEmail}
               </a>
             </div>
           </div>
+
+          
         </div>
 
         <div className="border-t border-border/30 mt-8 pt-8">

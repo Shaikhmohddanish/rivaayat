@@ -117,6 +117,8 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
         return "bg-yellow-100 text-yellow-800 border-yellow-200"
       case "shipped":
         return "bg-purple-100 text-purple-800 border-purple-200"
+      case "out_for_delivery":
+        return "bg-orange-100 text-orange-800 border-orange-200"
       case "delivered":
         return "bg-green-100 text-green-800 border-green-200"
       case "cancelled":
@@ -131,6 +133,7 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
       { status: "placed", label: "Order Placed", icon: <Clock className="h-4 w-4" /> },
       { status: "processing", label: "Processing", icon: <Package className="h-4 w-4" /> },
       { status: "shipped", label: "Shipped", icon: <Truck className="h-4 w-4" /> },
+      { status: "out_for_delivery", label: "Out for Delivery", icon: <Truck className="h-4 w-4" /> },
       { status: "delivered", label: "Delivered", icon: <CheckCircle className="h-4 w-4" /> },
     ]
 
@@ -172,14 +175,15 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
             {/* Header Shimmer */}
             <div className="space-y-4">
               <div className="flex items-center gap-4">
-                <div className="h-9 w-32 rounded-xl shimmer"></div>
+                <div className="h-8 sm:h-9 w-24 sm:w-32 rounded-xl shimmer"></div>
               </div>
-              <div className="flex items-center justify-between">
-                <div className="space-y-3">
-                  <div className="h-10 w-72 rounded-xl shimmer"></div>
-                  <div className="h-5 w-96 rounded-lg shimmer"></div>
+              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+                <div className="space-y-3 flex-1">
+                  <div className="h-8 sm:h-10 w-48 sm:w-72 rounded-xl shimmer"></div>
+                  <div className="h-4 sm:h-5 w-56 sm:w-96 rounded-lg shimmer"></div>
+                  <div className="h-4 sm:h-5 w-40 sm:w-64 rounded-lg shimmer"></div>
                 </div>
-                <div className="h-9 w-32 rounded-full shimmer"></div>
+                <div className="h-8 sm:h-9 w-24 sm:w-32 rounded-full shimmer self-start"></div>
               </div>
             </div>
 
@@ -187,72 +191,114 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
               {/* Main Content Shimmer */}
               <div className="lg:col-span-2 space-y-6">
                 {/* Status Timeline Shimmer */}
-                <div className="bg-card/50 rounded-2xl p-6 elegant-shadow border-0 space-y-6">
-                  <div className="h-6 w-40 rounded-lg shimmer"></div>
-                  <div className="space-y-4">
-                    {[1, 2, 3, 4].map((i) => (
-                      <div key={i} className="flex items-center gap-4">
-                        <div className="w-10 h-10 rounded-full shimmer-card"></div>
-                        <div className="flex-1 space-y-2">
-                          <div className="h-5 w-32 rounded shimmer"></div>
-                          <div className="h-3 w-24 rounded shimmer"></div>
+                <Card className="elegant-shadow">
+                  <CardHeader>
+                    <div className="h-5 sm:h-6 w-32 sm:w-40 rounded-lg shimmer"></div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      {[1, 2, 3, 4].map((i) => (
+                        <div key={i} className="flex items-center gap-3 sm:gap-4">
+                          <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full shimmer-card flex-shrink-0"></div>
+                          <div className="flex-1 space-y-2">
+                            <div className="h-4 sm:h-5 w-24 sm:w-32 rounded shimmer"></div>
+                            <div className="h-3 w-16 sm:w-24 rounded shimmer"></div>
+                          </div>
                         </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
 
                 {/* Items Shimmer */}
-                <div className="bg-card/50 rounded-2xl p-6 elegant-shadow border-0 space-y-6">
-                  <div className="h-6 w-36 rounded-lg shimmer"></div>
-                  <div className="space-y-6">
-                    {[1, 2].map((i) => (
-                      <div key={i} className="flex gap-4">
-                        <div className="w-20 h-20 rounded-xl shimmer-card"></div>
-                        <div className="flex-1 space-y-3">
-                          <div className="h-6 w-64 rounded-lg shimmer"></div>
-                          <div className="h-4 w-80 rounded shimmer"></div>
-                          <div className="h-4 w-48 rounded shimmer"></div>
+                <Card className="elegant-shadow">
+                  <CardHeader>
+                    <div className="h-5 sm:h-6 w-28 sm:w-36 rounded-lg shimmer"></div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-6">
+                      {[1, 2].map((i) => (
+                        <div key={i} className="flex gap-3 sm:gap-4">
+                          <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl shimmer-card flex-shrink-0"></div>
+                          <div className="flex-1 space-y-3 min-w-0">
+                            <div className="h-4 sm:h-6 w-full sm:w-64 rounded-lg shimmer"></div>
+                            <div className="flex gap-2">
+                              <div className="h-3 sm:h-4 w-16 sm:w-20 rounded shimmer"></div>
+                              <div className="h-3 sm:h-4 w-12 sm:w-16 rounded shimmer"></div>
+                              <div className="h-3 sm:h-4 w-12 sm:w-16 rounded shimmer"></div>
+                            </div>
+                            <div className="sm:hidden space-y-1">
+                              <div className="h-4 w-20 rounded shimmer"></div>
+                              <div className="h-3 w-24 rounded shimmer"></div>
+                            </div>
+                          </div>
+                          <div className="hidden sm:block text-right space-y-2 flex-shrink-0">
+                            <div className="h-5 sm:h-6 w-20 rounded-lg shimmer"></div>
+                            <div className="h-4 w-16 rounded shimmer"></div>
+                          </div>
                         </div>
-                        <div className="text-right space-y-2">
-                          <div className="h-6 w-20 rounded-lg shimmer"></div>
-                          <div className="h-4 w-16 rounded shimmer"></div>
-                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Tracking Info Shimmer */}
+                <Card className="elegant-shadow">
+                  <CardHeader>
+                    <div className="h-5 sm:h-6 w-36 sm:w-44 rounded-lg shimmer"></div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      <div className="flex flex-col sm:flex-row sm:justify-between gap-2">
+                        <div className="h-4 w-16 sm:w-20 rounded shimmer"></div>
+                        <div className="h-4 w-24 sm:w-32 rounded shimmer"></div>
                       </div>
-                    ))}
-                  </div>
-                </div>
+                      <div className="flex flex-col sm:flex-row sm:justify-between gap-2">
+                        <div className="h-4 w-20 sm:w-24 rounded shimmer"></div>
+                        <div className="h-4 w-32 sm:w-40 rounded shimmer"></div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
               </div>
 
               {/* Sidebar Shimmer */}
               <div className="space-y-6">
-                <div className="bg-card/50 rounded-2xl p-6 elegant-shadow border-0 space-y-4">
-                  <div className="h-6 w-36 rounded-lg shimmer"></div>
-                  <div className="space-y-4">
-                    {[1, 2, 3, 4].map((i) => (
-                      <div key={i} className="flex justify-between">
-                        <div className="h-4 w-20 rounded shimmer"></div>
-                        <div className="h-4 w-16 rounded shimmer"></div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
+                <Card className="elegant-shadow">
+                  <CardHeader>
+                    <div className="h-5 sm:h-6 w-28 sm:w-36 rounded-lg shimmer"></div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      {[1, 2, 3, 4].map((i) => (
+                        <div key={i} className="flex justify-between">
+                          <div className="h-4 w-16 sm:w-20 rounded shimmer"></div>
+                          <div className="h-4 w-12 sm:w-16 rounded shimmer"></div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
 
-                <div className="bg-card/50 rounded-2xl p-6 elegant-shadow border-0 space-y-4">
-                  <div className="h-6 w-44 rounded-lg shimmer"></div>
-                  <div className="space-y-3">
-                    {[1, 2, 3].map((i) => (
-                      <div key={i} className="flex justify-between">
-                        <div className="h-4 w-24 rounded shimmer"></div>
-                        <div className="h-4 w-20 rounded shimmer"></div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
+                <Card className="elegant-shadow">
+                  <CardHeader>
+                    <div className="h-5 sm:h-6 w-32 sm:w-44 rounded-lg shimmer"></div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      {[1, 2, 3].map((i) => (
+                        <div key={i} className="flex justify-between">
+                          <div className="h-4 w-20 sm:w-24 rounded shimmer"></div>
+                          <div className="h-4 w-16 sm:w-20 rounded shimmer"></div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
 
                 <div className="space-y-3">
-                  <div className="h-12 w-full rounded-xl shimmer"></div>
-                  <div className="h-12 w-full rounded-xl shimmer"></div>
+                  <div className="h-10 sm:h-12 w-full rounded-xl shimmer"></div>
+                  <div className="h-10 sm:h-12 w-full rounded-xl shimmer"></div>
                 </div>
               </div>
             </div>
@@ -306,26 +352,26 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                 </Link>
               </Button>
             </div>
-            <div className="flex items-center justify-between">
-              <div>
-                <h1 className="text-3xl font-bold mb-2 elegant-gradient bg-clip-text text-transparent">
+            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+              <div className="flex-1 min-w-0">
+                <h1 className="text-2xl sm:text-3xl font-bold mb-2 elegant-gradient bg-clip-text text-transparent break-all">
                   Order #{order._id?.slice(-8).toUpperCase()}
                 </h1>
-                <p className="text-muted-foreground">
+                <p className="text-sm sm:text-base text-muted-foreground">
                   Placed on {formatDateTimeIST(order.createdAt)} • IST
                 </p>
                 {order.trackingNumber && (
-                  <p className="text-sm font-semibold mt-2">
-                    Tracking: <span className="font-mono bg-muted px-2 py-1 rounded">{order.trackingNumber}</span>
+                  <p className="text-xs sm:text-sm font-semibold mt-2 break-all">
+                    Tracking: <span className="font-mono bg-muted px-2 py-1 rounded text-xs sm:text-sm">{order.trackingNumber}</span>
                   </p>
                 )}
               </div>
               <Badge
                 variant="outline"
-                className={`${getStatusColor(order.status)} capitalize text-base px-4 py-2`}
+                className={`${getStatusColor(order.status)} capitalize text-sm sm:text-base px-3 sm:px-4 py-1.5 sm:py-2 self-start flex-shrink-0`}
               >
                 {getStatusIcon(order.status)}
-                <span className="ml-2">{order.status}</span>
+                <span className="ml-2">{order.status === "out_for_delivery" ? "Out for Delivery" : order.status}</span>
               </Badge>
             </div>
           </div>
@@ -345,27 +391,27 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                   <CardContent>
                     <div className="space-y-4">
                       {[...order.trackingHistory].reverse().map((tracking: any, index: number) => (
-                        <div key={index} className="flex gap-4">
-                          <div className="flex flex-col items-center">
-                            <div className="rounded-full bg-background border-2 p-1.5">
+                        <div key={index} className="flex gap-3 sm:gap-4">
+                          <div className="flex flex-col items-center flex-shrink-0">
+                            <div className="rounded-full bg-background border-2 p-1">
                               {getTrackingStatusIcon(tracking.status)}
                             </div>
                             {index < order.trackingHistory!.length - 1 && (
                               <div className="w-0.5 flex-1 bg-border mt-2 min-h-[40px]" />
                             )}
                           </div>
-                          <div className="flex-1 pb-4">
-                            <p className="font-semibold">
+                          <div className="flex-1 pb-4 min-w-0">
+                            <p className="font-semibold text-sm sm:text-base">
                               {getTrackingStatusLabel(tracking.status)}
                             </p>
-                            <p className="text-xs text-muted-foreground mt-1">
+                            <p className="text-xs text-muted-foreground mt-1 break-words">
                               {new Date(tracking.timestamp).toLocaleString('en-IN', {
                                 dateStyle: 'medium',
                                 timeStyle: 'short'
                               })}
                             </p>
                             {tracking.message && (
-                              <p className="text-sm mt-2 text-muted-foreground">
+                              <p className="text-xs sm:text-sm mt-2 text-muted-foreground break-words">
                                 {tracking.message}
                               </p>
                             )}
@@ -432,24 +478,32 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                 <CardContent>
                   <div className="space-y-6">
                     {order.items.map((item, index) => (
-                      <div key={index} className="flex gap-4">
-                        <div className="relative w-20 h-20 rounded-lg overflow-hidden bg-muted flex-shrink-0">
+                      <div key={index} className="flex gap-3 sm:gap-4">
+                        <div className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-lg overflow-hidden bg-muted flex-shrink-0">
                           <div className="w-full h-full bg-gradient-to-br from-primary/20 to-primary/40 flex items-center justify-center">
-                            <Package className="h-8 w-8 text-primary" />
+                            <Package className="h-6 w-6 sm:h-8 sm:w-8 text-primary" />
                           </div>
                         </div>
-                        <div className="flex-1 space-y-2">
-                          <h4 className="font-semibold text-lg">{item.name}</h4>
-                          <div className="flex items-center gap-6 text-sm text-muted-foreground">
-                            <span className="flex items-center gap-1">
-                              <div className="w-3 h-3 rounded-full border" style={{ backgroundColor: item.variant.color.toLowerCase() }}></div>
+                        <div className="flex-1 space-y-2 min-w-0">
+                          <h4 className="font-semibold text-sm sm:text-lg line-clamp-2">{item.name}</h4>
+                          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs sm:text-sm text-muted-foreground">
+                            <span className="flex items-center gap-1 whitespace-nowrap">
+                              <div className="w-3 h-3 rounded-full border flex-shrink-0" style={{ backgroundColor: item.variant.color.toLowerCase() }}></div>
                               {item.variant.color}
                             </span>
-                            <span>Size: {item.variant.size}</span>
-                            <span>Quantity: {item.quantity}</span>
+                            <span className="whitespace-nowrap">Size: {item.variant.size}</span>
+                            <span className="whitespace-nowrap">Qty: {item.quantity}</span>
+                          </div>
+                          <div className="sm:hidden">
+                            <p className="font-semibold text-sm">₹{item.price.toFixed(2)}</p>
+                            {item.quantity > 1 && (
+                              <p className="text-xs text-muted-foreground">
+                                ₹{(item.price * item.quantity).toFixed(2)} total
+                              </p>
+                            )}
                           </div>
                         </div>
-                        <div className="text-right">
+                        <div className="hidden sm:block text-right flex-shrink-0">
                           <p className="font-semibold text-lg">₹{item.price.toFixed(2)}</p>
                           {item.quantity > 1 && (
                             <p className="text-sm text-muted-foreground">
@@ -481,9 +535,9 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                         </div>
                       )}
                       {order.tracking.trackingId && (
-                        <div className="flex items-center justify-between">
-                          <span className="text-muted-foreground">Tracking ID:</span>
-                          <span className="font-mono text-sm bg-muted px-2 py-1 rounded">
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-2">
+                          <span className="text-muted-foreground text-sm">Tracking ID:</span>
+                          <span className="font-mono text-xs sm:text-sm bg-muted px-2 py-1 rounded break-all">
                             {order.tracking.trackingId}
                           </span>
                         </div>

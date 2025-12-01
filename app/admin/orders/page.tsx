@@ -5,10 +5,6 @@ import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Badge } from "@/components/ui/badge"
 import { UpdateOrderTracking } from "@/components/update-order-tracking"
 import { AdminPagination } from "@/components/admin-pagination"
@@ -22,13 +18,6 @@ export default function AdminOrdersPage() {
   const { toast } = useToast()
   const [orders, setOrders] = useState<(Order & { _id: string })[]>([])
   const [loading, setLoading] = useState(true)
-  const [editingOrder, setEditingOrder] = useState<(Order & { _id: string }) | null>(null)
-  const [editForm, setEditForm] = useState({
-    status: "" as Order["status"],
-    carrier: "",
-    trackingId: "",
-    notes: "",
-  })
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage, setItemsPerPage] = useState(10)
   const [totalOrders, setTotalOrders] = useState(0)
@@ -90,58 +79,6 @@ export default function AdminOrdersPage() {
     return () => window.removeEventListener('adminStatsUpdated', handleAdminStatsUpdate)
   }, [isAdmin, fetchOrders])
 
-  const handleEdit = (order: Order & { _id: string }) => {
-    setEditingOrder(order)
-    setEditForm({
-      status: order.status,
-      carrier: order.tracking?.carrier || "",
-      trackingId: order.tracking?.trackingId || "",
-      notes: order.tracking?.notes || "",
-    })
-  }
-
-  const handleUpdate = async () => {
-    if (!editingOrder) return
-
-    try {
-      const response = await fetch(`/api/admin/orders/${editingOrder._id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          status: editForm.status,
-          tracking: {
-            carrier: editForm.carrier,
-            trackingId: editForm.trackingId,
-            notes: editForm.notes,
-          },
-        }),
-      })
-
-      if (response.ok) {
-        await fetchOrders()
-        setEditingOrder(null)
-        toast({
-          title: "Success",
-          description: "Order updated successfully",
-          variant: "default"
-        })
-      } else {
-        toast({
-          title: "Error",
-          description: "Failed to update order",
-          variant: "destructive"
-        })
-      }
-    } catch (error) {
-      console.error("Failed to update order:", error)
-      toast({
-        title: "Error", 
-        description: "Failed to update order",
-        variant: "destructive"
-      })
-    }
-  }
-
   const getStatusColor = (status: Order["status"]) => {
     switch (status) {
       case "placed":
@@ -150,6 +87,8 @@ export default function AdminOrdersPage() {
         return "bg-yellow-500"
       case "shipped":
         return "bg-purple-500"
+      case "out_for_delivery":
+        return "bg-orange-500"
       case "delivered":
         return "bg-green-500"
       case "cancelled":
@@ -233,85 +172,9 @@ export default function AdminOrdersPage() {
                     <Badge className={`${getStatusColor(order.status)} text-xs`}>{order.status}</Badge>
                     <UpdateOrderTracking
                       orderId={order._id}
-                      currentStatus={order.status === "placed" ? "order_confirmed" : order.status}
+                      currentStatus={order.status}
                       onStatusUpdated={fetchOrders}
                     />
-                    <Dialog>
-                      <DialogTrigger asChild>
-                        <Button 
-                          size="sm" 
-                          variant="outline" 
-                          onClick={() => handleEdit(order)}
-                          className="touch-target text-xs sm:text-sm"
-                          aria-label={`Update order ${order._id.slice(-8)}`}
-                        >
-                          <span className="hidden sm:inline">Update Order</span>
-                          <span className="sm:hidden">Update</span>
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent className="w-[calc(100vw-2rem)] max-w-md mx-4 sm:mx-auto">
-                        <DialogHeader>
-                          <DialogTitle className="text-lg sm:text-xl">Update Order</DialogTitle>
-                        </DialogHeader>
-                        <div className="space-y-4 py-4">
-                          <div className="space-y-2">
-                            <Label htmlFor={`status-${order._id}`} className="text-sm">Status</Label>
-                            <Select
-                              value={editForm.status}
-                              onValueChange={(value: Order["status"]) => setEditForm({ ...editForm, status: value })}
-                            >
-                              <SelectTrigger id={`status-${order._id}`} aria-label="Order status">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="placed">Placed</SelectItem>
-                                <SelectItem value="processing">Processing</SelectItem>
-                                <SelectItem value="shipped">Shipped</SelectItem>
-                                <SelectItem value="delivered">Delivered</SelectItem>
-                                <SelectItem value="cancelled">Cancelled</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          <div className="space-y-2">
-                            <Label htmlFor={`carrier-${order._id}`} className="text-sm">Carrier</Label>
-                            <Input
-                              id={`carrier-${order._id}`}
-                              value={editForm.carrier}
-                              onChange={(e) => setEditForm({ ...editForm, carrier: e.target.value })}
-                              placeholder="e.g., FedEx, UPS, USPS"
-                              aria-label="Shipping carrier"
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label htmlFor={`tracking-${order._id}`} className="text-sm">Tracking ID</Label>
-                            <Input
-                              id={`tracking-${order._id}`}
-                              value={editForm.trackingId}
-                              onChange={(e) => setEditForm({ ...editForm, trackingId: e.target.value })}
-                              placeholder="Enter tracking number"
-                              aria-label="Tracking number"
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label htmlFor={`notes-${order._id}`} className="text-sm">Notes</Label>
-                            <Input
-                              id={`notes-${order._id}`}
-                              value={editForm.notes}
-                              onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })}
-                              placeholder="Additional notes"
-                              aria-label="Order notes"
-                            />
-                          </div>
-                          <Button 
-                            onClick={handleUpdate} 
-                            className="w-full touch-target"
-                            aria-label="Save order changes"
-                          >
-                            Save Changes
-                          </Button>
-                        </div>
-                      </DialogContent>
-                    </Dialog>
                   </div>
                 </div>
               </CardHeader>

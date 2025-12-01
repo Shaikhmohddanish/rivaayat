@@ -59,6 +59,8 @@ export default function OrdersPage() {
         return <Package className="h-4 w-4" />
       case "shipped":
         return <Truck className="h-4 w-4" />
+      case "out_for_delivery":
+        return <Truck className="h-4 w-4" />
       case "delivered":
         return <CheckCircle className="h-4 w-4" />
       case "cancelled":
@@ -76,6 +78,8 @@ export default function OrdersPage() {
         return "bg-yellow-100 text-yellow-800 border-yellow-200"
       case "shipped":
         return "bg-purple-100 text-purple-800 border-purple-200"
+      case "out_for_delivery":
+        return "bg-orange-100 text-orange-800 border-orange-200"
       case "delivered":
         return "bg-green-100 text-green-800 border-green-200"
       case "cancelled":
@@ -106,14 +110,67 @@ export default function OrdersPage() {
           <div className="max-w-4xl mx-auto">
             {/* Header Shimmer */}
             <div className="mb-8 space-y-3">
-              <ShimmerHeading className="w-52" />
-              <ShimmerText className="w-72" />
+              <ShimmerHeading className="w-32 sm:w-52" />
+              <ShimmerText className="w-48 sm:w-72" />
             </div>
 
             {/* Orders Shimmer */}
             <div className="space-y-6">
               {[1, 2, 3].map((i) => (
-                <ShimmerOrderCard key={i} />
+                <Card key={i} className="overflow-hidden elegant-shadow">
+                  <CardHeader className="bg-muted/30">
+                    <div className="flex flex-col gap-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="space-y-2 flex-1">
+                          <div className="h-5 sm:h-6 w-32 sm:w-40 rounded shimmer" />
+                          <div className="h-4 w-24 sm:w-32 rounded shimmer" />
+                        </div>
+                        <div className="h-6 w-20 rounded-full shimmer flex-shrink-0" />
+                      </div>
+                      <div className="h-9 w-full rounded shimmer" />
+                    </div>
+                  </CardHeader>
+                  <CardContent className="pt-6">
+                    <div className="space-y-4">
+                      {/* Item Shimmer */}
+                      <div className="space-y-3">
+                        {[1, 2].map((j) => (
+                          <div key={j} className="flex items-start gap-3">
+                            <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-lg shimmer-card flex-shrink-0" />
+                            <div className="flex-1 space-y-2">
+                              <div className="h-4 sm:h-5 w-full sm:w-3/4 rounded shimmer" />
+                              <div className="flex gap-2">
+                                <div className="h-3 sm:h-4 w-16 sm:w-20 rounded shimmer" />
+                                <div className="h-3 sm:h-4 w-12 sm:w-16 rounded shimmer" />
+                                <div className="h-3 sm:h-4 w-12 sm:w-16 rounded shimmer" />
+                              </div>
+                              <div className="sm:hidden space-y-1">
+                                <div className="h-4 w-20 rounded shimmer" />
+                                <div className="h-3 w-24 rounded shimmer" />
+                              </div>
+                            </div>
+                            <div className="hidden sm:block space-y-1 flex-shrink-0">
+                              <div className="h-5 w-20 rounded shimmer" />
+                              <div className="h-4 w-24 rounded shimmer" />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="border-t pt-4" />
+                      {/* Summary Shimmer */}
+                      <div className="flex justify-between items-center">
+                        <div className="space-y-2">
+                          <div className="h-4 w-16 sm:w-20 rounded shimmer" />
+                          <div className="h-4 w-24 sm:w-32 rounded shimmer" />
+                        </div>
+                        <div className="space-y-1 text-right">
+                          <div className="h-5 sm:h-6 w-20 sm:w-24 rounded shimmer ml-auto" />
+                          <div className="h-4 w-12 rounded shimmer ml-auto" />
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
               ))}
             </div>
           </div>
@@ -172,35 +229,35 @@ export default function OrdersPage() {
               {orders.map((order) => (
                 <Card key={order._id} className="overflow-hidden elegant-shadow hover:shadow-xl transition-all duration-300">
                   <CardHeader className="bg-muted/30">
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-1">
-                        <CardTitle className="text-lg">
-                          Order #{order._id?.slice(-8).toUpperCase()}
-                        </CardTitle>
-                        <p className="text-sm text-muted-foreground">
-                          {formatDateTimeIST(order.createdAt)}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-3">
+                    <div className="flex flex-col gap-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="space-y-1 flex-1 min-w-0">
+                          <CardTitle className="text-base sm:text-lg break-all">
+                            Order #{order._id?.slice(-8).toUpperCase()}
+                          </CardTitle>
+                          <p className="text-xs sm:text-sm text-muted-foreground">
+                            {formatDateTimeIST(order.createdAt)}
+                          </p>
+                        </div>
                         <Badge
                           variant="outline"
-                          className={`${getStatusColor(order.status)} capitalize`}
+                          className={`${getStatusColor(order.status)} capitalize text-xs`}
                         >
                           {getStatusIcon(order.status)}
-                          <span className="ml-1">{order.status}</span>
+                          <span className="ml-1">{order.status === "out_for_delivery" ? "Out for Delivery" : order.status}</span>
                         </Badge>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          asChild
-                          className="elegant-hover"
-                        >
-                          <Link href={`/orders/${order._id}`}>
-                            <Eye className="h-4 w-4 mr-1" />
-                            View Details
-                          </Link>
-                        </Button>
                       </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        asChild
+                        className="elegant-hover w-full justify-start"
+                      >
+                        <Link href={`/orders/${order._id}`}>
+                          <Eye className="h-4 w-4 mr-1" />
+                          View Details
+                        </Link>
+                      </Button>
                     </div>
                   </CardHeader>
                   
@@ -209,21 +266,29 @@ export default function OrdersPage() {
                       {/* Order Items */}
                       <div className="space-y-3">
                         {order.items.map((item, index) => (
-                          <div key={index} className="flex items-center gap-4">
-                            <div className="relative w-16 h-16 rounded-lg overflow-hidden bg-muted">
+                          <div key={index} className="flex items-start gap-3">
+                            <div className="relative w-12 h-12 sm:w-16 sm:h-16 rounded-lg overflow-hidden bg-muted flex-shrink-0">
                               <div className="w-full h-full bg-gradient-to-br from-primary/20 to-primary/40 flex items-center justify-center">
-                                <Package className="h-6 w-6 text-primary" />
+                                <Package className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
                               </div>
                             </div>
-                            <div className="flex-1 space-y-1">
-                              <h4 className="font-medium line-clamp-1">{item.name}</h4>
-                              <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                                <span>Color: {item.variant.color}</span>
-                                <span>Size: {item.variant.size}</span>
-                                <span>Qty: {item.quantity}</span>
+                            <div className="flex-1 min-w-0 space-y-1">
+                              <h4 className="font-medium text-sm sm:text-base line-clamp-2">{item.name}</h4>
+                              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs sm:text-sm text-muted-foreground">
+                                <span className="whitespace-nowrap">Color: {item.variant.color}</span>
+                                <span className="whitespace-nowrap">Size: {item.variant.size}</span>
+                                <span className="whitespace-nowrap">Qty: {item.quantity}</span>
+                              </div>
+                              <div className="sm:hidden">
+                                <p className="font-semibold text-sm">₹{item.price.toFixed(2)}</p>
+                                {item.quantity > 1 && (
+                                  <p className="text-xs text-muted-foreground">
+                                    ₹{(item.price * item.quantity).toFixed(2)} total
+                                  </p>
+                                )}
                               </div>
                             </div>
-                            <div className="text-right">
+                            <div className="hidden sm:block text-right flex-shrink-0">
                               <p className="font-semibold">₹{item.price.toFixed(2)}</p>
                               {item.quantity > 1 && (
                                 <p className="text-xs text-muted-foreground">
@@ -238,38 +303,38 @@ export default function OrdersPage() {
                       <Separator />
 
                       {/* Order Summary */}
-                      <div className="flex items-center justify-between">
-                        <div className="space-y-1">
-                          <p className="text-sm text-muted-foreground">
+                      <div className="flex items-center justify-between gap-4">
+                        <div className="space-y-1 flex-1">
+                          <p className="text-xs sm:text-sm text-muted-foreground">
                             {order.items.length} item{order.items.length !== 1 ? 's' : ''}
                           </p>
                           {order.coupon && (
-                            <p className="text-sm text-green-600">
+                            <p className="text-xs sm:text-sm text-green-600 truncate">
                               {order.coupon.discountPercent}% off with {order.coupon.code}
                             </p>
                           )}
                         </div>
-                        <div className="text-right">
-                          <p className="text-lg font-bold">
+                        <div className="text-right flex-shrink-0">
+                          <p className="text-base sm:text-lg font-bold">
                             ₹{calculateTotal(order).toFixed(2)}
                           </p>
-                          <p className="text-sm text-muted-foreground">Total</p>
+                          <p className="text-xs sm:text-sm text-muted-foreground">Total</p>
                         </div>
                       </div>
 
                       {/* Tracking Info */}
                       {order.tracking && (
-                        <div className="bg-muted/50 rounded-lg p-4">
-                          <h5 className="font-medium mb-2">Tracking Information</h5>
-                          <div className="space-y-1 text-sm">
+                        <div className="bg-muted/50 rounded-lg p-3 sm:p-4">
+                          <h5 className="font-medium mb-2 text-sm sm:text-base">Tracking Information</h5>
+                          <div className="space-y-1 text-xs sm:text-sm">
                             {order.tracking.carrier && (
-                              <p>Carrier: {order.tracking.carrier}</p>
+                              <p className="break-words"><span className="font-medium">Carrier:</span> {order.tracking.carrier}</p>
                             )}
                             {order.tracking.trackingId && (
-                              <p>Tracking ID: {order.tracking.trackingId}</p>
+                              <p className="break-all font-mono text-xs sm:text-sm"><span className="font-sans font-medium">Tracking:</span> {order.tracking.trackingId}</p>
                             )}
                             {order.tracking.notes && (
-                              <p className="text-muted-foreground">{order.tracking.notes}</p>
+                              <p className="text-muted-foreground break-words">{order.tracking.notes}</p>
                             )}
                           </div>
                         </div>
