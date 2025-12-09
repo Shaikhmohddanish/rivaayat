@@ -11,6 +11,9 @@ import { WhatsAppFloatingButton } from "@/components/whatsapp-float"
 import { getSiteSettings } from "@/lib/site-settings"
 import "./globals.css"
 
+// Revalidate every 60 seconds for site settings changes
+export const revalidate = 60
+
 export const metadata: Metadata = {
   title: "Rivaayat - Ladies Dresses",
   description: "Shop the latest collection of ladies dresses",

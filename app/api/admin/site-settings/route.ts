@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server"
 import { getServerSession } from "next-auth"
+import { revalidatePath, revalidateTag } from "next/cache"
 import { authOptions } from "@/lib/auth"
 import { clampOnlinePaymentLimit } from "@/lib/payment-limits"
 import { getSiteSettings, updateSiteSettings } from "@/lib/site-settings"
@@ -95,6 +96,16 @@ export async function PUT(request: NextRequest) {
     }
 
     const updated = await updateSiteSettings(sanitized)
+    
+    // Revalidate the site settings cache tag
+    revalidateTag('site-settings')
+    
+    // Revalidate all pages that use site settings
+    revalidatePath("/", "layout")
+    revalidatePath("/")
+    revalidatePath("/shop")
+    revalidatePath("/about")
+    
     return NextResponse.json(updated)
   } catch (error) {
     console.error("Failed to update site settings", error)

@@ -1,3 +1,4 @@
+import { unstable_cache } from "next/cache"
 import { getDatabase } from "@/lib/mongodb"
 import { clampOnlinePaymentLimit, DEFAULT_MAX_ONLINE_PAYMENT_AMOUNT } from "@/lib/payment-limits"
 import type { SiteSettings } from "@/lib/types"
@@ -83,7 +84,7 @@ function mergeSettings(base: SiteSettings, updates: Partial<SiteSettings>): Site
   })
 }
 
-export async function getSiteSettings(): Promise<SiteSettings> {
+async function fetchSiteSettingsFromDB(): Promise<SiteSettings> {
   const db = await getDatabase()
   const collection = db.collection<SiteSettings>(COLLECTION_NAME)
 
@@ -101,6 +102,15 @@ export async function getSiteSettings(): Promise<SiteSettings> {
 
   return normalizeSiteSettings(existing)
 }
+
+export const getSiteSettings = unstable_cache(
+  fetchSiteSettingsFromDB,
+  ['site-settings'],
+  {
+    tags: ['site-settings'],
+    revalidate: 60
+  }
+)
 
 export async function updateSiteSettings(updates: Partial<SiteSettings>): Promise<SiteSettings> {
   const current = await getSiteSettings()
