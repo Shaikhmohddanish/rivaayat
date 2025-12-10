@@ -218,10 +218,8 @@ export function Header({ siteSettings }: HeaderProps) {
               <NavigationMenu>
                 <NavigationMenuList>
                   <NavigationMenuItem>
-                    <Link href="/shop" legacyBehavior passHref>
-                      <NavigationMenuLink className="px-3 py-2 rounded-md text-sm hover:bg-accent hover:text-accent-foreground">
-                        Shop
-                      </NavigationMenuLink>
+                    <Link href="/shop" className="px-3 py-2 rounded-md text-sm hover:bg-accent hover:text-accent-foreground">
+                      Shop
                     </Link>
                   </NavigationMenuItem>
                   
@@ -257,10 +255,8 @@ export function Header({ siteSettings }: HeaderProps) {
 
                   {NAV_LINKS.filter(l => l.label !== "Home" && l.label !== "Shop").map((link) => (
                     <NavigationMenuItem key={link.href}>
-                      <Link href={link.href} legacyBehavior passHref>
-                        <NavigationMenuLink className="px-3 py-2 rounded-md text-sm hover:bg-accent hover:text-accent-foreground">
-                          {link.label}
-                        </NavigationMenuLink>
+                      <Link href={link.href} className="px-3 py-2 rounded-md text-sm hover:bg-accent hover:text-accent-foreground">
+                        {link.label}
                       </Link>
                     </NavigationMenuItem>
                   ))}
