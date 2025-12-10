@@ -91,6 +91,16 @@ export function Footer({ siteSettings }: FooterProps) {
                   Terms & Conditions
                 </Link>
               </li>
+              <li>
+                <Link href="/shipping-policy" className="text-muted-foreground hover:text-primary transition-all duration-300 elegant-hover inline-block">
+                  Shipping Policy
+                </Link>
+              </li>
+              <li>
+                <Link href="/cancellations-and-refunds" className="text-muted-foreground hover:text-primary transition-all duration-300 elegant-hover inline-block">
+                  Cancellations & Refunds
+                </Link>
+              </li>
             </ul>
           </div>
 
