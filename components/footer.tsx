@@ -1,4 +1,5 @@
 import Link from "next/link"
+import Image from "next/image"
 import { Facebook, Instagram, Twitter } from "lucide-react"
 import { ISTClock } from "@/components/ist-clock"
 import type { SiteSettings } from "@/lib/types"
@@ -17,7 +18,16 @@ export function Footer({ siteSettings }: FooterProps) {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* Brand & Social */}
           <div>
-            <h3 className="text-xl font-bold mb-4 elegant-gradient bg-clip-text text-transparent">Rivaayat</h3>
+            <div className="flex items-center gap-2 mb-4">
+              <Image 
+                src="/logo.png" 
+                alt="Rivaayat Logo" 
+                width={40}
+                height={40}
+                className="object-contain"
+              />
+              <h3 className="text-xl font-bold elegant-gradient bg-clip-text text-transparent">Rivaayat</h3>
+            </div>
             <p className="text-sm text-muted-foreground leading-relaxed mb-6">
               Riwayaat is not only worn, it is lived. A movement where women are the creators of tradition's future, not just its keepers.
             </p>

@@ -18,6 +18,11 @@ export const metadata: Metadata = {
   title: "Rivaayat - Ladies Dresses",
   description: "Shop the latest collection of ladies dresses",
   generator: "v0.app",
+  icons: {
+    icon: '/favicon.png',
+    shortcut: '/favicon.png',
+    apple: '/logo.png',
+  },
 }
 
 export const viewport: Viewport = {

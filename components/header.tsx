@@ -2,6 +2,7 @@
 
 import * as React from "react"
 import Link from "next/link"
+import Image from "next/image"
 import { useRouter } from "next/navigation"
 import {
   Menu,
@@ -200,9 +201,14 @@ export function Header({ siteSettings }: HeaderProps) {
               </Sheet>
 
               <Link href="/" className="flex items-center gap-2 group">
-                <div className="w-9 h-9 rounded-full elegant-gradient flex items-center justify-center shadow-inner">
-                  <span className="text-white font-bold text-sm">R</span>
-                </div>
+                <Image 
+                  src="/logo.png" 
+                  alt="Rivaayat Logo" 
+                  width={40}
+                  height={40}
+                  className="object-contain"
+                  priority
+                />
                 <span className="text-2xl font-bold elegant-text-gradient font-serif">Rivaayat</span>
               </Link>
             </div>
@@ -371,9 +377,13 @@ function MobileNav({ onNavigate }: { onNavigate: () => void }) {
       <div className="p-4 pt-6">
         <div className="flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2" onClick={onNavigate}>
-            <div className="w-9 h-9 rounded-full elegant-gradient flex items-center justify-center">
-              <span className="text-white font-bold text-sm">R</span>
-            </div>
+            <Image 
+              src="/logo.png" 
+              alt="Rivaayat Logo" 
+              width={40}
+              height={40}
+              className="object-contain"
+            />
             <div className="flex flex-col">
               <span className="text-xl font-bold font-serif">Rivaayat</span>
               <span className="text-xs text-muted-foreground -mt-1">Elegant fashion for you</span>
