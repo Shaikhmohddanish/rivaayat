@@ -29,7 +29,8 @@ export async function GET(request: Request) {
     
     let existingProduct;
     
-    if (productId) {
+    // Only exclude current product if productId is a valid ObjectId (not "new")
+    if (productId && productId !== "new" && ObjectId.isValid(productId)) {
       // If we're editing a product, exclude the current product from the check
       existingProduct = await db.collection<Product>("products").findOne({
         slug,
