@@ -10,6 +10,14 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { ProductImageUpload } from "@/components/product-image-upload"
 import { SlugInput } from "@/components/slug-input"
 import { ColorSelector, SizeSelector } from "@/components/product-variation-selectors"
@@ -50,7 +58,11 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
     price: "",
     category: "",
     isFeatured: false,
+    isActive: true,
+    isDraft: false,
   })
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const [deleting, setDeleting] = useState(false)
 
   const [images, setImages] = useState<ProductImage[]>([])
   const [colors, setColors] = useState<string[]>([])
@@ -92,6 +104,8 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
           price: data.price ? data.price.toString() : "",
           category: data.category || "",
           isFeatured: data.isFeatured || false,
+          isActive: data.isActive !== undefined ? data.isActive : true,
+          isDraft: data.isDraft || false,
         })
         // Set the slug using our hook
         setSlug(data.slug || "")
@@ -143,50 +157,65 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
   // No longer need the individual add/update/remove functions for colors and sizes
   // as our new components handle this internally
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent, saveAsDraft: boolean = false) => {
     e.preventDefault()
-
-    if (!formData.name || !slug || !formData.description || !formData.price) {
-      toast({
-        title: "Validation Error",
-        description: "Please fill in all required fields",
-        variant: "destructive"
-      })
-      return
-    }
-    
-    // Validate the slug
-    if (!isSlugValid) {
-      const isAvailable = await checkSlug()
-      if (!isAvailable) {
-        toast({
-          title: "Slug Error",
-          description: "Please use a different slug. This one is already taken.",
-          variant: "destructive"
-        })
-        return
-      }
-    }
-
-    if (images.length === 0) {
-      toast({
-        title: "Image Required",
-        description: "Please upload at least one image",
-        variant: "destructive"
-      })
-      return
-    }
+    e.stopPropagation()
 
     const validColors = colors.filter((c) => c.trim() !== "")
     const validSizes = sizes.filter((s) => s.trim() !== "")
 
-    if (validColors.length === 0 || validSizes.length === 0) {
-      toast({
-        title: "Variations Required",
-        description: "Please add at least one color and one size",
-        variant: "destructive"
-      })
-      return
+    // If saving as draft, only require name
+    if (!saveAsDraft) {
+      // Full validation for publishing
+      if (!formData.name || !slug || !formData.description || !formData.price) {
+        toast({
+          title: "Validation Error",
+          description: "Please fill in all required fields",
+          variant: "destructive"
+        })
+        return
+      }
+      
+      // Validate the slug
+      if (!isSlugValid) {
+        const isAvailable = await checkSlug()
+        if (!isAvailable) {
+          toast({
+            title: "Slug Error",
+            description: "Please use a different slug. This one is already taken.",
+            variant: "destructive"
+          })
+          return
+        }
+      }
+
+      if (images.length === 0) {
+        toast({
+          title: "Image Required",
+          description: "Please upload at least one image",
+          variant: "destructive"
+        })
+        return
+      }
+
+      if (validColors.length === 0 || validSizes.length === 0) {
+        toast({
+          title: "Variations Required",
+          description: "Please add at least one color and one size",
+          variant: "destructive"
+        })
+        return
+      }
+    } else {
+      // Minimal validation for draft
+      if (!formData.name || formData.name.trim() === "") {
+        toast({
+          title: "Validation Error",
+          description: "Product name is required even for drafts",
+          variant: "destructive"
+        })
+        return
+      }
     }
     
     // Make sure all combinations have stock values
@@ -226,24 +255,29 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: formData.name,
-          description: formData.description,
+          description: formData.description || "",
           category: formData.category || undefined,
           isFeatured: formData.isFeatured,
-          slug, // Use our managed slug
-          price: Number.parseFloat(formData.price),
-          images,
+          isActive: formData.isActive,
+          isDraft: saveAsDraft,
+          slug: slug || "", // Use our managed slug
+          price: formData.price ? Number.parseFloat(formData.price) : 0,
+          images: images || [],
           variations: {
-            colors: validColors,
-            sizes: validSizes,
-            variants: updatedVariants,
+            colors: validColors || [],
+            sizes: validSizes || [],
+            variants: updatedVariants || [],
           },
         }),
       })
 
       if (response.ok) {
+        const successMessage = saveAsDraft 
+          ? (isNewProduct ? "Product saved as draft" : "Draft saved successfully")
+          : (isNewProduct ? "Product created successfully" : "Product updated successfully")
         toast({
           title: "Success",
-          description: isNewProduct ? "Product created successfully" : "Product updated successfully",
+          description: successMessage,
           variant: "default"
         })
         router.push("/admin/products")
@@ -267,6 +301,43 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
     }
   }
 
+  const handleDelete = async () => {
+    if (!product || productId === "new") return
+
+    setDeleting(true)
+    try {
+      const response = await fetch(`/api/admin/products/${productId}`, {
+        method: "DELETE",
+      })
+
+      if (response.ok) {
+        toast({
+          title: "Success",
+          description: "Product deleted successfully",
+          variant: "default"
+        })
+        router.push("/admin/products")
+      } else {
+        const error = await response.json()
+        toast({
+          title: "Error",
+          description: error.error || "Failed to delete product",
+          variant: "destructive"
+        })
+      }
+    } catch (error) {
+      console.error("Error deleting product:", error)
+      toast({
+        title: "Error",
+        description: "Failed to delete product",
+        variant: "destructive"
+      })
+    } finally {
+      setDeleting(false)
+      setShowDeleteDialog(false)
+    }
+  }
+
   return (
     <div className="container mx-auto py-8 px-4 max-w-4xl">
       <div className="mb-8">
@@ -276,7 +347,28 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
             Back to Products
           </Link>
         </Button>
-        <h1 className="text-3xl font-bold">{productId === "new" ? "Add New Product" : "Edit Product"}</h1>
+        <div className="flex items-center justify-between">
+          <h1 className="text-3xl font-bold">{productId === "new" ? "Add New Product" : "Edit Product"}</h1>
+          <div className="flex gap-2">
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={(e) => handleSubmit(e as any, true)} 
+              disabled={saving}
+            >
+              {saving ? "Saving..." : "Save as Draft"}
+            </Button>
+            {productId !== "new" && (
+              <Button 
+                variant="destructive" 
+                onClick={() => setShowDeleteDialog(true)}
+                disabled={deleting}
+              >
+                {deleting ? "Deleting..." : "Delete Product"}
+              </Button>
+            )}
+          </div>
+        </div>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-8">
@@ -356,6 +448,18 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
               onCheckedChange={(checked) => setFormData({ ...formData, isFeatured: checked })}
             />
           </div>
+
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <Label htmlFor="active">Active Product</Label>
+              <p className="text-sm text-muted-foreground">Enable or disable product visibility</p>
+            </div>
+            <Switch
+              id="active"
+              checked={formData.isActive}
+              onCheckedChange={(checked) => setFormData({ ...formData, isActive: checked })}
+            />
+          </div>
         </div>
 
         <div className="bg-card rounded-lg border p-6 space-y-6">
@@ -393,14 +497,51 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
         </div>
 
         <div className="flex gap-4">
+          <Button 
+            type="button" 
+            variant="outline" 
+            onClick={(e) => handleSubmit(e as any, true)} 
+            disabled={saving}
+            className="flex-1"
+          >
+            {saving ? "Saving..." : "Save as Draft"}
+          </Button>
           <Button type="submit" disabled={saving} className="flex-1">
-            {saving ? "Saving..." : (productId === "new" ? "Create Product" : "Save Changes")}
+            {saving ? "Publishing..." : (productId === "new" ? "Publish Product" : "Update & Publish")}
           </Button>
           <Button type="button" variant="outline" asChild>
             <Link href="/admin/products">Cancel</Link>
           </Button>
         </div>
       </form>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Product</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to permanently delete this product? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowDeleteDialog(false)}
+              disabled={deleting}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDelete}
+              disabled={deleting}
+            >
+              {deleting ? "Deleting..." : "Delete"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

@@ -50,19 +50,24 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { name, slug, description, images, price, category, isFeatured, variations } = body
+    const { name, slug, description, images, price, category, isFeatured, isActive, isDraft, variations } = body
 
-    if (!name || !slug || !description || !price || !images || !variations) {
+    if (!name) {
+      return NextResponse.json({ error: "Product name is required" }, { status: 400 })
+    }
+
+    // If not a draft, validate required fields
+    if (!isDraft && (!slug || !description || !price || !images || !variations)) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
     }
 
     // Enhanced slug validation and handling
-    let finalSlug = slug.toLowerCase()
+    let finalSlug = slug ? slug.toLowerCase()
       .trim()
       .replace(/[^\w\s-]/g, '')
       .replace(/\s+/g, '-')
       .replace(/-+/g, '-')
-      .replace(/^-+|-+$/g, '')
+      .replace(/^-+|-+$/g, '') : `draft-${Date.now()}`
     
     const client = await clientPromise
     if (!client) throw new Error("Failed to connect to database")
@@ -80,12 +85,14 @@ export async function POST(request: NextRequest) {
     const productData = {
       name,
       slug: finalSlug, // Use our guaranteed unique slug
-      description,
-      images,
-      price,
+      description: description || "",
+      images: images || [],
+      price: price || 0,
       category: category || undefined,
       isFeatured: isFeatured ?? false,
-      variations,
+      isActive: isActive ?? true,
+      isDraft: isDraft ?? false,
+      variations: variations || { colors: [], sizes: [], variants: [] },
       createdAt: new Date(),
       updatedAt: new Date(),
     }

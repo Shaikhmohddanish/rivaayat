@@ -75,7 +75,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     }
 
     const body = await request.json()
-    const { name, slug, description, images, price, category, isFeatured, variations } = body
+    const { name, slug, description, images, price, category, isFeatured, isActive, isDraft, variations } = body
 
     const updateFields: Partial<Product> = {
       updatedAt: new Date(),
@@ -105,6 +105,8 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     if (images !== undefined) updateFields.images = images
     if (price !== undefined) updateFields.price = price
     if (isFeatured !== undefined) updateFields.isFeatured = isFeatured
+    if (isActive !== undefined) updateFields.isActive = isActive
+    if (isDraft !== undefined) updateFields.isDraft = isDraft
     if (variations !== undefined) updateFields.variations = variations
 
     const client = await clientPromise
@@ -126,5 +128,40 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   } catch (error) {
     console.error("Error updating product:", error)
     return NextResponse.json({ error: "Failed to update product" }, { status: 500 })
+  }
+}
+
+// DELETE /api/admin/products/[id] - Admin only endpoint to delete product
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    const { id } = await params
+    const session = await getServerSession(authOptions)
+
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
+    if (session.user.role !== "admin") {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+    }
+
+    if (!ObjectId.isValid(id)) {
+      return NextResponse.json({ error: "Invalid product ID" }, { status: 400 })
+    }
+
+    const client = await clientPromise
+    if (!client) throw new Error("Failed to connect to database")
+    const db = client.db("rivaayat")
+
+    const result = await db.collection<Product>("products").deleteOne({ _id: new ObjectId(id) as any })
+
+    if (result.deletedCount === 0) {
+      return NextResponse.json({ error: "Product not found" }, { status: 404 })
+    }
+
+    return NextResponse.json({ success: true, message: "Product deleted successfully" })
+  } catch (error) {
+    console.error("Error deleting product:", error)
+    return NextResponse.json({ error: "Failed to delete product" }, { status: 500 })
   }
 }

@@ -52,6 +52,8 @@ export interface Product {
   price: number
   mrp?: number
   isFeatured: boolean
+  isActive?: boolean
+  isDraft?: boolean
   category?: string
   subcategory?: string
   brand?: string

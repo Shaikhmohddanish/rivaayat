@@ -108,7 +108,7 @@ export default function AdminProductsPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {filteredProducts.map((product) => (
-          <div key={product._id} className="bg-card rounded-lg border overflow-hidden group">
+          <div key={product._id} className="bg-card rounded-lg border overflow-hidden group relative">
             <div className="relative aspect-square bg-muted">
               {product.images[0] ? (
                 <Image
@@ -120,11 +120,23 @@ export default function AdminProductsPage() {
               ) : (
                 <div className="flex items-center justify-center h-full text-muted-foreground">No image</div>
               )}
-              {product.isFeatured && (
-                <div className="absolute top-2 right-2 bg-yellow-500 text-white p-1.5 rounded-full">
-                  <Star className="h-4 w-4 fill-current" />
-                </div>
-              )}
+              <div className="absolute top-2 right-2 flex gap-2">
+                {product.isFeatured && (
+                  <div className="bg-yellow-500 text-white p-1.5 rounded-full">
+                    <Star className="h-4 w-4 fill-current" />
+                  </div>
+                )}
+                {product.isDraft && (
+                  <div className="bg-blue-500 text-white px-2 py-1 rounded-md text-xs font-semibold">
+                    Draft
+                  </div>
+                )}
+                {product.isActive === false && (
+                  <div className="bg-red-500 text-white px-2 py-1 rounded-md text-xs font-semibold">
+                    Inactive
+                  </div>
+                )}
+              </div>
             </div>
             <div className="p-4">
               <h3 className="font-semibold text-lg mb-1 line-clamp-1">{product.name}</h3>
