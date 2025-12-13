@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useEffect } from "react"
 import { useSession } from "next-auth/react"
+import { useSearchParams } from "next/navigation"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -23,17 +24,28 @@ interface ShopPageClientProps {
   isLoading?: boolean
 }
 
-const ITEMS_PER_PAGE = 12
+const ITEMS_PER_PAGE = 6
 
 export function ShopPageClient({ products, availableColors, availableSizes, isLoading = false }: ShopPageClientProps) {
   const { data: session, status } = useSession()
+  const searchParams = useSearchParams()
+  const categoryParam = searchParams.get('category')
+  
   const [searchQuery, setSearchQuery] = useState("")
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(categoryParam)
   const [selectedColors, setSelectedColors] = useState<string[]>([])
   const [selectedSizes, setSelectedSizes] = useState<string[]>([])
   const [quickViewProduct, setQuickViewProduct] = useState<(Product & { _id: string }) | null>(null)
   const [displayCount, setDisplayCount] = useState(ITEMS_PER_PAGE)
   const [wishlistProductIds, setWishlistProductIds] = useState<string[]>([])
   const [productsData, setProductsData] = useState(products)
+
+  // Update selected category when URL parameter changes
+  useEffect(() => {
+    if (categoryParam) {
+      setSelectedCategory(categoryParam)
+    }
+  }, [categoryParam])
 
   // 🚀 OPTIMIZATION Item 12: Cache product list in sessionStorage and IndexedDB
   useEffect(() => {
@@ -125,6 +137,11 @@ export function ShopPageClient({ products, availableColors, availableSizes, isLo
   // Filter products based on search and filters
   const filteredProducts = useMemo(() => {
     return productsData.filter((product) => {
+      // Category filter
+      if (selectedCategory) {
+        if (product.category !== selectedCategory) return false
+      }
+
       // Search filter
       if (searchQuery) {
         const query = searchQuery.toLowerCase()
@@ -149,7 +166,7 @@ export function ShopPageClient({ products, availableColors, availableSizes, isLo
 
       return true
     })
-  }, [productsData, searchQuery, selectedColors, selectedSizes])
+  }, [productsData, searchQuery, selectedCategory, selectedColors, selectedSizes])
 
   const displayedProducts = filteredProducts.slice(0, displayCount)
   const hasMore = displayCount < filteredProducts.length
@@ -166,12 +183,17 @@ export function ShopPageClient({ products, availableColors, availableSizes, isLo
 
   const clearFilters = () => {
     setSearchQuery("")
+    setSelectedCategory(null)
     setSelectedColors([])
     setSelectedSizes([])
     setDisplayCount(ITEMS_PER_PAGE)
+    // Clear URL parameter
+    if (categoryParam) {
+      window.history.replaceState({}, '', '/shop')
+    }
   }
 
-  const hasActiveFilters = searchQuery || selectedColors.length > 0 || selectedSizes.length > 0
+  const hasActiveFilters = searchQuery || selectedCategory || selectedColors.length > 0 || selectedSizes.length > 0
 
   const FilterContent = () => (
     <div className="space-y-6">
@@ -221,7 +243,16 @@ export function ShopPageClient({ products, availableColors, availableSizes, isLo
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="text-4xl font-bold mb-8">Shop</h1>
+      <div className="mb-8">
+        <h1 className="text-4xl font-bold">
+          {selectedCategory ? `Shop ${selectedCategory}` : 'Shop'}
+        </h1>
+        {selectedCategory && (
+          <p className="text-muted-foreground mt-2">
+            Explore our collection of {selectedCategory.toLowerCase()} products
+          </p>
+        )}
+      </div>
 
       <div className="flex flex-col lg:flex-row gap-8">
         {/* Desktop Filters Sidebar */}
@@ -271,7 +302,7 @@ export function ShopPageClient({ products, availableColors, availableSizes, isLo
                   Filters
                   {hasActiveFilters && (
                     <span className="ml-2 bg-primary text-primary-foreground rounded-full w-5 h-5 text-xs flex items-center justify-center">
-                      {selectedColors.length + selectedSizes.length}
+                      {(selectedCategory ? 1 : 0) + selectedColors.length + selectedSizes.length}
                     </span>
                   )}
                 </Button>
@@ -296,6 +327,20 @@ export function ShopPageClient({ products, availableColors, availableSizes, isLo
           {/* Active Filters */}
           {hasActiveFilters && (
             <div className="flex flex-wrap gap-2 mb-6">
+              {selectedCategory && (
+                <Button 
+                  variant="secondary" 
+                  size="sm" 
+                  onClick={() => {
+                    setSelectedCategory(null)
+                    setDisplayCount(ITEMS_PER_PAGE)
+                    window.history.replaceState({}, '', '/shop')
+                  }}
+                >
+                  Category: {selectedCategory}
+                  <X className="ml-2 h-3 w-3" />
+                </Button>
+              )}
               {selectedColors.map((color) => (
                 <Button key={color} variant="secondary" size="sm" onClick={() => toggleColor(color)}>
                   {color}

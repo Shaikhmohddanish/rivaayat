@@ -62,13 +62,33 @@ export default function CartPage() {
     
     fetchCart()
     
-    // Load saved coupon from localStorage
+    // Load saved coupon from localStorage and validate it
     const savedCoupon = localStorage.getItem("appliedCoupon")
     if (savedCoupon) {
       try {
         const coupon = JSON.parse(savedCoupon)
-        setAppliedCoupon(coupon)
-        setCouponCode(coupon.code)
+        // Validate the coupon is still active
+        fetch(`/api/coupons?code=${encodeURIComponent(coupon.code)}`)
+          .then(response => {
+            if (!response.ok) {
+              // Coupon is invalid or inactive, remove it
+              localStorage.removeItem("appliedCoupon")
+              console.log("Saved coupon is no longer valid, removed from localStorage")
+              return
+            }
+            return response.json()
+          })
+          .then(validatedCoupon => {
+            if (validatedCoupon) {
+              setAppliedCoupon(validatedCoupon)
+              setCouponCode(validatedCoupon.code)
+              console.log("Validated and applied saved coupon:", validatedCoupon.code)
+            }
+          })
+          .catch(err => {
+            console.error("Error validating saved coupon:", err)
+            localStorage.removeItem("appliedCoupon")
+          })
       } catch (e) {
         localStorage.removeItem("appliedCoupon")
       }

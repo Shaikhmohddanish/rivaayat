@@ -18,11 +18,7 @@ import { useToast } from "@/hooks/use-toast"
 
 declare global {
   interface Window {
-    Razorpay?: new (options: any) => {
-      open: () => void
-      on: (event: string, handler: (response: any) => void) => void
-      close?: () => void
-    }
+    Razorpay?: any
   }
 }
 
@@ -31,6 +27,10 @@ export default function CheckoutPage() {
   const { toast } = useToast()
   const [cart, setCart] = useState<CartItem[]>([])
   const [loading, setLoading] = useState(false)
+  const [userProfile, setUserProfile] = useState<any>(null)
+  const [savedAddresses, setSavedAddresses] = useState<any[]>([])
+  const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null)
+  const [useProfileAddress, setUseProfileAddress] = useState(false)
   const [showAddressForm, setShowAddressForm] = useState(false)
   const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discountPercent: number; minOrderValue?: number } | null>(null)
   const [couponCode, setCouponCode] = useState("")
@@ -96,17 +96,83 @@ export default function CheckoutPage() {
       }
     }
     
+    // Fetch user profile and addresses
+    const fetchUserProfile = async () => {
+      try {
+        const response = await fetch('/api/user/profile', {
+          cache: 'no-store',
+        })
+        
+        if (response.ok) {
+          const data = await response.json()
+          setUserProfile(data)
+          
+          // Auto-populate user details
+          setFormData(prev => ({
+            ...prev,
+            fullName: data.name || "",
+            email: data.email || "",
+            phone: data.phone || "",
+          }))
+          
+          // Fetch addresses if user is logged in
+          const addressResponse = await fetch('/api/user/addresses')
+          if (addressResponse.ok) {
+            const addressData = await addressResponse.json()
+            const addresses = addressData.addresses || []
+            setSavedAddresses(addresses)
+            
+            // Auto-select default address if available
+            const defaultAddress = addresses.find((addr: any) => addr.isDefault)
+            if (defaultAddress) {
+              setSelectedAddressId(defaultAddress._id)
+              setUseProfileAddress(true)
+              setShowAddressForm(false)
+              populateAddressForm(defaultAddress)
+            } else if (addresses.length === 0) {
+              // Show form immediately if no saved addresses
+              setShowAddressForm(true)
+            }
+          }
+        } else {
+          // Show form if not logged in or profile fetch failed
+          setShowAddressForm(true)
+        }
+      } catch (error) {
+        console.error('Error fetching user profile:', error)
+      }
+    }
+    
     fetchCart()
+    fetchUserProfile()
     
     // Load and validate saved coupon from localStorage
     const savedCoupon = localStorage.getItem("appliedCoupon")
     if (savedCoupon) {
       try {
         const coupon = JSON.parse(savedCoupon)
-        // Set the applied coupon from localStorage
-        setAppliedCoupon(coupon)
-        setCouponCode(coupon.code) // Also set the coupon code
-        console.log("Loaded coupon from localStorage:", coupon)
+        // Validate the coupon is still active
+        fetch(`/api/coupons?code=${encodeURIComponent(coupon.code)}`)
+          .then(response => {
+            if (!response.ok) {
+              // Coupon is invalid or inactive, remove it
+              localStorage.removeItem("appliedCoupon")
+              console.log("Saved coupon is no longer valid, removed from localStorage")
+              return
+            }
+            return response.json()
+          })
+          .then(validatedCoupon => {
+            if (validatedCoupon) {
+              setAppliedCoupon(validatedCoupon)
+              setCouponCode(validatedCoupon.code)
+              console.log("Validated and applied saved coupon:", validatedCoupon.code)
+            }
+          })
+          .catch(err => {
+            console.error("Error validating saved coupon:", err)
+            localStorage.removeItem("appliedCoupon")
+          })
       } catch (e) {
         console.error("Error loading coupon from localStorage:", e)
         localStorage.removeItem("appliedCoupon")
@@ -190,6 +256,29 @@ export default function CheckoutPage() {
       email: formData.email,
       phone: formData.phone,
       country: "India",
+    }
+  }
+
+  const populateAddressForm = (address: any) => {
+    setFormData(prev => ({
+      ...prev,
+      addressLine1: address.addressLine1 || "",
+      addressLine2: address.addressLine2 || "",
+      city: address.city || "",
+      state: address.state || "",
+      postalCode: address.postalCode || "",
+      country: address.country || "India",
+      phone: address.phone || prev.phone,
+      fullName: `${address.firstName || ""} ${address.lastName || ""}`.trim() || prev.fullName,
+    }))
+  }
+
+  const handleAddressSelection = (addressId: string) => {
+    setSelectedAddressId(addressId)
+    const selected = savedAddresses.find(addr => addr._id === addressId)
+    if (selected) {
+      populateAddressForm(selected)
+      setUseProfileAddress(true)
     }
   }
 
@@ -340,17 +429,26 @@ export default function CheckoutPage() {
     e.preventDefault()
     setLoading(true)
 
-    // Validate that address is filled if checkbox is checked
-    if (showAddressForm) {
-      if (!formData.addressLine1 || !formData.city || !formData.state || !formData.postalCode) {
-        toast({
-          title: "Validation Error",
-          description: "Please fill all required address fields",
-          variant: "destructive"
-        })
-        setLoading(false)
-        return
-      }
+    // Validate required user details
+    if (!formData.fullName || !formData.email || !formData.phone) {
+      toast({
+        title: "Validation Error",
+        description: "Please fill in your name, email, and phone number",
+        variant: "destructive"
+      })
+      setLoading(false)
+      return
+    }
+
+    // Address is now mandatory
+    if (!showAddressForm || !formData.addressLine1 || !formData.city || !formData.state || !formData.postalCode) {
+      toast({
+        title: "Address Required",
+        description: "Please provide a complete shipping address",
+        variant: "destructive"
+      })
+      setLoading(false)
+      return
     }
     
     // Check coupon minimum order value if applied
@@ -497,136 +595,291 @@ export default function CheckoutPage() {
               <CardHeader>
                 <CardTitle>Shipping Information</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
-                {/* Address Form Toggle */}
-                <div className="flex items-center space-x-2">
-                  <Checkbox 
-                    id="fillAddress" 
-                    checked={showAddressForm}
-                    onCheckedChange={(checked) => setShowAddressForm(checked as boolean)}
-                  />
-                  <Label htmlFor="fillAddress" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                    Fill shipping address
-                  </Label>
-                </div>
+              <CardContent className="space-y-6">
+                {/* Personal Information - Editable */}
+                <div>
+                  <h3 className="font-semibold mb-3">Personal Details</h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    You can edit these details if ordering for someone else
+                  </p>
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="fullName">Full Name *</Label>
+                      <Input 
+                        id="fullName" 
+                        name="fullName" 
+                        placeholder="Enter full name"
+                        value={formData.fullName} 
+                        onChange={handleChange} 
+                        required 
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="email">Email *</Label>
+                      <Input
+                        id="email"
+                        name="email"
+                        type="email"
+                        placeholder="Enter email address"
+                        value={formData.email}
+                        onChange={handleChange}
+                        required
+                      />
+                    </div>
+                  </div>
 
-                {/* Personal Information - Always visible */}
-                <div className="grid md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="fullName">Full Name *</Label>
+                  <div className="space-y-2 mt-4">
+                    <Label htmlFor="phone">Phone *</Label>
                     <Input 
-                      id="fullName" 
-                      name="fullName" 
-                      placeholder="Enter your full name"
-                      value={formData.fullName} 
+                      id="phone" 
+                      name="phone" 
+                      type="tel" 
+                      placeholder="Enter phone number"
+                      value={formData.phone} 
                       onChange={handleChange} 
                       required 
                     />
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email *</Label>
-                    <Input
-                      id="email"
-                      name="email"
-                      type="email"
-                      placeholder="Enter your email address"
-                      value={formData.email}
-                      onChange={handleChange}
-                      required
-                    />
+                </div>
+
+                {/* Saved Addresses Selection */}
+                {savedAddresses.length > 0 && (
+                  <div className="border-t pt-6">
+                    <h3 className="font-semibold mb-3">Select Shipping Address</h3>
+                    <div className="space-y-3">
+                      {savedAddresses.map((address) => (
+                        <div
+                          key={address._id}
+                          className={`p-4 border rounded-lg cursor-pointer transition-all ${
+                            selectedAddressId === address._id
+                              ? 'border-primary bg-primary/5'
+                              : 'border-border hover:border-primary/50'
+                          }`}
+                          onClick={() => handleAddressSelection(address._id)}
+                        >
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-1">
+                                <input
+                                  type="radio"
+                                  name="addressSelection"
+                                  checked={selectedAddressId === address._id}
+                                  onChange={() => handleAddressSelection(address._id)}
+                                  className="cursor-pointer"
+                                />
+                                <span className="font-medium">
+                                  {address.firstName} {address.lastName}
+                                </span>
+                                {address.isDefault && (
+                                  <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded">
+                                    Default
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-sm text-muted-foreground ml-6">
+                                {address.addressLine1}, {address.addressLine2 && `${address.addressLine2}, `}
+                                {address.city}, {address.state} - {address.postalCode}
+                              </p>
+                              {address.phone && (
+                                <p className="text-sm text-muted-foreground ml-6">
+                                  Phone: {address.phone}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    
+                    <div className="mt-4">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => {
+                          setSelectedAddressId(null)
+                          setUseProfileAddress(false)
+                          setShowAddressForm(true)
+                          setFormData(prev => ({
+                            ...prev,
+                            addressLine1: "",
+                            addressLine2: "",
+                            city: "",
+                            state: "",
+                            postalCode: "",
+                          }))
+                        }}
+                        className="w-full"
+                      >
+                        + Use a Different Address
+                      </Button>
+                    </div>
                   </div>
-                </div>
+                )}
 
-                <div className="space-y-2">
-                  <Label htmlFor="phone">Phone *</Label>
-                  <Input 
-                    id="phone" 
-                    name="phone" 
-                    type="tel" 
-                    placeholder="Enter your phone number"
-                    value={formData.phone} 
-                    onChange={handleChange} 
-                    required 
-                  />
-                </div>
-
-                {/* Address fields - Only visible when checkbox is checked */}
-                {showAddressForm && (
-                  <>
-                    <div className="space-y-2">
-                      <Label htmlFor="addressLine1">Address Line 1 *</Label>
-                      <Input
-                        id="addressLine1"
-                        name="addressLine1"
-                        placeholder="House number, building name, street"
-                        value={formData.addressLine1}
-                        onChange={handleChange}
-                        required={showAddressForm}
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="addressLine2">Address Line 2</Label>
-                      <Input 
-                        id="addressLine2" 
-                        name="addressLine2" 
-                        placeholder="Landmark, area, locality (optional)"
-                        value={formData.addressLine2} 
-                        onChange={handleChange} 
-                      />
-                    </div>
-
-                    <div className="grid md:grid-cols-3 gap-4">
+                {/* New Address Form */}
+                {(savedAddresses.length === 0 || (showAddressForm && !selectedAddressId)) && (
+                  <div className="border-t pt-6">
+                    <h3 className="font-semibold mb-3">
+                      {savedAddresses.length === 0 ? 'Shipping Address *' : 'Enter New Address'}
+                    </h3>
+                    <div className="space-y-4">
                       <div className="space-y-2">
-                        <Label htmlFor="city">City *</Label>
-                        <Input 
-                          id="city" 
-                          name="city" 
-                          placeholder="Enter your city"
-                          value={formData.city} 
-                          onChange={handleChange} 
-                          required={showAddressForm} 
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="state">State *</Label>
-                        <Select onValueChange={handleStateChange} value={formData.state} required={showAddressForm}>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select your state" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {indianStates.map((state) => (
-                              <SelectItem key={state} value={state}>
-                                {state}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="postalCode">Postal Code *</Label>
+                        <Label htmlFor="addressLine1">Address Line 1 *</Label>
                         <Input
-                          id="postalCode"
-                          name="postalCode"
-                          placeholder="Enter PIN code"
-                          value={formData.postalCode}
+                          id="addressLine1"
+                          name="addressLine1"
+                          placeholder="House number, building name, street"
+                          value={formData.addressLine1}
                           onChange={handleChange}
-                          required={showAddressForm}
+                          required
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="addressLine2">Address Line 2</Label>
+                        <Input 
+                          id="addressLine2" 
+                          name="addressLine2" 
+                          placeholder="Landmark, area, locality (optional)"
+                          value={formData.addressLine2} 
+                          onChange={handleChange} 
+                        />
+                      </div>
+
+                      <div className="grid md:grid-cols-3 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="city">City *</Label>
+                          <Input 
+                            id="city" 
+                            name="city" 
+                            placeholder="Enter city"
+                            value={formData.city} 
+                            onChange={handleChange} 
+                            required
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="state">State *</Label>
+                          <Select onValueChange={handleStateChange} value={formData.state} required>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select state" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {indianStates.map((state) => (
+                                <SelectItem key={state} value={state}>
+                                  {state}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="postalCode">Postal Code *</Label>
+                          <Input
+                            id="postalCode"
+                            name="postalCode"
+                            placeholder="PIN code"
+                            value={formData.postalCode}
+                            onChange={handleChange}
+                            required
+                          />
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="country">Country</Label>
+                        <Input 
+                          id="country" 
+                          name="country" 
+                          value="India" 
+                          readOnly 
+                          className="bg-muted cursor-not-allowed"
                         />
                       </div>
                     </div>
+                  </div>
+                )}
 
-                    <div className="space-y-2">
-                      <Label htmlFor="country">Country</Label>
-                      <Input 
-                        id="country" 
-                        name="country" 
-                        value="India" 
-                        readOnly 
-                        className="bg-muted cursor-not-allowed"
-                      />
+                {/* Show address form when a saved address is selected */}
+                {selectedAddressId && !showAddressForm && (
+                  <div className="border-t pt-6">
+                    <h3 className="font-semibold mb-3">Review & Edit Shipping Details</h3>
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="addressLine1">Address Line 1 *</Label>
+                        <Input
+                          id="addressLine1"
+                          name="addressLine1"
+                          placeholder="House number, building name, street"
+                          value={formData.addressLine1}
+                          onChange={handleChange}
+                          required
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="addressLine2">Address Line 2</Label>
+                        <Input 
+                          id="addressLine2" 
+                          name="addressLine2" 
+                          placeholder="Landmark, area, locality (optional)"
+                          value={formData.addressLine2} 
+                          onChange={handleChange} 
+                        />
+                      </div>
+
+                      <div className="grid md:grid-cols-3 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="city">City *</Label>
+                          <Input 
+                            id="city" 
+                            name="city" 
+                            placeholder="Enter city"
+                            value={formData.city} 
+                            onChange={handleChange} 
+                            required
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="state">State *</Label>
+                          <Select onValueChange={handleStateChange} value={formData.state} required>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select state" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {indianStates.map((state) => (
+                                <SelectItem key={state} value={state}>
+                                  {state}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="postalCode">Postal Code *</Label>
+                          <Input
+                            id="postalCode"
+                            name="postalCode"
+                            placeholder="PIN code"
+                            value={formData.postalCode}
+                            onChange={handleChange}
+                            required
+                          />
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="country">Country</Label>
+                        <Input 
+                          id="country" 
+                          name="country" 
+                          value="India" 
+                          readOnly 
+                          className="bg-muted cursor-not-allowed"
+                        />
+                      </div>
                     </div>
-                  </>
+                  </div>
                 )}
               </CardContent>
             </Card>
