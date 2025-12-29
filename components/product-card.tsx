@@ -30,6 +30,13 @@ export function ProductCard({ product, onQuickView, wishlistProductIds, onWishli
   const [selectedColor, setSelectedColor] = useState("")
   const [selectedSize, setSelectedSize] = useState("")
 
+  const originalPrice = product.originalPrice ?? product.mrp ?? product.price
+  const discountedPrice = product.discountedPrice ?? product.price
+  const hasDiscount = Boolean(originalPrice && discountedPrice && discountedPrice < originalPrice)
+  const discountPercent = hasDiscount
+    ? Math.round(((originalPrice - discountedPrice) / originalPrice) * 100)
+    : 0
+
   useEffect(() => {
     // 🚀 OPTIMIZATION Item 7: Use passed wishlist instead of fetching
     if (wishlistProductIds !== undefined) {
@@ -92,9 +99,7 @@ export function ProductCard({ product, onQuickView, wishlistProductIds, onWishli
       toast({
         title: nowIn ? "Added to wishlist" : "Removed from wishlist",
         description: product.name,
-        className: nowIn
-          ? "bg-pink-50 border-pink-200 text-pink-800"
-          : "bg-gray-50 border-gray-200",
+        className: "bg-gray-50 border-gray-200",
       })
     } catch (err) {
       toast({ title: "Error", description: "Could not update wishlist", variant: "destructive" })
@@ -125,7 +130,7 @@ export function ProductCard({ product, onQuickView, wishlistProductIds, onWishli
     const cartItem = {
       productId: product._id,
       name: product.name,
-      price: product.price,
+      price: discountedPrice,
       image: product.images?.[0]?.url || "",
       quantity: 1,
       variant: { color: selectedColor || "", size: selectedSize || "" },
@@ -179,7 +184,7 @@ export function ProductCard({ product, onQuickView, wishlistProductIds, onWishli
     const cartItem = {
       productId: product._id,
       name: product.name,
-      price: product.price,
+      price: discountedPrice,
       image: product.images?.[0]?.url || "",
       quantity: 1,
       variant: { color: "", size: "" },
@@ -256,9 +261,18 @@ export function ProductCard({ product, onQuickView, wishlistProductIds, onWishli
             </button>
           </div>
 
-          {hasOptions && (
-            <div className="absolute top-2 left-2 bg-primary/80 text-white text-xs px-2 py-1 rounded-md backdrop-blur-sm">
-              Options
+          {(hasOptions || hasDiscount) && (
+            <div className="absolute top-2 left-2 flex flex-col gap-1">
+              {hasOptions && (
+                <div className="bg-primary/80 text-white text-xs px-2 py-1 rounded-md backdrop-blur-sm">
+                  Options
+                </div>
+              )}
+              {hasDiscount && (
+                <div className="bg-emerald-600/90 text-white text-xs px-2 py-1 rounded-md backdrop-blur-sm">
+                  {discountPercent}% off
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -337,8 +351,14 @@ export function ProductCard({ product, onQuickView, wishlistProductIds, onWishli
           )}
 
           <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
-            <div className="flex items-center gap-2">
-              <p className="text-lg font-semibold text-gray-900">₹{product.price.toFixed(2)}</p>
+            <div className="flex flex-col text-gray-900">
+              <p className="text-lg font-semibold">₹{discountedPrice.toFixed(2)}</p>
+              {hasDiscount && (
+                <div className="flex flex-wrap items-baseline gap-1 text-xs">
+                  <span className="text-muted-foreground line-through">₹{originalPrice.toFixed(2)}</span>
+                  <span className="font-semibold text-emerald-600">({discountPercent}% off)</span>
+                </div>
+              )}
             </div>
             <Button size="sm" onClick={handleBuyNow} className="bg-primary hover:bg-primary/90 text-white">
               Buy Now

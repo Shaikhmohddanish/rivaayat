@@ -1,8 +1,8 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { useSession } from "next-auth/react"
-import { useRouter } from "next/navigation"
+import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -27,6 +27,8 @@ import { useToast } from "@/hooks/use-toast"
 export default function AdminUsersPage() {
   const { data: session, status } = useSession()
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const pathname = usePathname()
   const { toast } = useToast()
   const [users, setUsers] = useState<User[]>([])
   const [filteredUsers, setFilteredUsers] = useState<User[]>([])
@@ -44,6 +46,26 @@ export default function AdminUsersPage() {
   })
   const [saving, setSaving] = useState(false)
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null)
+  const updateUserQueryParam = useCallback((userId?: string) => {
+    const params = new URLSearchParams(searchParams.toString())
+    if (userId) {
+      params.set("userId", userId)
+    } else {
+      params.delete("userId")
+    }
+    const queryString = params.toString()
+    router.replace(`${pathname}${queryString ? `?${queryString}` : ""}`, { scroll: false })
+  }, [pathname, router, searchParams])
+
+  const handleViewDetails = useCallback((userId: string) => {
+    setSelectedUserId(userId)
+    updateUserQueryParam(userId)
+  }, [updateUserQueryParam])
+
+  const handleCloseDetails = useCallback(() => {
+    setSelectedUserId(null)
+    updateUserQueryParam()
+  }, [updateUserQueryParam])
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -58,6 +80,15 @@ export default function AdminUsersPage() {
       fetchUsers()
     }
   }, [session, currentPage, itemsPerPage])
+
+  useEffect(() => {
+    const paramUserId = searchParams.get("userId")
+    if (paramUserId && paramUserId !== selectedUserId) {
+      setSelectedUserId(paramUserId)
+    } else if (!paramUserId && selectedUserId) {
+      setSelectedUserId(null)
+    }
+  }, [searchParams, selectedUserId])
 
   useEffect(() => {
     if (searchQuery.trim() === "") {
@@ -227,7 +258,7 @@ export default function AdminUsersPage() {
                       <Button 
                         variant="ghost" 
                         size="sm" 
-                        onClick={() => user._id && setSelectedUserId(user._id)} 
+                        onClick={() => user._id && handleViewDetails(user._id)} 
                         title="View user details and order history"
                         aria-label={`View details for ${user.name}`}
                         className="touch-target"
@@ -342,7 +373,7 @@ export default function AdminUsersPage() {
         <UserDetails 
           userId={selectedUserId} 
           isOpen={!!selectedUserId} 
-          onClose={() => setSelectedUserId(null)} 
+          onClose={handleCloseDetails} 
         />
       )}
     </div>

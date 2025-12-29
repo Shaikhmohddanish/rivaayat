@@ -159,8 +159,8 @@ export function Header({ siteSettings }: HeaderProps) {
       {/* Announcement Bar */}
       {showAnnouncement && (
         <div className="w-full bg-primary text-primary-foreground text-xs sm:text-sm">
-          <div className="container mx-auto flex items-center justify-between px-4 py-1.5 gap-3">
-            <div className="flex items-center gap-2 whitespace-nowrap">
+          <div className="container mx-auto flex flex-col gap-2 px-4 py-1.5 text-center sm:flex-row sm:items-center sm:justify-between sm:text-left">
+            <div className="flex flex-wrap items-center justify-center gap-2 sm:justify-start">
               <Sparkles className="h-4 w-4" />
               {announcement.headline && <span className="hidden sm:inline">{announcement.headline}</span>}
               {announcement.highlight && <b>{announcement.highlight}</b>}
@@ -169,14 +169,14 @@ export function Header({ siteSettings }: HeaderProps) {
                 <Badge variant="secondary" className="ml-1">{announcement.badgeText}</Badge>
               )}
             </div>
-            <div className="flex items-center gap-4 text-white/90">
+            <div className="flex flex-wrap items-center justify-center gap-4 text-white/90 sm:justify-end">
               {announcement.shippingText && (
-                <span className="hidden md:flex items-center gap-1"><Truck className="h-4 w-4"/>{announcement.shippingText}</span>
+                <span className="hidden md:flex items-center gap-1"><Truck className="h-4 w-4" />{announcement.shippingText}</span>
               )}
               {announcement.shippingText && (
                 <Separator orientation="vertical" className="hidden md:block h-4 bg-white/40" />
               )}
-              <a href={telHref} className="flex items-center gap-1 hover:underline"><Phone className="h-4 w-4"/>{phoneDisplay}</a>
+              <a href={telHref} className="flex items-center gap-1 hover:underline"><Phone className="h-4 w-4" />{phoneDisplay}</a>
             </div>
           </div>
         </div>

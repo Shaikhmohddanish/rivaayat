@@ -50,16 +50,49 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { name, slug, description, images, price, category, isFeatured, isActive, isDraft, variations } = body
+    const {
+      name,
+      slug,
+      description,
+      images,
+      price,
+      originalPrice,
+      discountedPrice,
+      category,
+      isFeatured,
+      isActive,
+      isDraft,
+      variations,
+    } = body
 
     if (!name) {
       return NextResponse.json({ error: "Product name is required" }, { status: 400 })
     }
 
     // If not a draft, validate required fields
-    if (!isDraft && (!slug || !description || !price || !images || !variations)) {
+    if (!isDraft && (!slug || !description || !images || !variations)) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
     }
+
+    const normalizedOriginal = Number.isFinite(Number(originalPrice)) ? Number(originalPrice) : Number(price)
+    const normalizedDiscounted = Number.isFinite(Number(discountedPrice))
+      ? Number(discountedPrice)
+      : Number(price ?? normalizedOriginal)
+
+    if (!isDraft) {
+      if (!normalizedOriginal || !normalizedDiscounted) {
+        return NextResponse.json({ error: "Original and discounted prices are required" }, { status: 400 })
+      }
+      if (normalizedDiscounted > normalizedOriginal) {
+        return NextResponse.json({ error: "Discounted price cannot exceed original price" }, { status: 400 })
+      }
+    }
+
+    const effectivePrice = Number.isFinite(normalizedDiscounted) && normalizedDiscounted > 0
+      ? normalizedDiscounted
+      : Number.isFinite(normalizedOriginal) && normalizedOriginal > 0
+        ? normalizedOriginal
+        : Number(price) || 0
 
     // Enhanced slug validation and handling
     let finalSlug = slug ? slug.toLowerCase()
@@ -87,7 +120,9 @@ export async function POST(request: NextRequest) {
       slug: finalSlug, // Use our guaranteed unique slug
       description: description || "",
       images: images || [],
-      price: price || 0,
+      price: effectivePrice,
+      originalPrice: Number.isFinite(normalizedOriginal) ? normalizedOriginal : undefined,
+      discountedPrice: Number.isFinite(normalizedDiscounted) ? normalizedDiscounted : undefined,
       category: category || undefined,
       isFeatured: isFeatured ?? false,
       isActive: isActive ?? true,

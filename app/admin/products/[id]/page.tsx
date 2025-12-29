@@ -55,7 +55,8 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
   const [formData, setFormData] = useState({
     name: "",
     description: "",
-    price: "",
+    originalPrice: "",
+    discountedPrice: "",
     category: "",
     isFeatured: false,
     isActive: true,
@@ -68,6 +69,16 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
   const [colors, setColors] = useState<string[]>([])
   const [sizes, setSizes] = useState<string[]>([])
   const [variants, setVariants] = useState<ProductVariant[]>([])
+
+  const originalPriceValue = Number.parseFloat(formData.originalPrice || "0")
+  const discountedPriceValue = Number.parseFloat(
+    formData.discountedPrice || formData.originalPrice || "0",
+  )
+  const discountPercent =
+    Number.isFinite(originalPriceValue) && Number.isFinite(discountedPriceValue) &&
+    originalPriceValue > 0 && discountedPriceValue > 0 && discountedPriceValue < originalPriceValue
+      ? Math.round(((originalPriceValue - discountedPriceValue) / originalPriceValue) * 100)
+      : 0
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -98,10 +109,13 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
       if (response.ok) {
         const data = await response.json()
         setProduct(data)
+        const inferredOriginal = data.originalPrice ?? data.mrp ?? data.price ?? 0
+        const inferredDiscounted = data.discountedPrice ?? data.price ?? inferredOriginal
         setFormData({
           name: data.name || "",
           description: data.description || "",
-          price: data.price ? data.price.toString() : "",
+          originalPrice: inferredOriginal ? inferredOriginal.toString() : "",
+          discountedPrice: inferredDiscounted ? inferredDiscounted.toString() : "",
           category: data.category || "",
           isFeatured: data.isFeatured || false,
           isActive: data.isActive !== undefined ? data.isActive : true,
@@ -167,11 +181,38 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
     // If saving as draft, only require name
     if (!saveAsDraft) {
       // Full validation for publishing
-      if (!formData.name || !slug || !formData.description || !formData.price) {
+      if (!formData.name || !slug || !formData.description || !formData.originalPrice || !formData.discountedPrice) {
         toast({
           title: "Validation Error",
           description: "Please fill in all required fields",
           variant: "destructive"
+        })
+        return
+      }
+
+      if (!Number.isFinite(originalPriceValue) || originalPriceValue <= 0) {
+        toast({
+          title: "Invalid Original Price",
+          description: "Enter a valid amount greater than zero",
+          variant: "destructive",
+        })
+        return
+      }
+
+      if (!Number.isFinite(discountedPriceValue) || discountedPriceValue <= 0) {
+        toast({
+          title: "Invalid Discounted Price",
+          description: "Enter a valid amount greater than zero",
+          variant: "destructive",
+        })
+        return
+      }
+
+      if (discountedPriceValue > originalPriceValue) {
+        toast({
+          title: "Invalid Discount",
+          description: "Discounted price cannot be higher than original price",
+          variant: "destructive",
         })
         return
       }
@@ -245,6 +286,13 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
 
     setSaving(true)
 
+    const normalizedOriginalPrice = Number.isFinite(originalPriceValue) && originalPriceValue > 0
+      ? originalPriceValue
+      : 0
+    const normalizedDiscountedPrice = Number.isFinite(discountedPriceValue) && discountedPriceValue > 0
+      ? discountedPriceValue
+      : normalizedOriginalPrice
+
     try {
       const isNewProduct = productId === "new"
       const url = isNewProduct ? "/api/admin/products" : `/api/admin/products/${productId}`
@@ -261,7 +309,9 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
           isActive: formData.isActive,
           isDraft: saveAsDraft,
           slug: slug || "", // Use our managed slug
-          price: formData.price ? Number.parseFloat(formData.price) : 0,
+          price: normalizedDiscountedPrice,
+          originalPrice: normalizedOriginalPrice,
+          discountedPrice: normalizedDiscountedPrice,
           images: images || [],
           variations: {
             colors: validColors || [],
@@ -423,19 +473,39 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
             </select>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="price">Price (₹) *</Label>
-            <Input
-              id="price"
-              type="number"
-              step="0.01"
-              min="0"
-              value={formData.price}
-              onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-              placeholder="0.00"
-              required
-            />
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="originalPrice">Original Price (₹) *</Label>
+              <Input
+                id="originalPrice"
+                type="number"
+                step="0.01"
+                min="0"
+                value={formData.originalPrice}
+                onChange={(e) => setFormData({ ...formData, originalPrice: e.target.value })}
+                placeholder="0.00"
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="discountedPrice">Discounted Price (₹) *</Label>
+              <Input
+                id="discountedPrice"
+                type="number"
+                step="0.01"
+                min="0"
+                value={formData.discountedPrice}
+                onChange={(e) => setFormData({ ...formData, discountedPrice: e.target.value })}
+                placeholder="0.00"
+                required
+              />
+            </div>
           </div>
+          <p className="text-sm text-muted-foreground">
+            {discountPercent > 0 && Number.isFinite(discountedPriceValue)
+              ? `Customers see ₹${discountedPriceValue.toFixed(2)} (${discountPercent}% off)`
+              : "Set discounted price lower than original to highlight savings."}
+          </p>
 
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">

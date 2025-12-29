@@ -26,6 +26,12 @@ export function QuickViewModal({ product, open, onClose }: QuickViewModalProps) 
   const [quantity, setQuantity] = useState(1)
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
   const [isInWishlist, setIsInWishlist] = useState(false)
+  const originalPrice = product?.originalPrice ?? product?.mrp ?? product?.price ?? 0
+  const discountedPrice = product?.discountedPrice ?? product?.price ?? originalPrice
+  const hasDiscount = Boolean(product && originalPrice && discountedPrice && discountedPrice < originalPrice)
+  const discountPercent = hasDiscount
+    ? Math.round(((originalPrice - discountedPrice) / originalPrice) * 100)
+    : 0
   useEffect(() => {
     if (product && open) {
       // Reset state when product changes and modal opens
@@ -100,7 +106,7 @@ export function QuickViewModal({ product, open, onClose }: QuickViewModalProps) 
     const cartItem = {
       productId: product._id,
       name: product.name,
-      price: product.price,
+      price: discountedPrice,
       quantity,
       variant: {
         color: selectedColor,
@@ -188,7 +194,7 @@ export function QuickViewModal({ product, open, onClose }: QuickViewModalProps) 
         title: isNowInWishlist ? "Added to wishlist" : "Removed from wishlist",
         description: product.name,
         variant: "default",
-        className: isNowInWishlist ? "bg-pink-50 border-pink-200 text-pink-800" : "bg-gray-50 border-gray-200"
+        className: "bg-gray-50 border-gray-200"
       })
     } catch (error) {
       console.error('Error updating wishlist:', error)
@@ -271,8 +277,15 @@ export function QuickViewModal({ product, open, onClose }: QuickViewModalProps) 
           {/* Details */}
           <div className="space-y-4">
             <div className="flex items-center gap-3">
-              <p className="text-2xl font-bold">₹{product.price.toFixed(0)}</p>
-              <p className="text-green-600 font-medium">(82% OFF)</p>
+              <p className="text-2xl font-bold">₹{discountedPrice.toFixed(0)}</p>
+              {hasDiscount && (
+                <span className="text-muted-foreground line-through">₹{originalPrice.toFixed(0)}</span>
+              )}
+              {discountPercent > 0 && (
+                <span className="text-sm font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
+                  {discountPercent}% OFF
+                </span>
+              )}
             </div>
             <p className="text-muted-foreground">{product.description}</p>
 

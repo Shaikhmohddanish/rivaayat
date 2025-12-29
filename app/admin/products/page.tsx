@@ -107,8 +107,16 @@ export default function AdminProductsPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        {filteredProducts.map((product) => (
-          <div key={product._id} className="bg-card rounded-lg border overflow-hidden group relative">
+        {filteredProducts.map((product) => {
+          const originalPrice = product.originalPrice ?? product.mrp ?? product.price
+          const discountedPrice = product.discountedPrice ?? product.price
+          const hasDiscount = Boolean(originalPrice && discountedPrice && discountedPrice < originalPrice)
+          const discountPercent = hasDiscount
+            ? Math.round(((originalPrice - discountedPrice) / originalPrice) * 100)
+            : 0
+
+          return (
+            <div key={product._id} className="bg-card rounded-lg border overflow-hidden group relative">
             <div className="relative aspect-square bg-muted">
               {product.images[0] ? (
                 <Image
@@ -142,7 +150,12 @@ export default function AdminProductsPage() {
               <h3 className="font-semibold text-lg mb-1 line-clamp-1">{product.name}</h3>
               <p className="text-sm text-muted-foreground mb-2 line-clamp-2">{product.description}</p>
               <div className="flex items-center justify-between">
-                <span className="text-lg font-bold">₹{product.price.toFixed(2)}</span>
+                <div className="flex flex-col">
+                  <span className="text-lg font-bold">₹{discountedPrice.toFixed(2)}</span>
+                  {hasDiscount && (
+                    <span className="text-xs text-muted-foreground line-through">₹{originalPrice.toFixed(2)} ({discountPercent}% off)</span>
+                  )}
+                </div>
                 <Button variant="outline" size="sm" asChild>
                   <Link href={`/admin/products/${product._id}`}>
                     <Pencil className="h-4 w-4 mr-1" />
@@ -151,8 +164,9 @@ export default function AdminProductsPage() {
                 </Button>
               </div>
             </div>
-          </div>
-        ))}
+            </div>
+          )
+        })}
       </div>
 
       {filteredProducts.length === 0 && (

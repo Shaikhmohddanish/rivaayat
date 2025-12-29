@@ -30,6 +30,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         description: "",
         images: [],
         price: 0,
+        originalPrice: 0,
+        discountedPrice: 0,
         isFeatured: false,
         variations: []
       })
@@ -75,7 +77,20 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     }
 
     const body = await request.json()
-    const { name, slug, description, images, price, category, isFeatured, isActive, isDraft, variations } = body
+    const {
+      name,
+      slug,
+      description,
+      images,
+      price,
+      originalPrice,
+      discountedPrice,
+      category,
+      isFeatured,
+      isActive,
+      isDraft,
+      variations,
+    } = body
 
     const updateFields: Partial<Product> = {
       updatedAt: new Date(),
@@ -103,7 +118,16 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     }
     if (description !== undefined) updateFields.description = description
     if (images !== undefined) updateFields.images = images
-    if (price !== undefined) updateFields.price = price
+    if (originalPrice !== undefined) {
+      updateFields.originalPrice = originalPrice || undefined
+    }
+    if (discountedPrice !== undefined) {
+      const normalizedDiscount = Number(discountedPrice)
+      updateFields.discountedPrice = normalizedDiscount
+      updateFields.price = normalizedDiscount
+    } else if (price !== undefined) {
+      updateFields.price = price
+    }
     if (isFeatured !== undefined) updateFields.isFeatured = isFeatured
     if (isActive !== undefined) updateFields.isActive = isActive
     if (isDraft !== undefined) updateFields.isDraft = isDraft

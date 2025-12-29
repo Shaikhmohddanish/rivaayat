@@ -26,6 +26,12 @@ export function ProductCard({ product, onQuickView }: ProductCardProps) {
   const [showVariations, setShowVariations] = useState(false)
   const [selectedColor, setSelectedColor] = useState("")
   const [selectedSize, setSelectedSize] = useState("")
+  const originalPrice = product.originalPrice ?? product.mrp ?? product.price
+  const discountedPrice = product.discountedPrice ?? product.price
+  const hasDiscount = Boolean(originalPrice && discountedPrice && discountedPrice < originalPrice)
+  const discountPercent = hasDiscount
+    ? Math.round(((originalPrice - discountedPrice) / originalPrice) * 100)
+    : 0
 
   useEffect(() => {
     const checkWishlist = async () => {
@@ -66,9 +72,7 @@ export function ProductCard({ product, onQuickView }: ProductCardProps) {
       toast({
         title: nowIn ? "Added to wishlist" : "Removed from wishlist",
         description: product.name,
-        className: nowIn
-          ? "bg-pink-50 border-pink-200 text-pink-800"
-          : "bg-gray-50 border-gray-200",
+        className: "bg-gray-50 border-gray-200",
       })
     } catch (err) {
       toast({ title: "Error", description: "Could not update wishlist", variant: "destructive" })
@@ -94,7 +98,7 @@ export function ProductCard({ product, onQuickView }: ProductCardProps) {
     const cartItem = {
       productId: product._id,
       name: product.name,
-      price: product.price,
+      price: discountedPrice,
       image: product.images?.[0]?.url || "",
       quantity: 1,
       variant: { color: selectedColor || "", size: selectedSize || "" },
@@ -123,6 +127,16 @@ export function ProductCard({ product, onQuickView }: ProductCardProps) {
     await handleAddToCart(e)
     // If cart add succeeded, go to checkout
     router.push("/checkout")
+  }
+
+  const handleQuickView = (e: React.MouseEvent) => {
+    e.preventDefault()
+    onQuickView?.(product)
+  }
+
+  const toggleVariations = (e: React.MouseEvent) => {
+    e.preventDefault()
+    setShowVariations((prev) => !prev)
   }
 
   const hasOptions =
@@ -174,9 +188,18 @@ export function ProductCard({ product, onQuickView }: ProductCardProps) {
         </div>
         
         {/* Show variation badge if available */}
-        {(product.variations?.colors?.length > 0 || product.variations?.sizes?.length > 0) && (
-          <div className="absolute top-2 left-2 bg-primary/80 text-white text-xs px-2 py-1 rounded-md backdrop-blur-sm">
-            Options
+        {(hasOptions || hasDiscount) && (
+          <div className="absolute top-2 left-2 flex flex-col gap-1">
+            {hasOptions && (
+              <div className="bg-primary/80 text-white text-xs px-2 py-1 rounded-md backdrop-blur-sm">
+                Options
+              </div>
+            )}
+            {hasDiscount && (
+              <div className="bg-emerald-600/90 text-white text-xs px-2 py-1 rounded-md backdrop-blur-sm">
+                {discountPercent}% OFF
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -260,10 +283,15 @@ export function ProductCard({ product, onQuickView }: ProductCardProps) {
           </div>
         )}
         
-        <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
-          <div className="flex items-center gap-2">
-            <p className="text-xl font-bold text-gray-900">₹{product.price.toFixed(2)}</p>
-          </div>
+          <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
+            <div className="flex flex-col text-gray-900">
+              <p className="text-xl font-bold">₹{discountedPrice.toFixed(2)}</p>
+              {hasDiscount && (
+                <span className="text-xs text-muted-foreground line-through">
+                  ₹{originalPrice.toFixed(2)} ({discountPercent}% off)
+                </span>
+              )}
+            </div>
           <Button 
             size="sm" 
             onClick={handleBuyNow}

@@ -50,6 +50,8 @@ export interface Product {
   description: string
   images: ProductImage[]
   price: number
+  originalPrice?: number
+  discountedPrice?: number
   mrp?: number
   isFeatured: boolean
   isActive?: boolean

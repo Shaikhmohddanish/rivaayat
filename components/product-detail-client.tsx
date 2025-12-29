@@ -22,6 +22,13 @@ export default function ProductDetailClient({ product }: Props) {
   const [quantity, setQuantity] = useState(1)
   const [isAddingToCart, setIsAddingToCart] = useState(false)
 
+  const originalPrice = product.originalPrice ?? product.mrp ?? product.price
+  const discountedPrice = product.discountedPrice ?? product.price
+  const hasDiscount = Boolean(originalPrice && discountedPrice && discountedPrice < originalPrice)
+  const discountPercent = hasDiscount
+    ? Math.round(((originalPrice - discountedPrice) / originalPrice) * 100)
+    : 0
+
   const colors = product.variations?.colors ?? []
   const sizes = product.variations?.sizes ?? []
 
@@ -99,7 +106,7 @@ export default function ProductDetailClient({ product }: Props) {
     const cartItem = {
       productId: product._id,
       name: product.name,
-      price: product.price,
+      price: discountedPrice,
       image: product.images?.[0]?.url || "",
       quantity: quantity,
       variant: { color: selectedColor || "", size: selectedSize || "" },
@@ -160,7 +167,7 @@ export default function ProductDetailClient({ product }: Props) {
     const cartItem = {
       productId: product._id,
       name: product.name,
-      price: product.price,
+      price: discountedPrice,
       image: product.images?.[0]?.url || "",
       quantity: quantity,
       variant: { color: selectedColor || "", size: selectedSize || "" },
@@ -280,10 +287,15 @@ export default function ProductDetailClient({ product }: Props) {
       <div>
         <h1 className="text-3xl font-bold tracking-tight">{product.name}</h1>
         <p className="text-muted-foreground mt-1">{product.description}</p>
-        <div className="flex items-end gap-3 mt-4">
-          <span className="text-3xl font-semibold">₹{product.price.toFixed(2)}</span>
-          {product.mrp && (
-            <span className="text-sm line-through text-muted-foreground">₹{product.mrp.toFixed(2)}</span>
+        <div className="flex items-center gap-3 mt-4">
+          <span className="text-3xl font-semibold">₹{discountedPrice.toFixed(2)}</span>
+          {hasDiscount && (
+            <span className="text-sm line-through text-muted-foreground">₹{originalPrice.toFixed(2)}</span>
+          )}
+          {discountPercent > 0 && (
+            <span className="text-sm font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
+              {discountPercent}% OFF
+            </span>
           )}
         </div>
       </div>

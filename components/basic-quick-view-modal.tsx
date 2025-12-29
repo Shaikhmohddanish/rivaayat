@@ -22,6 +22,12 @@ export function BasicQuickViewModal({ product, open, onClose }: BasicQuickViewMo
   const [selectedSize, setSelectedSize] = useState("")
   const [quantity, setQuantity] = useState(1)
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
+  const originalPrice = product?.originalPrice ?? product?.mrp ?? product?.price ?? 0
+  const discountedPrice = product?.discountedPrice ?? product?.price ?? originalPrice
+  const hasDiscount = Boolean(product && originalPrice && discountedPrice && discountedPrice < originalPrice)
+  const discountPercent = hasDiscount
+    ? Math.round(((originalPrice - discountedPrice) / originalPrice) * 100)
+    : 0
   
   useEffect(() => {
     if (product && open) {
@@ -119,7 +125,17 @@ export function BasicQuickViewModal({ product, open, onClose }: BasicQuickViewMo
 
           {/* Details */}
           <div className="space-y-4">
-            <p className="text-2xl font-bold text-primary">₹{product.price.toFixed(2)}</p>
+            <div className="flex items-center gap-3">
+              <p className="text-2xl font-bold text-primary">₹{discountedPrice.toFixed(2)}</p>
+              {hasDiscount && (
+                <span className="text-sm line-through text-muted-foreground">₹{originalPrice.toFixed(2)}</span>
+              )}
+              {discountPercent > 0 && (
+                <span className="text-xs font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
+                  {discountPercent}% OFF
+                </span>
+              )}
+            </div>
             <p className="text-muted-foreground">{product.description}</p>
 
             {/* Color Selection */}
