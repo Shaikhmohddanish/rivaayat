@@ -1,3 +1,5 @@
+import type Razorpay from "razorpay"
+import type { Orders } from "razorpay/dist/types/orders"
 import { NextResponse } from "next/server"
 import { requireAuth } from "@/lib/auth"
 import { OrderValidationError, prepareOrderPricing } from "@/lib/order-service"
@@ -31,15 +33,20 @@ Please reduce cart value or contact support for a custom payment link.`,
         400,
       )
     }
-    const razorpayOrder = await razorpay.orders.create({
+    const orderParams: Orders.RazorpayOrderCreateRequestBody = {
       amount: amountInPaise,
       currency: "INR",
+      payment: {
+        capture: "automatic",
+      },
       receipt: `riv-${Date.now()}`,
       notes: {
         userId: user.id,
         email: shippingAddress?.email || "",
       },
-    })
+    }
+
+    const razorpayOrder: Orders.RazorpayOrder = await razorpay.orders.create(orderParams)
 
     return NextResponse.json({
       razorpayOrderId: razorpayOrder.id,
