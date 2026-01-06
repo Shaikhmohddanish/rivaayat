@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useEffect, useState, use } from "react"
+import { useEffect, useRef, useState, use } from "react"
 import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
@@ -40,6 +40,9 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
   const [saving, setSaving] = useState(false)
   const [product, setProduct] = useState<Product | null>(null)
   const [categories, setCategories] = useState<Array<{ _id: string; name: string }>>([])
+
+  // Prevent re-loading (and resetting) the form when NextAuth refreshes the session object.
+  const lastLoadedProductIdRef = useRef<string | null>(null)
   
   // Use our slug hook with product ID for edit mode
   const { 
@@ -83,13 +86,23 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
   useEffect(() => {
     if (status === "unauthenticated") {
       router.push("/auth/login")
-    } else if (status === "authenticated" && session?.user?.role !== "admin") {
-      router.push("/")
-    } else if (status === "authenticated") {
-      fetchCategories()
-      fetchProduct()
+      return
     }
-  }, [status, session])
+
+    if (status !== "authenticated") return
+
+    if (session?.user?.role !== "admin") {
+      router.push("/")
+      return
+    }
+
+    // Only fetch once per productId to avoid wiping in-progress edits.
+    if (lastLoadedProductIdRef.current === productId) return
+    lastLoadedProductIdRef.current = productId
+
+    fetchCategories()
+    fetchProduct()
+  }, [status, session?.user?.role, productId, router])
 
   const fetchCategories = async () => {
     try {
@@ -160,10 +173,10 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
   }
 
   const handleNameChange = (name: string) => {
-    setFormData({
-      ...formData,
+    setFormData((prev) => ({
+      ...prev,
       name,
-    })
+    }))
     // Update slug with our hook
     setSlugName(name)
   }
@@ -449,7 +462,7 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
             <Textarea
               id="description"
               value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value }))}
               placeholder="Enter product description"
               rows={4}
               required
@@ -461,7 +474,7 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
             <select
               id="category"
               value={formData.category}
-              onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+              onChange={(e) => setFormData((prev) => ({ ...prev, category: e.target.value }))}
               className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
             >
               <option value="">Select a category</option>
@@ -482,7 +495,7 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
                 step="0.01"
                 min="0"
                 value={formData.originalPrice}
-                onChange={(e) => setFormData({ ...formData, originalPrice: e.target.value })}
+                onChange={(e) => setFormData((prev) => ({ ...prev, originalPrice: e.target.value }))}
                 placeholder="0.00"
                 required
               />
@@ -495,7 +508,7 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
                 step="0.01"
                 min="0"
                 value={formData.discountedPrice}
-                onChange={(e) => setFormData({ ...formData, discountedPrice: e.target.value })}
+                onChange={(e) => setFormData((prev) => ({ ...prev, discountedPrice: e.target.value }))}
                 placeholder="0.00"
                 required
               />
@@ -515,7 +528,7 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
             <Switch
               id="featured"
               checked={formData.isFeatured}
-              onCheckedChange={(checked) => setFormData({ ...formData, isFeatured: checked })}
+              onCheckedChange={(checked) => setFormData((prev) => ({ ...prev, isFeatured: checked }))}
             />
           </div>
 
@@ -527,7 +540,7 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
             <Switch
               id="active"
               checked={formData.isActive}
-              onCheckedChange={(checked) => setFormData({ ...formData, isActive: checked })}
+              onCheckedChange={(checked) => setFormData((prev) => ({ ...prev, isActive: checked }))}
             />
           </div>
         </div>
