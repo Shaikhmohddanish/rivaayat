@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Heart, ShoppingCart, ChevronLeft, ChevronRight, Check as CheckIcon } from "lucide-react"
 import { getColorByName } from "@/lib/product-options"
 import { useToast } from "@/hooks/use-toast"
+import { updateWishlistCache } from "@/lib/wishlist-cache"
 import type { Product } from "@/lib/types"
 
 interface QuickViewModalProps {
@@ -185,6 +186,9 @@ export function QuickViewModal({ product, open, onClose }: QuickViewModalProps) 
       // Update UI state
       const isNowInWishlist = data.productIds.includes(product._id)
       setIsInWishlist(isNowInWishlist)
+      
+      // 🚀 OPTIMIZATION: Update wishlist cache
+      updateWishlistCache(data.productIds || [])
       
       // Broadcast event for other components
       window.dispatchEvent(new Event("wishlistUpdated"))

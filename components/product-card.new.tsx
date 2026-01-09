@@ -72,7 +72,7 @@ export function ProductCard({ product, onQuickView }: ProductCardProps) {
       toast({
         title: nowIn ? "Added to wishlist" : "Removed from wishlist",
         description: product.name,
-        className: "bg-gray-50 border-gray-200",
+        className: "bg-gray-50 border-gray-200 text-black",
       })
     } catch (err) {
       toast({ title: "Error", description: "Could not update wishlist", variant: "destructive" })
