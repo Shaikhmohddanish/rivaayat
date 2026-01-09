@@ -153,7 +153,10 @@ export default function AdminProductsPage() {
                 <div className="flex flex-col">
                   <span className="text-lg font-bold">₹{discountedPrice.toFixed(2)}</span>
                   {hasDiscount && (
-                    <span className="text-xs text-muted-foreground line-through">₹{originalPrice.toFixed(2)} ({discountPercent}% off)</span>
+                    <div className="text-xs text-muted-foreground">
+                      <span className="line-through">₹{originalPrice.toFixed(2)}</span>
+                      <span> ({discountPercent}% off)</span>
+                    </div>
                   )}
                 </div>
                 <Button variant="outline" size="sm" asChild>
