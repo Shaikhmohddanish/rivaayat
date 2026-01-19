@@ -10,7 +10,7 @@ import { UpdateOrderTracking } from "@/components/update-order-tracking"
 import { AdminPagination } from "@/components/admin-pagination"
 import type { Order } from "@/lib/types"
 import OrdersLoading from "./loading"
-import { CreditCard, ExternalLink, MapPin } from "lucide-react"
+import { CreditCard, ExternalLink, MapPin, Phone } from "lucide-react"
 
 type OrderWithUser = Order & {
   _id: string
@@ -210,6 +210,8 @@ export default function AdminOrdersPage() {
                               </p>
                               {order.shippingAddress.country && <p>{order.shippingAddress.country}</p>}
                             </div>
+                            <Phone className="h-4 w-4 mt-0.5 shrink-0" />
+                            <div>{order.shippingAddress.phone}</div>
                           </div>
                         ) : (
                           <p className="text-xs sm:text-sm text-muted-foreground">No shipping address on this order</p>
