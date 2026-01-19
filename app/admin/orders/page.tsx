@@ -10,7 +10,7 @@ import { UpdateOrderTracking } from "@/components/update-order-tracking"
 import { AdminPagination } from "@/components/admin-pagination"
 import type { Order } from "@/lib/types"
 import OrdersLoading from "./loading"
-import { CreditCard, ExternalLink } from "lucide-react"
+import { CreditCard, ExternalLink, MapPin } from "lucide-react"
 
 type OrderWithUser = Order & {
   _id: string
@@ -154,6 +154,13 @@ export default function AdminOrdersPage() {
                       </div>
                       <div className="flex flex-wrap items-center gap-2">
                         <Badge className={`${getStatusColor(order.status)} text-xs`}>{order.status}</Badge>
+                        <Link
+                          href={`/admin/orders/${order._id}`}
+                          className="inline-flex items-center gap-1 rounded-md border px-2 py-1 text-xs font-semibold hover:bg-accent"
+                        >
+                          View
+                          <ExternalLink className="h-3 w-3" />
+                        </Link>
                         <UpdateOrderTracking
                           orderId={order._id}
                           currentStatus={order.status}
@@ -183,6 +190,30 @@ export default function AdminOrdersPage() {
                             </Link>
                           )}
                         </div>
+                      </div>
+
+                      <div>
+                        <h4 className="font-semibold mb-2 text-sm sm:text-base">Shipping Address</h4>
+                        {order.shippingAddress ? (
+                          <div className="text-xs sm:text-sm text-muted-foreground flex gap-2">
+                            <MapPin className="h-4 w-4 mt-0.5 shrink-0" />
+                            <div>
+                              {order.shippingAddress.fullName && (
+                                <p className="font-medium text-foreground">{order.shippingAddress.fullName}</p>
+                              )}
+                              {order.shippingAddress.addressLine1 && <p>{order.shippingAddress.addressLine1}</p>}
+                              {order.shippingAddress.addressLine2 && <p>{order.shippingAddress.addressLine2}</p>}
+                              <p>
+                                {[order.shippingAddress.city, order.shippingAddress.state, order.shippingAddress.postalCode]
+                                  .filter(Boolean)
+                                  .join(", ")}
+                              </p>
+                              {order.shippingAddress.country && <p>{order.shippingAddress.country}</p>}
+                            </div>
+                          </div>
+                        ) : (
+                          <p className="text-xs sm:text-sm text-muted-foreground">No shipping address on this order</p>
+                        )}
                       </div>
 
                       <div>
