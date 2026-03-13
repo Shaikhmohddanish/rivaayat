@@ -8,16 +8,46 @@ import { SiteLayout } from "@/components/site-layout"
 import { Providers } from "@/components/providers"
 import { Toaster } from "@/components/ui/toaster"
 import { WhatsAppFloatingButton } from "@/components/whatsapp-float"
+import { getSiteUrl } from "@/lib/site-url"
 import { getSiteSettings } from "@/lib/site-settings"
 import "./globals.css"
 
 // Revalidate every 60 seconds for site settings changes
 export const revalidate = 60
 
+const SITE_URL = getSiteUrl()
+const SITE_NAME = "Rivaayat"
+
 export const metadata: Metadata = {
-  title: "Rivaayat - Ladies Dresses",
-  description: "Shop the latest collection of ladies dresses",
+  metadataBase: new URL(SITE_URL),
+  title: `${SITE_NAME} - Ladies Dresses`,
+  description: "Shop the latest collection of ladies dresses from Rivaayat.",
   generator: "v0.app",
+  alternates: {
+    canonical: "/",
+  },
+  openGraph: {
+    type: "website",
+    url: SITE_URL,
+    title: `${SITE_NAME} - Ladies Dresses`,
+    description: "Shop the latest collection of ladies dresses from Rivaayat.",
+    siteName: SITE_NAME,
+    locale: "en_IN",
+    images: [
+      {
+        url: "/logo.png",
+        width: 1200,
+        height: 630,
+        alt: `${SITE_NAME} brand preview`,
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: `${SITE_NAME} - Ladies Dresses`,
+    description: "Shop the latest collection of ladies dresses from Rivaayat.",
+    images: ["/logo.png"],
+  },
   icons: {
     icon: '/favicon.png',
     shortcut: '/favicon.png',

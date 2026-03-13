@@ -63,6 +63,7 @@ export interface Product {
   detailsHtml?: string
   tags?: string[]
   rating?: number
+  reviewCount?: number
   variations: {
     colors: string[]
     sizes: string[]
