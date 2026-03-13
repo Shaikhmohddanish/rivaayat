@@ -16,6 +16,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import { getCloudinaryImageUrl } from "@/lib/cloudinary-image"
 
 interface Category {
   _id: string
@@ -286,7 +287,7 @@ export default function CategoriesPage() {
                     <td className="p-4">
                       {category.image ? (
                         <img
-                          src={category.image}
+                          src={getCloudinaryImageUrl(category.image, { width: 160, height: 160, mode: "fill" })}
                           alt={category.name}
                           className="w-16 h-16 object-cover rounded-lg"
                         />
@@ -383,7 +384,7 @@ export default function CategoriesPage() {
                 {formData.image ? (
                   <div className="relative w-full h-48 rounded-lg overflow-hidden border">
                     <img
-                      src={formData.image}
+                      src={getCloudinaryImageUrl(formData.image, { width: 1200, height: 675, mode: "fill" })}
                       alt="Category preview"
                       className="w-full h-full object-cover"
                     />

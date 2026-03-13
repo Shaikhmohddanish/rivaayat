@@ -13,6 +13,7 @@ import { Separator } from "@/components/ui/separator"
 import { Loader2, ShieldAlert, ShieldCheck, Calendar, Phone, Mail, User as UserIcon, Package, CheckCircle2, Clock, TruckIcon, XCircle } from "lucide-react"
 import { formatDistanceToNow } from "date-fns"
 import type { User, Order } from "@/lib/types"
+import { getCloudinaryImageUrl } from "@/lib/cloudinary-image"
 
 interface UserAnalytics {
   totalBusiness: number
@@ -135,7 +136,14 @@ export function UserDetails({ userId, isOpen, onClose }: UserDetailsProps) {
             {/* User Profile Section */}
             <div className="flex flex-col md:flex-row gap-4 sm:gap-6 items-start">
               <Avatar className="h-16 w-16 sm:h-20 sm:w-20">
-                <AvatarImage src={user.image || ""} alt={`${user.name}'s profile picture`} />
+                <AvatarImage
+                  src={
+                    user.image
+                      ? getCloudinaryImageUrl(user.image, { width: 240, height: 240, mode: "fill" })
+                      : ""
+                  }
+                  alt={`${user.name}'s profile picture`}
+                />
                 <AvatarFallback className="text-lg sm:text-xl">{user.name?.charAt(0).toUpperCase()}</AvatarFallback>
               </Avatar>
               

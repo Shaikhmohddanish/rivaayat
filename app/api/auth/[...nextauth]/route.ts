@@ -4,7 +4,13 @@ import CredentialsProvider from "next-auth/providers/credentials"
 import { getDatabase } from "@/lib/mongodb"
 import { getCurrentDateIST } from "@/lib/date-utils"
 import bcrypt from "bcryptjs"
+import { ObjectId } from "mongodb"
 import type { User } from "@/lib/types"
+
+function toExactCaseInsensitiveRegex(value: string) {
+  const escaped = value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+  return { $regex: `^${escaped}$`, $options: "i" }
+}
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -23,11 +29,12 @@ export const authOptions: NextAuthOptions = {
           throw new Error("Email and password required")
         }
 
+        const email = credentials.email.trim()
+
         try {
           const db = await getDatabase()
-          // Make email search case-insensitive
           const user = await db.collection<User>("users").findOne({
-            email: { $regex: `^${credentials.email}$`, $options: 'i' }
+            email: toExactCaseInsensitiveRegex(email),
           })
 
           if (!user || !user.password) {
@@ -54,7 +61,7 @@ export const authOptions: NextAuthOptions = {
           }
         } catch (error) {
           console.error('Auth error:', error)
-          throw new Error("Authentication failed")
+          throw new Error(error instanceof Error ? error.message : "Authentication failed")
         }
       },
     }),
@@ -63,10 +70,13 @@ export const authOptions: NextAuthOptions = {
     async signIn({ user, account }) {
       if (account?.provider === "google") {
         try {
+          if (!user.email) {
+            throw new Error("Google account email not available")
+          }
+
           const db = await getDatabase()
-          // Make email search case-insensitive
           const existingUser = await db.collection<User>("users").findOne({
-            email: { $regex: `^${user.email!}$`, $options: 'i' }
+            email: toExactCaseInsensitiveRegex(user.email),
           })
           
           // Check if existing user is disabled
@@ -95,10 +105,15 @@ export const authOptions: NextAuthOptions = {
     async jwt({ token, user }) {
       if (user) {
         try {
+          if (!user.email) {
+            token.role = "user"
+            token.id = user.id || token.sub || ""
+            return token
+          }
+
           const db = await getDatabase()
-          // Make email search case-insensitive
           const dbUser = await db.collection<User>("users").findOne({
-            email: { $regex: `^${user.email!}$`, $options: 'i' }
+            email: toExactCaseInsensitiveRegex(user.email),
           })
           if (dbUser) {
             // Check if user has been disabled since their last authentication
@@ -124,13 +139,20 @@ export const authOptions: NextAuthOptions = {
     async session({ session, token }) {
       if (session.user) {
         try {
-          // Extra security - verify the user isn't disabled on every request
           const db = await getDatabase()
-          const user = await db.collection<User>("users").findOne({ 
-            _id: token.id as string 
-          });
+          let dbUser: User | null = null
 
-          if (user?.disabled === true) {
+          if (typeof token.id === "string" && ObjectId.isValid(token.id)) {
+            dbUser = await db.collection<User>("users").findOne({
+              _id: new ObjectId(token.id) as any,
+            })
+          } else if (typeof token.email === "string" && token.email.trim()) {
+            dbUser = await db.collection<User>("users").findOne({
+              email: toExactCaseInsensitiveRegex(token.email.trim()),
+            })
+          }
+
+          if (dbUser?.disabled === true) {
             // Return the session but mark it for logout processing on the client
             session.user.disabled = true;
             return session;

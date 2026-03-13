@@ -1,6 +1,8 @@
 "use client"
 import Image from "next/image"
 import { useState } from "react"
+import { getCloudinaryImageUrl } from "@/lib/cloudinary-image"
+import { useIsMobile } from "@/hooks/use-mobile"
 
 interface GalleryProps {
   images: { url: string; alt?: string }[]
@@ -8,6 +10,7 @@ interface GalleryProps {
 
 export default function ProductGallery({ images }: GalleryProps) {
   const [active, setActive] = useState(0)
+  const isMobile = useIsMobile()
   const safe = images?.length ? images : [{ url: "/placeholder.svg?height=800&width=600" }]
 
   return (
@@ -20,13 +23,27 @@ export default function ProductGallery({ images }: GalleryProps) {
             className={`relative h-20 w-20 rounded border ${i === active ? "border-primary" : "border-gray-200"}`}
             aria-label={`View image ${i + 1}`}
           >
-            <Image src={img.url} alt={img.alt ?? "Product image"} fill sizes="80px" className="object-cover rounded" />
+            <Image
+              src={img.url ? getCloudinaryImageUrl(img.url, { width: 160, height: 160, mode: "fill" }) : "/placeholder.svg"}
+              alt={img.alt ?? "Product image"}
+              fill
+              sizes="80px"
+              className="object-cover rounded"
+            />
           </button>
         ))}
       </div>
       <div className="order-1 sm:order-2 relative aspect-[4/5] w-full overflow-hidden rounded-lg border border-gray-200">
         <Image
-          src={safe[active].url}
+          src={
+            safe[active].url
+              ? getCloudinaryImageUrl(safe[active].url, {
+                  width: isMobile ? 900 : 1400,
+                  height: isMobile ? 1125 : 1750,
+                  mode: "fill",
+                })
+              : "/placeholder.svg?height=800&width=600"
+          }
           alt={safe[active].alt ?? "Product image"}
           fill
           sizes="(max-width:768px) 100vw, 50vw"

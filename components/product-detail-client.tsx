@@ -316,7 +316,7 @@ export default function ProductDetailClient({ product }: Props) {
                       disabled={disabled}
                       className={`w-9 h-9 rounded-full border ${
                         selectedColor === c ? "ring-2 ring-primary ring-offset-2 border-white" : "border-gray-200"
-                      } ${disabled ? "opacity-40 cursor-not-allowed" : "hover:scale-110 transition-transform"}`}
+                      } ${disabled ? "opacity-40 cursor-not-allowed" : "hover:scale-105 transition-transform duration-150"}`}
                       style={{
                         backgroundColor: c === "Emerald Green" ? "#50C878" : c === "Deep Maroon" ? "#800000" : c.toLowerCase(),
                       }}

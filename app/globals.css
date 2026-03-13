@@ -163,6 +163,10 @@ html, body {
   .elegant-shadow {
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   }
+
+  .dark .elegant-shadow {
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
+  }
   
   /* Simple hover - minimal animation */
   .elegant-hover {
@@ -222,55 +226,6 @@ html, body {
       rgba(43, 37, 32, 0.6) 100%
     );
   }
-}
-
-/* Shimmer Loading Effect - Minimalistic */
-.shimmer {
-  background: #faf8f5;
-  background-image: linear-gradient(
-    to right,
-    #faf8f5 0%,
-    #f5f0e8 20%,
-    #faf8f5 40%,
-    #faf8f5 100%
-  );
-  background-repeat: no-repeat;
-  background-size: 800px 104px;
-  display: inline-block;
-  position: relative;
-  animation-duration: 1.5s;
-  animation-fill-mode: forwards;
-  animation-iteration-count: infinite;
-  animation-name: shimmerAnimation;
-  animation-timing-function: linear;
-}
-
-.dark .shimmer {
-  background: #2b2520;
-  background-image: linear-gradient(
-    to right,
-    #2b2520 0%,
-    #3a3127 20%,
-    #2b2520 40%,
-    #2b2520 100%
-  );
-}
-
-@keyframes shimmerAnimation {
-  0% {
-    background-position: -468px 0;
-  }
-  100% {
-    background-position: 468px 0;
-  }
-}
-
-.elegant-shadow {
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-}
-
-.dark .elegant-shadow {
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
 }
 
 /* Accessibility helpers */

@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { formatDateTimeIST } from "@/lib/date-utils"
+import { useMemo } from "react"
 
 interface ISTClockProps {
   className?: string
@@ -11,6 +11,18 @@ interface ISTClockProps {
 export function ISTClock({ className = "", showSeconds = false }: ISTClockProps) {
   const [currentTime, setCurrentTime] = useState<Date | null>(null)
   const [isMounted, setIsMounted] = useState(false)
+
+  const formatter = useMemo(
+    () =>
+      new Intl.DateTimeFormat("en-GB", {
+        hour: "2-digit",
+        minute: "2-digit",
+        ...(showSeconds ? { second: "2-digit" } : {}),
+        hour12: true,
+        timeZone: "Asia/Kolkata",
+      }),
+    [showSeconds],
+  )
 
   useEffect(() => {
     // Set mounted state to prevent hydration mismatch
@@ -23,24 +35,6 @@ export function ISTClock({ className = "", showSeconds = false }: ISTClockProps)
 
     return () => clearInterval(timer)
   }, [showSeconds])
-
-  const formatTime = (date: Date) => {
-    if (showSeconds) {
-      return new Intl.DateTimeFormat('en-GB', {
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
-        hour12: true,
-        timeZone: 'Asia/Kolkata'
-      }).format(date)
-    }
-    return new Intl.DateTimeFormat('en-GB', {
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: true,
-      timeZone: 'Asia/Kolkata'
-    }).format(date)
-  }
 
   // Don't render anything until mounted on client to avoid hydration mismatch
   if (!isMounted || !currentTime) {
@@ -56,7 +50,7 @@ export function ISTClock({ className = "", showSeconds = false }: ISTClockProps)
   return (
     <div className={className}>
       <span className="text-sm text-muted-foreground">
-        IST: {formatTime(currentTime)}
+        IST: {formatter.format(currentTime)}
       </span>
     </div>
   )

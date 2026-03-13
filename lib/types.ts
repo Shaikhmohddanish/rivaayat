@@ -146,6 +146,7 @@ export interface Order {
 export interface OrderItem {
   productId: string
   name: string
+  image?: string
   price: number
   quantity: number
   variant: {

@@ -5,6 +5,28 @@ import { getDatabase } from "@/lib/mongodb"
 import clientPromise from "@/lib/mongodb-safe"
 import type { Product } from "@/lib/types"
 
+function parseProductImages(images: unknown): Product["images"] | null {
+  if (!Array.isArray(images)) return null
+
+  const normalized: Product["images"] = []
+  for (let i = 0; i < images.length; i++) {
+    const item = images[i]
+    if (!item || typeof item !== "object") return null
+
+    const image = item as { publicId?: unknown; url?: unknown; sortOrder?: unknown }
+    if (typeof image.publicId !== "string" || image.publicId.trim() === "") return null
+    if (typeof image.url !== "string" || image.url.trim() === "") return null
+
+    normalized.push({
+      publicId: image.publicId,
+      url: image.url,
+      sortOrder: Number.isFinite(Number(image.sortOrder)) ? Number(image.sortOrder) : i,
+    })
+  }
+
+  return normalized
+}
+
 // GET /api/admin/products - Admin only endpoint to list all products
 export async function GET(request: NextRequest) {
   try {
@@ -64,6 +86,7 @@ export async function POST(request: NextRequest) {
       isDraft,
       variations,
     } = body
+    const parsedImages = parseProductImages(images)
 
     if (!name) {
       return NextResponse.json({ error: "Product name is required" }, { status: 400 })
@@ -72,6 +95,14 @@ export async function POST(request: NextRequest) {
     // If not a draft, validate required fields
     if (!isDraft && (!slug || !description || !images || !variations)) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
+    }
+
+    if (images !== undefined && parsedImages === null) {
+      return NextResponse.json({ error: "Invalid images format" }, { status: 400 })
+    }
+
+    if (!isDraft && (!parsedImages || parsedImages.length === 0)) {
+      return NextResponse.json({ error: "At least one valid product image is required" }, { status: 400 })
     }
 
     const normalizedOriginal = Number.isFinite(Number(originalPrice)) ? Number(originalPrice) : Number(price)
@@ -119,7 +150,7 @@ export async function POST(request: NextRequest) {
       name,
       slug: finalSlug, // Use our guaranteed unique slug
       description: description || "",
-      images: images || [],
+      images: parsedImages || [],
       price: effectivePrice,
       originalPrice: Number.isFinite(normalizedOriginal) ? normalizedOriginal : undefined,
       discountedPrice: Number.isFinite(normalizedDiscounted) ? normalizedDiscounted : undefined,

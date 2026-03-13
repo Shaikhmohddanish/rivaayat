@@ -7,11 +7,62 @@ import { Upload, X, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import Image from "next/image"
 import { useToast } from "@/hooks/use-toast"
+import { optimizeImagesForUpload } from "@/lib/client-image-optimizer"
 
 interface ImageUploadProps {
   value: string[]
   onChange: (urls: string[]) => void
   maxImages?: number
+}
+
+const MAX_PARALLEL_UPLOADS = 3
+
+async function uploadImage(file: File): Promise<string> {
+  const formData = new FormData()
+  formData.append("file", file)
+
+  const response = await fetch("/api/upload", {
+    method: "POST",
+    body: formData,
+  })
+
+  const data = await response.json().catch(() => ({}))
+
+  if (!response.ok) {
+    throw new Error(data?.error || `Upload failed (${response.status})`)
+  }
+
+  if (!data?.url) {
+    throw new Error("Upload response is missing image URL")
+  }
+
+  return data.url
+}
+
+async function uploadWithConcurrency(files: File[], maxParallel: number) {
+  const queue = [...files]
+  const uploaded: string[] = []
+  const failed: Array<{ fileName: string; reason: string }> = []
+
+  const workers = Array.from({ length: Math.min(maxParallel, queue.length) }, async () => {
+    while (queue.length > 0) {
+      const current = queue.shift()
+      if (!current) return
+
+      try {
+        const url = await uploadImage(current)
+        uploaded.push(url)
+      } catch (error) {
+        failed.push({
+          fileName: current.name,
+          reason: error instanceof Error ? error.message : "Upload failed",
+        })
+      }
+    }
+  })
+
+  await Promise.all(workers)
+  return { uploaded, failed }
 }
 
 export function ImageUpload({ value = [], onChange, maxImages = 5 }: ImageUploadProps) {
@@ -22,44 +73,54 @@ export function ImageUpload({ value = [], onChange, maxImages = 5 }: ImageUpload
     const files = Array.from(e.target.files || [])
     if (files.length === 0) return
 
-    if (value.length + files.length > maxImages) {
+    const remainingSlots = maxImages - value.length
+    if (remainingSlots <= 0) {
       toast({
         title: "Upload Limit",
         description: `Maximum ${maxImages} images allowed`,
         variant: "destructive"
       })
+      e.target.value = ""
       return
+    }
+
+    const filesToUpload = files.slice(0, remainingSlots)
+    if (files.length > remainingSlots) {
+      toast({
+        title: "Upload Limit",
+        description: `Only ${remainingSlots} image(s) can be uploaded right now`,
+        variant: "destructive"
+      })
     }
 
     setUploading(true)
 
     try {
-      const uploadPromises = files.map(async (file) => {
-        const formData = new FormData()
-        formData.append("file", file)
+      const optimizedResult = await optimizeImagesForUpload(filesToUpload)
+      const { uploaded, failed } = await uploadWithConcurrency(optimizedResult.files, MAX_PARALLEL_UPLOADS)
 
-        const response = await fetch("/api/upload", {
-          method: "POST",
-          body: formData,
+      if (uploaded.length > 0) {
+        onChange([...value, ...uploaded])
+      }
+
+      if (optimizedResult.optimizedCount > 0) {
+        toast({
+          title: "Images optimized",
+          description: `${optimizedResult.optimizedCount} image(s) were optimized for faster upload while preserving quality.`,
         })
+      }
 
-        if (!response.ok) throw new Error("Upload failed")
-
-        const data = await response.json()
-        return data.url
-      })
-
-      const urls = await Promise.all(uploadPromises)
-      onChange([...value, ...urls])
-    } catch (error) {
-      console.error("Upload error:", error)
-      toast({
-        title: "Upload Failed",
-        description: "Failed to upload images",
-        variant: "destructive"
-      })
+      if (failed.length > 0) {
+        const firstFailure = failed[0]
+        toast({
+          title: "Some uploads failed",
+          description: `${failed.length} file(s) failed. Example: ${firstFailure.fileName} (${firstFailure.reason})`,
+          variant: "destructive"
+        })
+      }
     } finally {
       setUploading(false)
+      e.target.value = ""
     }
   }
 

@@ -46,6 +46,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { AuthButton } from "@/components/auth-button"
 import { CartWishlistButtons } from "@/components/cart-wishlist-buttons"
 import type { SiteSettings } from "@/lib/types"
+import { getCloudinaryImageUrl } from "@/lib/cloudinary-image"
 
 // CONFIG
 const NAV_LINKS = [
@@ -121,9 +122,18 @@ export function Header({ siteSettings }: HeaderProps) {
   const [mounted, setMounted] = React.useState(false)
 
   React.useEffect(() => {
-    const onScroll = () => setIsScrolled(window.scrollY > 10)
+    let ticking = false
+    const onScroll = () => {
+      if (ticking) return
+      ticking = true
+      requestAnimationFrame(() => {
+        setIsScrolled(window.scrollY > 10)
+        ticking = false
+      })
+    }
+
     onScroll()
-    window.addEventListener("scroll", onScroll)
+    window.addEventListener("scroll", onScroll, { passive: true })
     return () => window.removeEventListener("scroll", onScroll)
   }, [])
   
@@ -183,7 +193,11 @@ export function Header({ siteSettings }: HeaderProps) {
       )}
 
       {/* Main Header */}
-      <header className={`backdrop-blur supports-backdrop-filter:bg-background/60 transition-all border-b ${isScrolled ? "bg-background/95" : "bg-background/40"}`}>
+      <header
+        className={`md:backdrop-blur supports-backdrop-filter:bg-background/60 transition-colors duration-200 border-b ${
+          isScrolled ? "bg-background/95" : "bg-background/40"
+        }`}
+      >
         <div className="container mx-auto px-4">
           <div className="flex h-16 items-center justify-between gap-3">
             {/* Left: Logo + Mobile Menu */}
@@ -389,7 +403,13 @@ function MobileNav({ onNavigate }: { onNavigate: () => void }) {
           {userData && status === "authenticated" ? (
             <div className="flex items-center">
               <Avatar className="h-8 w-8">
-                <AvatarImage src={userData.image || ""} />
+                <AvatarImage
+                  src={
+                    userData.image
+                      ? getCloudinaryImageUrl(userData.image, { width: 96, height: 96, mode: "fill" })
+                      : ""
+                  }
+                />
                 <AvatarFallback>{userData.name?.charAt(0) || userData.email?.charAt(0) || "U"}</AvatarFallback>
               </Avatar>
             </div>
@@ -410,7 +430,13 @@ function MobileNav({ onNavigate }: { onNavigate: () => void }) {
               {userData.name && (
                 <div className="px-4 py-2 mb-1 bg-accent/50 rounded-md flex items-center gap-2">
                   <Avatar className="h-6 w-6">
-                    <AvatarImage src={userData.image || ""} />
+                    <AvatarImage
+                      src={
+                        userData.image
+                          ? getCloudinaryImageUrl(userData.image, { width: 80, height: 80, mode: "fill" })
+                          : ""
+                      }
+                    />
                     <AvatarFallback>{userData.name?.charAt(0) || userData.email?.charAt(0) || "U"}</AvatarFallback>
                   </Avatar>
                   <div className="text-sm font-medium">{userData.name}</div>

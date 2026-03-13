@@ -16,6 +16,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { getCloudinaryImageUrl } from "@/lib/cloudinary-image"
 
 export function AuthButton() {
   const { userData, status, session } = useUserSession()
@@ -49,7 +50,14 @@ export function AuthButton() {
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" size="icon" className="relative">
             <Avatar className="h-8 w-8">
-              <AvatarImage src={userData.image || undefined} alt={userData.name || "User"} />
+              <AvatarImage
+                src={
+                  userData.image
+                    ? getCloudinaryImageUrl(userData.image, { width: 96, height: 96, mode: "fill" })
+                    : undefined
+                }
+                alt={userData.name || "User"}
+              />
               <AvatarFallback>{userData.name?.charAt(0).toUpperCase() || "U"}</AvatarFallback>
             </Avatar>
           </Button>

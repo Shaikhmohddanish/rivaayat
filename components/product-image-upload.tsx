@@ -7,11 +7,65 @@ import { Button } from "@/components/ui/button"
 import Image from "next/image"
 import type { ProductImage } from "@/lib/types"
 import { useToast } from "@/hooks/use-toast"
+import { optimizeImagesForUpload } from "@/lib/client-image-optimizer"
 
 interface ProductImageUploadProps {
   value: ProductImage[]
   onChange: (images: ProductImage[]) => void
   maxImages?: number
+}
+
+const MAX_PARALLEL_UPLOADS = 3
+
+async function uploadProductImage(file: File): Promise<{ publicId: string; url: string }> {
+  const formData = new FormData()
+  formData.append("file", file)
+
+  const response = await fetch("/api/upload", {
+    method: "POST",
+    body: formData,
+  })
+
+  const data = await response.json().catch(() => ({}))
+
+  if (!response.ok) {
+    throw new Error(data?.error || `Upload failed (${response.status})`)
+  }
+
+  if (!data?.publicId || !data?.url) {
+    throw new Error("Upload response is missing image metadata")
+  }
+
+  return {
+    publicId: data.publicId,
+    url: data.url,
+  }
+}
+
+async function uploadWithConcurrency(files: File[], maxParallel: number) {
+  const queue = [...files]
+  const uploaded: Array<{ publicId: string; url: string }> = []
+  const failed: Array<{ fileName: string; reason: string }> = []
+
+  const workers = Array.from({ length: Math.min(maxParallel, queue.length) }, async () => {
+    while (queue.length > 0) {
+      const current = queue.shift()
+      if (!current) return
+
+      try {
+        const result = await uploadProductImage(current)
+        uploaded.push(result)
+      } catch (error) {
+        failed.push({
+          fileName: current.name,
+          reason: error instanceof Error ? error.message : "Upload failed",
+        })
+      }
+    }
+  })
+
+  await Promise.all(workers)
+  return { uploaded, failed }
 }
 
 export function ProductImageUpload({ value = [], onChange, maxImages = 10 }: ProductImageUploadProps) {
@@ -23,52 +77,63 @@ export function ProductImageUpload({ value = [], onChange, maxImages = 10 }: Pro
     const files = Array.from(e.target.files || [])
     if (files.length === 0) return
 
-    if (value.length + files.length > maxImages) {
+    const remainingSlots = maxImages - value.length
+    if (remainingSlots <= 0) {
       toast({
         title: "Upload Limit",
         description: `Maximum ${maxImages} images allowed`,
         variant: "destructive"
       })
+      e.target.value = ""
       return
+    }
+
+    const filesToUpload = files.slice(0, remainingSlots)
+    if (files.length > remainingSlots) {
+      toast({
+        title: "Upload Limit",
+        description: `Only ${remainingSlots} image(s) can be uploaded right now`,
+        variant: "destructive"
+      })
     }
 
     setUploading(true)
 
     try {
-      const uploadPromises = files.map(async (file) => {
-        const formData = new FormData()
-        formData.append("file", file)
+      const optimizedResult = await optimizeImagesForUpload(filesToUpload)
+      const { uploaded, failed } = await uploadWithConcurrency(optimizedResult.files, MAX_PARALLEL_UPLOADS)
 
-        const response = await fetch("/api/upload", {
-          method: "POST",
-          body: formData,
+      if (uploaded.length > 0) {
+        const newImages = uploaded.map((image) => ({
+          ...image,
+          sortOrder: 0,
+        }))
+
+        const updatedImages = [...value, ...newImages].map((img, idx) => ({
+          ...img,
+          sortOrder: idx,
+        }))
+        onChange(updatedImages)
+      }
+
+      if (optimizedResult.optimizedCount > 0) {
+        toast({
+          title: "Images optimized",
+          description: `${optimizedResult.optimizedCount} image(s) were optimized for faster upload while preserving quality.`,
         })
+      }
 
-        if (!response.ok) throw new Error("Upload failed")
-
-        const data = await response.json()
-        return {
-          publicId: data.publicId,
-          url: data.url,
-          sortOrder: value.length,
-        }
-      })
-
-      const newImages = await Promise.all(uploadPromises)
-      const updatedImages = [...value, ...newImages].map((img, idx) => ({
-        ...img,
-        sortOrder: idx,
-      }))
-      onChange(updatedImages)
-    } catch (error) {
-      console.error("Upload error:", error)
-      toast({
-        title: "Upload Failed",
-        description: "Failed to upload images",
-        variant: "destructive"
-      })
+      if (failed.length > 0) {
+        const firstFailure = failed[0]
+        toast({
+          title: "Some uploads failed",
+          description: `${failed.length} file(s) failed. Example: ${firstFailure.fileName} (${firstFailure.reason})`,
+          variant: "destructive"
+        })
+      }
     } finally {
       setUploading(false)
+      e.target.value = ""
     }
   }
 
@@ -111,7 +176,7 @@ export function ProductImageUpload({ value = [], onChange, maxImages = 10 }: Pro
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-        {value
+        {[...value]
           .sort((a, b) => a.sortOrder - b.sortOrder)
           .map((image, index) => (
             <div

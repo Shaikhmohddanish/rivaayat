@@ -9,6 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Heart, ShoppingCart, ChevronLeft, ChevronRight } from "lucide-react"
 import type { Product, ProductVariant } from "@/lib/types"
 import { useToast } from "@/hooks/use-toast"
+import { getCloudinaryImageUrl } from "@/lib/cloudinary-image"
+import { useIsMobile } from "@/hooks/use-mobile"
 
 interface BasicQuickViewModalProps {
   product: (Product & { _id: string }) | null
@@ -18,6 +20,7 @@ interface BasicQuickViewModalProps {
 
 export function BasicQuickViewModal({ product, open, onClose }: BasicQuickViewModalProps) {
   const { toast } = useToast()
+  const isMobile = useIsMobile()
   const [selectedColor, setSelectedColor] = useState("")
   const [selectedSize, setSelectedSize] = useState("")
   const [quantity, setQuantity] = useState(1)
@@ -115,7 +118,15 @@ export function BasicQuickViewModal({ product, open, onClose }: BasicQuickViewMo
           <div className="space-y-4">
             <div className="relative aspect-[3/4] rounded-lg overflow-hidden bg-muted">
               <Image
-                src={product.images[currentImageIndex]?.url || "/placeholder.svg"}
+                src={
+                  product.images[currentImageIndex]?.url
+                    ? getCloudinaryImageUrl(product.images[currentImageIndex].url, {
+                        width: isMobile ? 750 : 1000,
+                        height: isMobile ? 1000 : 1333,
+                        mode: "fill",
+                      })
+                    : "/placeholder.svg"
+                }
                 alt={product.name}
                 fill
                 className="object-cover"

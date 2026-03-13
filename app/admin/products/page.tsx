@@ -11,10 +11,13 @@ import Link from "next/link"
 import type { Product } from "@/lib/types"
 import { useAdminCache } from "@/hooks/use-admin-cache"
 import { ADMIN_CACHE_KEYS } from "@/lib/admin-cache"
+import { getCloudinaryImageUrl } from "@/lib/cloudinary-image"
+import { useIsMobile } from "@/hooks/use-mobile"
 
 export default function AdminProductsPage() {
   const { data: session, status } = useSession()
   const router = useRouter()
+  const isMobile = useIsMobile()
   const [searchQuery, setSearchQuery] = useState("")
   const [isRefreshing, setIsRefreshing] = useState(false)
   
@@ -120,7 +123,15 @@ export default function AdminProductsPage() {
             <div className="relative aspect-square bg-muted">
               {product.images[0] ? (
                 <Image
-                  src={product.images[0].url || "/placeholder.svg"}
+                  src={
+                    product.images[0].url
+                      ? getCloudinaryImageUrl(product.images[0].url, {
+                          width: isMobile ? 420 : 560,
+                          height: isMobile ? 420 : 560,
+                          mode: "fill",
+                        })
+                      : "/placeholder.svg"
+                  }
                   alt={product.name}
                   fill
                   className="object-cover"

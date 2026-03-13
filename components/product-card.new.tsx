@@ -133,7 +133,7 @@ export function ProductCard({ product, onQuickView }: ProductCardProps) {
 
   return (
     <Link href={`/product/${product.slug ?? product._id}`} className="block">
-      <Card className="group overflow-hidden hover:shadow-lg transition-all duration-300 bg-white border border-gray-100 rounded-lg max-w-sm">
+      <Card className="group overflow-hidden hover:shadow-lg transition-shadow duration-200 bg-white border border-gray-100 rounded-lg max-w-sm">
         {/* Product Title and Description First */}
         <div className="p-4 pb-2">
           <h3 className="font-medium text-lg mb-1 line-clamp-1 text-pink-500 group-hover:text-pink-600 transition-colors">
@@ -151,7 +151,7 @@ export function ProductCard({ product, onQuickView }: ProductCardProps) {
             alt={product.name}
             fill
             sizes="(max-width:768px) 100vw, 33vw"
-            className="object-cover group-hover:scale-110 transition-transform duration-500"
+            className="object-cover group-hover:scale-105 transition-transform duration-300"
           />
 
           {/* Quick Action Buttons */}
@@ -161,21 +161,21 @@ export function ProductCard({ product, onQuickView }: ProductCardProps) {
                 e.preventDefault()
                 onQuickView?.(product)
               }}
-              className="w-10 h-10 rounded-full bg-white/90 backdrop-blur-sm shadow-lg flex items-center justify-center hover:bg-white transition-colors"
+              className="w-10 h-10 rounded-full bg-white/95 shadow-lg flex items-center justify-center hover:bg-white transition-colors duration-150"
               aria-label="Quick View"
             >
               <Eye className="h-5 w-5 text-gray-700" />
             </button>
             <button
               onClick={handleAddToCart}
-              className="w-10 h-10 rounded-full bg-white/90 backdrop-blur-sm shadow-lg flex items-center justify-center hover:bg-white transition-colors"
+              className="w-10 h-10 rounded-full bg-white/95 shadow-lg flex items-center justify-center hover:bg-white transition-colors duration-150"
               aria-label="Add to Cart"
             >
               <ShoppingCart className="h-5 w-5 text-gray-700" />
             </button>
             <button
               onClick={handleAddToWishlist}
-              className={`w-10 h-10 rounded-full bg-white/90 backdrop-blur-sm shadow-lg flex items-center justify-center hover:bg-white transition-colors ${
+              className={`w-10 h-10 rounded-full bg-white/95 shadow-lg flex items-center justify-center hover:bg-white transition-colors duration-150 ${
                 isWishlisted ? "text-pink-500" : "text-gray-700"
               }`}
               aria-label="Add to Wishlist"
@@ -187,12 +187,12 @@ export function ProductCard({ product, onQuickView }: ProductCardProps) {
           {(hasOptions || hasDiscount) && (
             <div className="absolute top-3 left-3 flex flex-col gap-1">
               {hasOptions && (
-                <div className="bg-pink-500/90 text-white text-xs px-3 py-1 rounded-full backdrop-blur-sm">
+                <div className="bg-pink-500/95 text-white text-xs px-3 py-1 rounded-full">
                   Options Available
                 </div>
               )}
               {hasDiscount && (
-                <div className="bg-emerald-600/90 text-white text-xs px-3 py-1 rounded-full backdrop-blur-sm">
+                <div className="bg-emerald-600/95 text-white text-xs px-3 py-1 rounded-full">
                   {discountPercent}% OFF
                 </div>
               )}
@@ -222,7 +222,7 @@ export function ProductCard({ product, onQuickView }: ProductCardProps) {
                             selectedColor === color
                               ? "ring-2 ring-pink-500 ring-offset-2 border-white"
                               : "border-gray-200 hover:border-pink-500"
-                          } ${disabled ? "opacity-40 cursor-not-allowed" : "hover:scale-110 transition-transform"}`}
+                          } ${disabled ? "opacity-40 cursor-not-allowed" : "hover:scale-105 transition-transform duration-150"}`}
                           style={{
                             backgroundColor:
                               color === "Emerald Green" ? "#50C878" : 

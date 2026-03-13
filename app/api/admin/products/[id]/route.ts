@@ -6,6 +6,28 @@ import clientPromise from "@/lib/mongodb-safe"
 import { ObjectId } from "mongodb"
 import type { Product } from "@/lib/types"
 
+function parseProductImages(images: unknown): Product["images"] | null {
+  if (!Array.isArray(images)) return null
+
+  const normalized: Product["images"] = []
+  for (let i = 0; i < images.length; i++) {
+    const item = images[i]
+    if (!item || typeof item !== "object") return null
+
+    const image = item as { publicId?: unknown; url?: unknown; sortOrder?: unknown }
+    if (typeof image.publicId !== "string" || image.publicId.trim() === "") return null
+    if (typeof image.url !== "string" || image.url.trim() === "") return null
+
+    normalized.push({
+      publicId: image.publicId,
+      url: image.url,
+      sortOrder: Number.isFinite(Number(image.sortOrder)) ? Number(image.sortOrder) : i,
+    })
+  }
+
+  return normalized
+}
+
 // GET /api/admin/products/[id] - Admin only endpoint to get single product
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -66,6 +88,12 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params
+
+    if (!ObjectId.isValid(id)) {
+      return NextResponse.json({ error: "Invalid product ID" }, { status: 400 })
+    }
+
+    const productId = new ObjectId(id)
     const session = await getServerSession(authOptions)
 
     if (!session?.user) {
@@ -91,6 +119,26 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       isDraft,
       variations,
     } = body
+    const parsedImages = images !== undefined ? parseProductImages(images) : undefined
+
+    const client = await clientPromise
+    if (!client) throw new Error("Failed to connect to database")
+    const db = client.db("rivaayat")
+
+    const existingProduct = await db.collection<Product>("products").findOne({ _id: productId as any })
+    if (!existingProduct) {
+      return NextResponse.json({ error: "Product not found" }, { status: 404 })
+    }
+
+    if (parsedImages === null) {
+      return NextResponse.json({ error: "Invalid images format" }, { status: 400 })
+    }
+
+    const nextIsDraft = isDraft !== undefined ? Boolean(isDraft) : Boolean(existingProduct.isDraft)
+    const nextImages = parsedImages !== undefined ? parsedImages : existingProduct.images || []
+    if (!nextIsDraft && nextImages.length === 0) {
+      return NextResponse.json({ error: "At least one valid product image is required" }, { status: 400 })
+    }
 
     const updateFields: Partial<Product> = {
       updatedAt: new Date(),
@@ -100,24 +148,21 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     if (category !== undefined) updateFields.category = category || undefined
     if (slug !== undefined) {
       // Check if new slug already exists on a different product
-      const { id } = await params
-      
-      const client = await clientPromise
-      if (!client) throw new Error("Failed to connect to database")
-      const db = client.db("rivaayat")
-      const existingProduct = await db.collection<Product>("products").findOne({
+      const existingProductBySlug = await db.collection<Product>("products").findOne({
         slug,
-        _id: { $ne: new ObjectId(id) as any },
+        _id: { $ne: productId as any },
       })
 
-      if (existingProduct) {
+      if (existingProductBySlug) {
         return NextResponse.json({ error: "Product with this slug already exists" }, { status: 400 })
       }
 
       updateFields.slug = slug
     }
     if (description !== undefined) updateFields.description = description
-    if (images !== undefined) updateFields.images = images
+    if (images !== undefined) {
+      updateFields.images = parsedImages
+    }
     if (originalPrice !== undefined) {
       updateFields.originalPrice = originalPrice || undefined
     }
@@ -133,13 +178,9 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     if (isDraft !== undefined) updateFields.isDraft = isDraft
     if (variations !== undefined) updateFields.variations = variations
 
-    const client = await clientPromise
-    if (!client) throw new Error("Failed to connect to database")
-    const db = client.db("rivaayat")
-
     const result = await db
       .collection<Product>("products")
-      .findOneAndUpdate({ _id: new ObjectId(id) as any }, { $set: updateFields }, { returnDocument: "after" })
+      .findOneAndUpdate({ _id: productId as any }, { $set: updateFields }, { returnDocument: "after" })
 
     if (!result) {
       return NextResponse.json({ error: "Product not found" }, { status: 404 })

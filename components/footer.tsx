@@ -33,15 +33,15 @@ export function Footer({ siteSettings }: FooterProps) {
             </p>
             <h4 className="font-semibold mb-4 text-foreground">Follow Us</h4>
             <div className="flex gap-4">
-              <a href="#" className="text-muted-foreground hover:text-primary transition-all duration-300 transform hover:scale-110 elegant-hover">
+              <a href="#" className="text-muted-foreground hover:text-primary transition-colors duration-200 elegant-hover">
                 <Facebook className="h-5 w-5" />
                 <span className="sr-only">Facebook</span>
               </a>
-              <a href="https://www.instagram.com/rivaayat.poshak/" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-all duration-300 transform hover:scale-110 elegant-hover">
+              <a href="https://www.instagram.com/rivaayat.poshak/" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors duration-200 elegant-hover">
                 <Instagram className="h-5 w-5" />
                 <span className="sr-only">Instagram</span>
               </a>
-              <a href="#" className="text-muted-foreground hover:text-primary transition-all duration-300 transform hover:scale-110 elegant-hover">
+              <a href="#" className="text-muted-foreground hover:text-primary transition-colors duration-200 elegant-hover">
                 <Twitter className="h-5 w-5" />
                 <span className="sr-only">Twitter</span>
               </a>
@@ -52,22 +52,22 @@ export function Footer({ siteSettings }: FooterProps) {
             <h4 className="font-semibold mb-4 text-foreground">Quick Links</h4>
             <ul className="space-y-3 text-sm">
               <li>
-                <Link href="/shop" className="text-muted-foreground hover:text-primary transition-all duration-300 elegant-hover inline-block">
+                <Link href="/shop" className="text-muted-foreground hover:text-primary transition-colors duration-200 elegant-hover inline-block">
                   Shop Dresses
                 </Link>
               </li>
               <li>
-                <Link href="/about" className="text-muted-foreground hover:text-primary transition-all duration-300 elegant-hover inline-block">
+                <Link href="/about" className="text-muted-foreground hover:text-primary transition-colors duration-200 elegant-hover inline-block">
                   About Us
                 </Link>
               </li>
               <li>
-                <Link href="/orders" className="text-muted-foreground hover:text-primary transition-all duration-300 elegant-hover inline-block">
+                <Link href="/orders" className="text-muted-foreground hover:text-primary transition-colors duration-200 elegant-hover inline-block">
                   My Orders
                 </Link>
               </li>
               <li>
-                <Link href="/order-tracking" className="text-muted-foreground hover:text-primary transition-all duration-300 elegant-hover inline-block">
+                <Link href="/order-tracking" className="text-muted-foreground hover:text-primary transition-colors duration-200 elegant-hover inline-block">
                   Track Order
                 </Link>
               </li>
@@ -79,25 +79,25 @@ export function Footer({ siteSettings }: FooterProps) {
             <h4 className="font-semibold mb-4 text-foreground">Legal</h4>
             <ul className="space-y-3 text-sm">
               <li>
-                <Link href="/privacy-policy" className="text-muted-foreground hover:text-primary transition-all duration-300 elegant-hover inline-block">
+                <Link href="/privacy-policy" className="text-muted-foreground hover:text-primary transition-colors duration-200 elegant-hover inline-block">
                   Privacy Policy
                 </Link>
               </li>
               <li>
                 <Link
                   href="/terms-and-conditions"
-                  className="text-muted-foreground hover:text-primary transition-all duration-300 elegant-hover inline-block"
+                  className="text-muted-foreground hover:text-primary transition-colors duration-200 elegant-hover inline-block"
                 >
                   Terms & Conditions
                 </Link>
               </li>
               <li>
-                <Link href="/shipping-policy" className="text-muted-foreground hover:text-primary transition-all duration-300 elegant-hover inline-block">
+                <Link href="/shipping-policy" className="text-muted-foreground hover:text-primary transition-colors duration-200 elegant-hover inline-block">
                   Shipping Policy
                 </Link>
               </li>
               <li>
-                <Link href="/cancellations-and-refunds" className="text-muted-foreground hover:text-primary transition-all duration-300 elegant-hover inline-block">
+                <Link href="/cancellations-and-refunds" className="text-muted-foreground hover:text-primary transition-colors duration-200 elegant-hover inline-block">
                   Cancellations & Refunds
                 </Link>
               </li>

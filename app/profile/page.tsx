@@ -14,6 +14,7 @@ import { PasswordUpdate } from "@/components/password-update"
 import { ShimmerHeading, ShimmerText, ShimmerButton } from "@/components/ui/shimmer"
 import { LS_KEYS } from "@/lib/local-storage"
 import type { User as UserType, Address } from "@/lib/types"
+import { getCloudinaryImageUrl } from "@/lib/cloudinary-image"
 
 export default function ProfilePage() {
   const { userData: sessionUser, status, session, update } = useUserSession()
@@ -219,7 +220,7 @@ export default function ProfilePage() {
                 <div className="relative mb-4 sm:mb-0">
                   {userData.image ? (
                     <img
-                      src={userData.image}
+                      src={getCloudinaryImageUrl(userData.image, { width: 240, height: 240, mode: "fill" })}
                       alt={userData.name}
                       className="w-20 h-20 rounded-full object-cover elegant-shadow"
                     />

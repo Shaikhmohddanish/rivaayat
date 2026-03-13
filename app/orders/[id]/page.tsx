@@ -12,6 +12,8 @@ import { Separator } from "@/components/ui/separator"
 import { ArrowLeft, Package, Truck, CheckCircle, XCircle, Clock, MapPin, Calendar, CreditCard } from "lucide-react"
 import { formatDateTimeIST, formatDateDDMMYYYY } from "@/lib/date-utils"
 import type { Order } from "@/lib/types"
+import { getCloudinaryImageUrl } from "@/lib/cloudinary-image"
+import { useIsMobile } from "@/hooks/use-mobile"
 
 const getTrackingStatusIcon = (status: string) => {
   switch (status) {
@@ -76,6 +78,7 @@ const paymentStatusLabel = (status: NonNullable<Order["payment"]>["status"]) => 
 export default function OrderDetailsPage({ params }: { params: Promise<{ id: string }> }) {
   const { data: session, status } = useSession()
   const router = useRouter()
+  const isMobile = useIsMobile()
   const { id: orderId } = use(params)
   
   const [order, setOrder] = useState<Order | null>(null)
@@ -502,9 +505,22 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                     {order.items.map((item, index) => (
                       <div key={index} className="flex gap-3 sm:gap-4">
                         <div className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-lg overflow-hidden bg-muted shrink-0">
-                          <div className="w-full h-full bg-linear-to-br from-primary/20 to-primary/40 flex items-center justify-center">
-                            <Package className="h-6 w-6 sm:h-8 sm:w-8 text-primary" />
-                          </div>
+                          {item.image ? (
+                            <Image
+                              src={getCloudinaryImageUrl(item.image, {
+                                width: isMobile ? 180 : 280,
+                                height: isMobile ? 180 : 280,
+                                mode: "fill",
+                              })}
+                              alt={item.name}
+                              fill
+                              className="object-cover"
+                            />
+                          ) : (
+                            <div className="w-full h-full bg-linear-to-br from-primary/20 to-primary/40 flex items-center justify-center">
+                              <Package className="h-6 w-6 sm:h-8 sm:w-8 text-primary" />
+                            </div>
+                          )}
                         </div>
                         <div className="flex-1 space-y-2 min-w-0">
                           <h4 className="font-semibold text-sm sm:text-lg line-clamp-2">{item.name}</h4>

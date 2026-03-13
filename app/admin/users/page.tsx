@@ -23,6 +23,7 @@ import { Pencil, Search, Info, User as UserIcon, Ban } from "lucide-react"
 import { Checkbox } from "@/components/ui/checkbox"
 import type { User } from "@/lib/types"
 import { useToast } from "@/hooks/use-toast"
+import { getCloudinaryImageUrl } from "@/lib/cloudinary-image"
 
 export default function AdminUsersPage() {
   const { data: session, status } = useSession()
@@ -223,7 +224,14 @@ export default function AdminUsersPage() {
                   <td className="p-2 sm:p-4">
                     <div className="flex items-center gap-2 sm:gap-3">
                       <Avatar className="h-8 w-8 sm:h-10 sm:w-10">
-                        <AvatarImage src={user.image || "/placeholder.svg"} alt={`${user.name}'s profile picture`} />
+                        <AvatarImage
+                          src={
+                            user.image
+                              ? getCloudinaryImageUrl(user.image, { width: 120, height: 120, mode: "fill" })
+                              : "/placeholder.svg"
+                          }
+                          alt={`${user.name}'s profile picture`}
+                        />
                         <AvatarFallback>{user.name.charAt(0).toUpperCase()}</AvatarFallback>
                       </Avatar>
                       <div className="min-w-0">

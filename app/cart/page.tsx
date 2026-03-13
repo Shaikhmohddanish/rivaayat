@@ -10,9 +10,12 @@ import { Trash2, Plus, Minus } from "lucide-react"
 import type { CartItem } from "@/lib/types"
 import { getCachedCart, updateCartCache } from "@/lib/cart-cache"
 import { useToast } from "@/hooks/use-toast"
+import { getCloudinaryImageUrl } from "@/lib/cloudinary-image"
+import { useIsMobile } from "@/hooks/use-mobile"
 
 export default function CartPage() {
   const { toast } = useToast()
+  const isMobile = useIsMobile()
   const [cart, setCart] = useState<CartItem[]>([])
   const [couponCode, setCouponCode] = useState("")
   const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discountPercent: number; minOrderValue?: number } | null>(null)
@@ -354,7 +357,15 @@ export default function CartPage() {
                 <div className="flex gap-4">
                   <div className="relative w-24 h-32 flex-shrink-0 rounded-md overflow-hidden">
                     <Image
-                      src={item.image || "/placeholder.svg?height=128&width=96&query=dress"}
+                      src={
+                        item.image
+                          ? getCloudinaryImageUrl(item.image, {
+                              width: isMobile ? 300 : 420,
+                              height: isMobile ? 400 : 560,
+                              mode: "fill",
+                            })
+                          : "/placeholder.svg?height=128&width=96&query=dress"
+                      }
                       alt={item.name}
                       fill
                       className="object-cover"

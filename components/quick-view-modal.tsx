@@ -11,6 +11,8 @@ import { getColorByName } from "@/lib/product-options"
 import { useToast } from "@/hooks/use-toast"
 import { updateWishlistCache } from "@/lib/wishlist-cache"
 import type { Product } from "@/lib/types"
+import { getCloudinaryImageUrl } from "@/lib/cloudinary-image"
+import { useIsMobile } from "@/hooks/use-mobile"
 
 interface QuickViewModalProps {
   product: (Product & { _id: string }) | null
@@ -22,6 +24,7 @@ export function QuickViewModal({ product, open, onClose }: QuickViewModalProps) 
   const { data: session } = useSession()
   const router = useRouter()
   const { toast } = useToast()
+  const isMobile = useIsMobile()
   const [selectedColor, setSelectedColor] = useState("")
   const [selectedSize, setSelectedSize] = useState("")
   const [quantity, setQuantity] = useState(1)
@@ -230,7 +233,15 @@ export function QuickViewModal({ product, open, onClose }: QuickViewModalProps) 
           <div className="space-y-4">
             <div className="relative aspect-3/4 rounded-lg overflow-hidden bg-muted">
               <Image
-                src={product.images[currentImageIndex]?.url || "/placeholder.svg?height=600&width=450&query=dress"}
+                src={
+                  product.images[currentImageIndex]?.url
+                    ? getCloudinaryImageUrl(product.images[currentImageIndex].url, {
+                        width: isMobile ? 750 : 1000,
+                        height: isMobile ? 1000 : 1333,
+                        mode: "fill",
+                      })
+                    : "/placeholder.svg?height=600&width=450&query=dress"
+                }
                 alt={product.name}
                 fill
                 className="object-cover"
@@ -267,7 +278,11 @@ export function QuickViewModal({ product, open, onClose }: QuickViewModalProps) 
                     }`}
                   >
                     <Image
-                      src={image.url || "/placeholder.svg?height=80&width=80&query=dress"}
+                      src={
+                        image.url
+                          ? getCloudinaryImageUrl(image.url, { width: 160, height: 160, mode: "fill" })
+                          : "/placeholder.svg?height=80&width=80&query=dress"
+                      }
                       alt={`${product.name} ${index + 1}`}
                       fill
                       className="object-cover"
@@ -329,7 +344,7 @@ export function QuickViewModal({ product, open, onClose }: QuickViewModalProps) 
                                 setSelectedSize(availableSize);
                               }
                             }}
-                            className={`w-8 h-8 rounded-full flex items-center justify-center border-2 transition-all ${
+                            className={`w-8 h-8 rounded-full flex items-center justify-center border-2 transition-[border-color,box-shadow,opacity] duration-150 ${
                               color === selectedColor
                                 ? "ring-2 ring-primary ring-offset-2"
                                 : isOutOfStock 
@@ -368,7 +383,7 @@ export function QuickViewModal({ product, open, onClose }: QuickViewModalProps) 
                             type="button"
                             disabled={isOutOfStock}
                             onClick={() => setSelectedSize(size)}
-                            className={`min-w-12 h-10 rounded-full border flex items-center justify-center px-3 transition-all ${
+                            className={`min-w-12 h-10 rounded-full border flex items-center justify-center px-3 transition-colors duration-150 ${
                               size === selectedSize
                                 ? "bg-primary text-white border-primary"
                                 : isOutOfStock

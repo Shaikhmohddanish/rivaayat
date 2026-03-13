@@ -10,6 +10,7 @@ import { ProductCard } from "@/components/product-card"
 import { QuickViewModal } from "@/components/quick-view-modal"
 import { ShoppingBag, ArrowRight } from "lucide-react"
 import { getCachedWishlist, updateWishlistCache } from "@/lib/wishlist-cache"
+import { getCloudinaryImageUrl } from "@/lib/cloudinary-image"
 
 declare global {
   interface Window {
@@ -178,13 +179,13 @@ export function HomePageClient({ featuredProducts, newProducts, categories }: Ho
                     href={`/shop?category=${encodeURIComponent(category.name)}`}
                     className="group flex-none w-64 sm:w-72 snap-start"
                   >
-                    <div className="relative overflow-hidden rounded-xl bg-muted hover:shadow-xl transition-all duration-300">
+                    <div className="relative overflow-hidden rounded-xl bg-muted hover:shadow-xl transition-shadow duration-200">
                       <div className="aspect-4/3 relative">
                         {category.image ? (
                           <img
-                            src={category.image}
+                            src={getCloudinaryImageUrl(category.image, { width: 720, height: 540, mode: "fill" })}
                             alt={category.name}
-                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                           />
                         ) : (
                           <div className="w-full h-full bg-linear-to-br from-primary/30 to-primary/10 flex items-center justify-center">
@@ -195,7 +196,7 @@ export function HomePageClient({ featuredProducts, newProducts, categories }: Ho
                         <div className="absolute bottom-0 left-0 right-0 p-6">
                           <h3 className="text-2xl font-bold text-white mb-2">{category.name}</h3>
                           <p className="text-white/90 text-sm mb-3">{category.count} {category.count === 1 ? 'Product' : 'Products'}</p>
-                          <div className="inline-flex items-center text-white text-sm font-medium bg-white/20 backdrop-blur-sm px-4 py-2 rounded-full group-hover:bg-primary group-hover:text-white transition-all">
+                          <div className="inline-flex items-center text-white text-sm font-medium bg-white/25 px-4 py-2 rounded-full group-hover:bg-primary group-hover:text-white transition-colors duration-200">
                             <span>Shop Now</span>
                             <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
                           </div>

@@ -58,12 +58,12 @@ export function HeroSliderPro({ slides, interval = 6000 }: HeroSliderProProps) {
   }, [])
 
   const updateProgress = useCallback(() => {
-    if (!playing || !startTimeRef.current) return
+    if (!playing || !startTimeRef.current || isMobile) return
     const elapsed = Date.now() - startTimeRef.current
     const pct = Math.min(100, (elapsed / interval) * 100)
     setProgress(pct)
     if (pct < 100) requestAnimationFrame(updateProgress)
-  }, [playing, interval])
+  }, [playing, interval, isMobile])
 
   useEffect(() => {
     const onVis = () => setPlaying(!document.hidden)
@@ -72,7 +72,7 @@ export function HeroSliderPro({ slides, interval = 6000 }: HeroSliderProProps) {
   }, [])
 
   useEffect(() => {
-    if (prefersReducedMotion) return
+    if (prefersReducedMotion || isMobile) return
     if (playing) {
       startTimeRef.current = Date.now()
       setProgress(0)
@@ -82,7 +82,7 @@ export function HeroSliderPro({ slides, interval = 6000 }: HeroSliderProProps) {
     return () => {
       if (timeoutRef.current) clearTimeout(timeoutRef.current)
     }
-  }, [current, playing, interval, count, prefersReducedMotion, updateProgress])
+  }, [current, playing, interval, count, prefersReducedMotion, isMobile, updateProgress])
 
   const prev = () => {
     setCurrent((p) => (p - 1 + count) % count)
@@ -144,8 +144,8 @@ export function HeroSliderPro({ slides, interval = 6000 }: HeroSliderProProps) {
           return (
             <div
               key={i}
-              className={`absolute inset-0 transition-[opacity,transform] duration-1000 will-change-transform ${
-                i === current ? "opacity-100 z-10 scale-100" : "opacity-0 z-0 scale-105"
+              className={`absolute inset-0 transition-opacity duration-700 ${
+                i === current ? "opacity-100 z-10" : "opacity-0 z-0 pointer-events-none"
               }`}
               aria-hidden={i !== current}
             >
@@ -156,13 +156,12 @@ export function HeroSliderPro({ slides, interval = 6000 }: HeroSliderProProps) {
                 priority={i === 0}
                 sizes="100vw"
                 className="object-cover object-center"
-                unoptimized
               />
               <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/40 to-transparent" />
             <div className="absolute inset-0 flex items-center justify-center p-4">
               <div className="text-center text-white max-w-3xl mx-auto">
                 {s.sublabel && (
-                  <span className="inline-flex text-xs md:text-sm tracking-wider uppercase rounded-full border border-white/30 bg-white/10 px-3 py-1 mb-4 backdrop-blur">
+                  <span className="inline-flex text-xs md:text-sm tracking-wider uppercase rounded-full border border-white/30 bg-white/10 px-3 py-1 mb-4 md:backdrop-blur-sm">
                     {s.sublabel}
                   </span>
                 )}
@@ -214,7 +213,7 @@ export function HeroSliderPro({ slides, interval = 6000 }: HeroSliderProProps) {
           <button
             key={i}
             onClick={() => goTo(i)}
-            className="relative h-2.5 md:h-3 rounded-full transition-all duration-300 bg-white/60 hover:bg-white/80 overflow-hidden"
+            className="relative h-2.5 md:h-3 rounded-full transition-[width,background-color,opacity] duration-200 bg-white/60 hover:bg-white/80 overflow-hidden"
             style={{ width: i === current ? "2.5rem" : "0.6rem", opacity: i === current ? 1 : 0.6 }}
             aria-label={`Go to slide ${i + 1}`}
             aria-current={i === current}

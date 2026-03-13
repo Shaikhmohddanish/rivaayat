@@ -13,10 +13,13 @@ import { ShimmerHeading, ShimmerText, ShimmerOrderCard } from "@/components/ui/s
 import { Package, Truck, CheckCircle, XCircle, Clock, Eye, CreditCard } from "lucide-react"
 import { formatDateTimeIST } from "@/lib/date-utils"
 import type { Order } from "@/lib/types"
+import { getCloudinaryImageUrl } from "@/lib/cloudinary-image"
+import { useIsMobile } from "@/hooks/use-mobile"
 
 export default function OrdersPage() {
   const { data: session, status } = useSession()
   const router = useRouter()
+  const isMobile = useIsMobile()
   const [orders, setOrders] = useState<Order[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
@@ -241,7 +244,7 @@ export default function OrdersPage() {
           ) : (
             <div className="space-y-6">
               {orders.map((order) => (
-                <Card key={order._id} className="overflow-hidden elegant-shadow hover:shadow-xl transition-all duration-300">
+                <Card key={order._id} className="overflow-hidden elegant-shadow hover:shadow-xl transition-shadow duration-200">
                   <CardHeader className="bg-muted/30">
                     <div className="flex flex-col gap-3">
                       <div className="flex items-start justify-between gap-2">
@@ -282,9 +285,22 @@ export default function OrdersPage() {
                         {order.items.map((item, index) => (
                           <div key={index} className="flex items-start gap-3">
                             <div className="relative w-12 h-12 sm:w-16 sm:h-16 rounded-lg overflow-hidden bg-muted shrink-0">
-                              <div className="w-full h-full bg-linear-to-br from-primary/20 to-primary/40 flex items-center justify-center">
-                                <Package className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
-                              </div>
+                              {item.image ? (
+                                <Image
+                                  src={getCloudinaryImageUrl(item.image, {
+                                    width: isMobile ? 140 : 220,
+                                    height: isMobile ? 140 : 220,
+                                    mode: "fill",
+                                  })}
+                                  alt={item.name}
+                                  fill
+                                  className="object-cover"
+                                />
+                              ) : (
+                                <div className="w-full h-full bg-linear-to-br from-primary/20 to-primary/40 flex items-center justify-center">
+                                  <Package className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
+                                </div>
+                              )}
                             </div>
                             <div className="flex-1 min-w-0 space-y-1">
                               <h4 className="font-medium text-sm sm:text-base line-clamp-2">{item.name}</h4>

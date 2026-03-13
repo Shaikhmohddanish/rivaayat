@@ -12,6 +12,8 @@ import { Eye, Heart, ShoppingCart } from "lucide-react"
 import type { Product } from "@/lib/types"
 import { useToast } from "@/hooks/use-toast"
 import { updateWishlistCache } from "@/lib/wishlist-cache"
+import { getCloudinaryImageUrl } from "@/lib/cloudinary-image"
+import { useIsMobile } from "@/hooks/use-mobile"
 
 interface ProductCardProps {
   product: Product & { _id: string }
@@ -24,6 +26,7 @@ export function ProductCard({ product, onQuickView, wishlistProductIds, onWishli
   const { data: session, status } = useSession()
   const router = useRouter()
   const { toast } = useToast()
+  const isMobile = useIsMobile()
 
   const [isWishlisted, setIsWishlisted] = useState(false)
   const [showVariations, setShowVariations] = useState(false)
@@ -219,16 +222,24 @@ export function ProductCard({ product, onQuickView, wishlistProductIds, onWishli
   const hasOptions =
     (product.variations?.colors?.length ?? 0) > 0 || (product.variations?.sizes?.length ?? 0) > 0
 
+  const primaryImage = product.images?.[0]?.url
+    ? getCloudinaryImageUrl(product.images[0].url, {
+        width: isMobile ? 640 : 900,
+        height: isMobile ? 800 : 1125,
+        mode: "fill",
+      })
+    : "/placeholder.svg?height=400&width=300&query=dress"
+
   return (
     <Link href={`/product/${product.slug ?? product._id}`} className="block">
-      <Card className="group overflow-hidden hover:shadow-lg transition-all duration-300 bg-white border border-gray-100 rounded-lg max-w-sm p-0">
+      <Card className="group overflow-hidden hover:shadow-lg transition-shadow duration-200 bg-white border border-gray-100 rounded-lg max-w-sm p-0">
         <div className="relative aspect-4/5 overflow-hidden rounded-t-lg">
           <Image
-            src={product.images?.[0]?.url || "/placeholder.svg?height=400&width=300&query=dress"}
+            src={primaryImage}
             alt={product.name}
             fill
             sizes="(max-width:768px) 100vw, 33vw"
-            className="object-cover group-hover:scale-110 transition-transform duration-500"
+            className="object-cover group-hover:scale-105 transition-transform duration-300"
           />
 
           {/* Desktop: Show on hover, Mobile: Always visible */}
@@ -238,21 +249,21 @@ export function ProductCard({ product, onQuickView, wishlistProductIds, onWishli
                 e.preventDefault()
                 onQuickView?.(product)
               }}
-              className="w-10 h-10 sm:w-8 sm:h-8 rounded-full bg-white/95 backdrop-blur-sm shadow-md flex items-center justify-center hover:bg-white active:scale-95 touch-target transition-all"
+              className="w-10 h-10 sm:w-8 sm:h-8 rounded-full bg-white/95 shadow-md flex items-center justify-center hover:bg-white touch-target transition-colors duration-150"
               aria-label={`Quick view ${product.name}`}
             >
               <Eye className="h-5 w-5 sm:h-4 sm:w-4 text-gray-600" />
             </button>
             <button
               onClick={handleAddToCart}
-              className="w-10 h-10 sm:w-8 sm:h-8 rounded-full bg-white/95 backdrop-blur-sm shadow-md flex items-center justify-center hover:bg-white active:scale-95 touch-target transition-all"
+              className="w-10 h-10 sm:w-8 sm:h-8 rounded-full bg-white/95 shadow-md flex items-center justify-center hover:bg-white touch-target transition-colors duration-150"
               aria-label={`Add ${product.name} to cart`}
             >
               <ShoppingCart className="h-5 w-5 sm:h-4 sm:w-4 text-gray-600" />
             </button>
             <button
               onClick={handleAddToWishlist}
-              className={`w-10 h-10 sm:w-8 sm:h-8 rounded-full bg-white/95 backdrop-blur-sm shadow-md flex items-center justify-center hover:bg-white active:scale-95 touch-target transition-all ${
+              className={`w-10 h-10 sm:w-8 sm:h-8 rounded-full bg-white/95 shadow-md flex items-center justify-center hover:bg-white touch-target transition-colors duration-150 ${
                 isWishlisted ? "text-rose-500" : "text-gray-600"
               }`}
               aria-label={isWishlisted ? `Remove ${product.name} from wishlist` : `Add ${product.name} to wishlist`}
@@ -264,12 +275,12 @@ export function ProductCard({ product, onQuickView, wishlistProductIds, onWishli
           {(hasOptions || hasDiscount) && (
             <div className="absolute top-2 left-2 flex flex-col gap-1">
               {hasOptions && (
-                <div className="bg-primary/80 text-white text-xs px-2 py-1 rounded-md backdrop-blur-sm">
+                <div className="bg-primary/90 text-white text-xs px-2 py-1 rounded-md">
                   Options
                 </div>
               )}
               {hasDiscount && (
-                <div className="bg-emerald-600/90 text-white text-xs px-2 py-1 rounded-md backdrop-blur-sm">
+                <div className="bg-emerald-600/95 text-white text-xs px-2 py-1 rounded-md">
                   {discountPercent}% off
                 </div>
               )}
@@ -303,7 +314,7 @@ export function ProductCard({ product, onQuickView, wishlistProductIds, onWishli
                             selectedColor === color
                               ? "ring-2 ring-primary ring-offset-2 border-white"
                               : "border-gray-200 hover:border-primary"
-                          } ${disabled ? "opacity-40 cursor-not-allowed" : "hover:scale-110 transition-transform"}`}
+                          } ${disabled ? "opacity-40 cursor-not-allowed" : "hover:scale-105 transition-transform duration-150"}`}
                           style={{
                             backgroundColor:
                               color === "Emerald Green" ? "#50C878" : color === "Deep Maroon" ? "#800000" : color.toLowerCase(),
