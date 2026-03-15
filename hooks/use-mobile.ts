@@ -18,10 +18,12 @@ export function useIsMobile() {
   return !!isMobile
 }
 
+// General media query hook that can be used for any media query
 export function useMediaQuery(query: string): boolean {
   const [matches, setMatches] = React.useState<boolean>(false)
 
   React.useEffect(() => {
+    // Create media query list
     const mediaQuery = window.matchMedia(query)
 
     // Set initial value
