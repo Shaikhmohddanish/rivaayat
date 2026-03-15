@@ -50,7 +50,14 @@ export function getCloudinaryImageUrl(src: string, options: CloudinaryTransformO
   if (!publicId) return src
 
   const mode = options.mode || "fill"
-  const parts = ["f_auto", "q_auto:good", "dpr_auto", "g_auto", `c_${mode}`, `w_${options.width}`]
+  const parts = ["f_auto", "q_auto:good", "dpr_auto"]
+
+  // g_auto (gravity) only applies to fill/crop modes, not fit
+  if (mode === "fill") {
+    parts.push("g_auto")
+  }
+
+  parts.push(`c_${mode}`, `w_${options.width}`)
 
   if (options.height) {
     parts.push(`h_${options.height}`)

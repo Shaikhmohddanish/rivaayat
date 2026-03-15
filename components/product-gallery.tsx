@@ -1,6 +1,6 @@
 "use client"
 import Image from "next/image"
-import { useState } from "react"
+import { useState, useEffect, useCallback, useMemo } from "react"
 import { getCloudinaryImageUrl } from "@/lib/cloudinary-image"
 import { useIsMobile } from "@/hooks/use-mobile"
 
@@ -12,6 +12,28 @@ export default function ProductGallery({ images }: GalleryProps) {
   const [active, setActive] = useState(0)
   const isMobile = useIsMobile()
   const safe = images?.length ? images : [{ url: "/placeholder.svg?height=800&width=600" }]
+
+  // Build all full-size URLs once
+  const fullSizeUrls = useMemo(() => {
+    return safe.map((img) =>
+      img.url
+        ? getCloudinaryImageUrl(img.url, {
+            width: isMobile ? 900 : 1400,
+            height: isMobile ? 1200 : 1867,
+            mode: "fit",
+          })
+        : "/placeholder.svg?height=800&width=600"
+    )
+  }, [safe, isMobile])
+
+  // Preload all gallery images so switching is instant
+  useEffect(() => {
+    fullSizeUrls.forEach((url, i) => {
+      if (i === 0) return // first image already loads via priority
+      const img = new window.Image()
+      img.src = url
+    })
+  }, [fullSizeUrls])
 
   return (
     <div className="grid gap-4 sm:grid-cols-[96px_1fr]">
@@ -33,21 +55,13 @@ export default function ProductGallery({ images }: GalleryProps) {
           </button>
         ))}
       </div>
-      <div className="order-1 sm:order-2 relative aspect-[4/5] w-full overflow-hidden rounded-lg border border-gray-200">
+      <div className="order-1 sm:order-2 relative aspect-[3/4] w-full overflow-hidden rounded-lg border border-gray-200 bg-muted/30">
         <Image
-          src={
-            safe[active].url
-              ? getCloudinaryImageUrl(safe[active].url, {
-                  width: isMobile ? 900 : 1400,
-                  height: isMobile ? 1125 : 1750,
-                  mode: "fill",
-                })
-              : "/placeholder.svg?height=800&width=600"
-          }
+          src={fullSizeUrls[active]}
           alt={safe[active].alt ?? "Product image"}
           fill
           sizes="(max-width:768px) 100vw, 50vw"
-          className="object-cover"
+          className="object-contain"
           priority
         />
       </div>
