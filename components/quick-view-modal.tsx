@@ -231,20 +231,20 @@ export function QuickViewModal({ product, open, onClose }: QuickViewModalProps) 
         <div className="grid md:grid-cols-2 gap-8">
           {/* Image Gallery */}
           <div className="space-y-4">
-            <div className="relative aspect-3/4 rounded-lg overflow-hidden bg-muted">
+            <div className="relative aspect-square md:aspect-[3/4] rounded-lg overflow-hidden bg-muted">
               <Image
                 src={
                   product.images[currentImageIndex]?.url
                     ? getCloudinaryImageUrl(product.images[currentImageIndex].url, {
                         width: isMobile ? 750 : 1000,
-                        height: isMobile ? 1000 : 1333,
-                        mode: "fill",
+                        height: isMobile ? 750 : 1333,
+                        mode: "fit",
                       })
                     : "/placeholder.svg?height=600&width=450&query=dress"
                 }
                 alt={product.name}
                 fill
-                className="object-cover"
+                className="object-contain"
               />
               {product.images.length > 1 && (
                 <>
