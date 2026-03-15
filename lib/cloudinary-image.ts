@@ -20,6 +20,7 @@ function isCloudinaryHttpUrl(value: string): boolean {
 function sanitizePublicId(publicIdOrUrl: string): string {
   if (!publicIdOrUrl) return ""
 
+  // Keep non-Cloudinary HTTP(S) URLs untouched.
   if (/^https?:\/\//i.test(publicIdOrUrl) && !isCloudinaryHttpUrl(publicIdOrUrl)) {
     return ""
   }
