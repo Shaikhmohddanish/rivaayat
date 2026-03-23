@@ -223,7 +223,7 @@ export function QuickViewModal({ product, open, onClose }: QuickViewModalProps) 
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto p-6">
+      <DialogContent className="max-w-4xl w-[calc(100vw-2rem)] max-h-[90vh] overflow-y-auto overflow-x-hidden p-3 sm:p-6">
         <DialogHeader className="pb-2">
           <DialogTitle className="text-xl font-bold">{product.name}</DialogTitle>
         </DialogHeader>
@@ -268,12 +268,12 @@ export function QuickViewModal({ product, open, onClose }: QuickViewModalProps) 
 
             {/* Thumbnail Gallery */}
             {product.images.length > 1 && (
-              <div className="flex gap-2 overflow-x-auto">
+              <div className="flex gap-2 flex-wrap">
                 {product.images.map((image, index) => (
                   <button
                     key={index}
                     onClick={() => setCurrentImageIndex(index)}
-                    className={`relative w-20 h-20 flex-shrink-0 rounded-md overflow-hidden border-2 ${
+                    className={`relative w-16 h-16 sm:w-20 sm:h-20 flex-shrink-0 rounded-md overflow-hidden border-2 ${
                       index === currentImageIndex ? "border-primary" : "border-transparent"
                     }`}
                   >
