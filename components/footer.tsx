@@ -110,8 +110,6 @@ export function Footer({ siteSettings }: FooterProps) {
             <div className="space-y-2 text-sm text-muted-foreground">
               <p className="font-medium text-foreground">Shipping</p>
               <p>Free shipping on orders above ₹{shippingThreshold}.</p>
-              <p className="font-medium text-foreground">Office Address</p>
-              <p>C/310 Crystal Plaza, Lower Oshiwara, Andheri West, Mumbai 400056</p>
               <p className="font-medium text-foreground">Write to us</p>
               <a href={`mailto:${contactEmail}`} className="hover:text-primary transition-colors">
                 {contactEmail}
