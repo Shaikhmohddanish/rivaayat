@@ -2,34 +2,12 @@ import { NextResponse } from "next/server"
 import { getDatabase } from "@/lib/mongodb"
 import { requireAdmin } from "@/lib/auth"
 import type { Product } from "@/lib/types"
-import { getCache, setCache, deleteCache, REDIS_KEYS } from "@/lib/redis"
-
-// Cache for 1 hour (3600 seconds) since products don't change frequently
-const PRODUCTS_CACHE_TTL = 3600
+import { deleteCache, REDIS_KEYS } from "@/lib/redis"
+import { getProducts } from "@/lib/products"
 
 export async function GET() {
   try {
-    // 🚀 Try to get from Redis cache first
-    const cached = await getCache<any[]>(REDIS_KEYS.PRODUCT_LIST)
-    if (cached) {
-      console.log("✅ Products loaded from Redis cache")
-      return NextResponse.json(cached)
-    }
-
-    console.log("Fetching products from database")
-    const db = await getDatabase()
-    const products = await db.collection<Product>("products").find({}).toArray()
-
-    const formattedProducts = products.map((p) => ({
-      ...p,
-      _id: p._id?.toString(),
-    }))
-
-    // 🚀 Cache the result in Redis for 1 hour
-    await setCache(REDIS_KEYS.PRODUCT_LIST, formattedProducts, PRODUCTS_CACHE_TTL)
-    console.log("✅ Products cached in Redis")
-
-    return NextResponse.json(formattedProducts)
+    return NextResponse.json(await getProducts())
   } catch (error) {
     console.error("Get products error:", error)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })

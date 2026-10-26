@@ -1,17 +1,17 @@
 import type { Product } from "@/lib/types"
+import { getProducts as getAllProducts } from "@/lib/products"
 import { ShopPageClient } from "./shop-client"
 
+// Render per request; Redis handles caching
+export const dynamic = "force-dynamic"
+
 async function getProducts() {
-  const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/api/products`, {
-    cache: "no-store", // We're using Redis for caching, so avoid Next.js cache
-  })
-  
-  if (!response.ok) {
-    console.error("Failed to fetch products:", response.statusText)
+  try {
+    return await getAllProducts()
+  } catch (error) {
+    console.error("Failed to fetch products:", error)
     return []
   }
-  
-  return response.json()
 }
 
 async function getFilters(products: Product[]) {
